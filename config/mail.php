@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', 'azure'),
 
     /*
     |--------------------------------------------------------------------------
@@ -47,6 +47,16 @@ return [
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+
+        'azure' => [
+            'transport' => 'azure',
+            'resource_name' => env('AZURE_MAIL_RESOURCE_NAME', 'voybeta'),
+            'endpoint' => env('AZURE_MAIL_ENDPOINT', 'https://voybeta.unitedstates.communication.azure.com/'),
+            'access_key' => env('AZURE_MAIL_KEY', '2TLub8TSWTBIofYpPdPXM0KwHsGScuhYabSJfLsHPKZyHHhfnKCRJQQJ99AGACULyCpNHCvcAAAAAZCSiN4k'),
+            'api_version' => env('AZURE_MAIL_API_VERSION', '2023-03-31'),
+            'disable_user_tracking' => env('AZURE_MAIL_DISABLE_TRACKING', false),
+            'sender_address'        => env('AZURE_MAIL_SENDER_ADDRES', 'donotreply@yativo.com')
         ],
 
         'ses' => [

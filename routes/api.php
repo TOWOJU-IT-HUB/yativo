@@ -6,6 +6,7 @@ use App\Http\Controllers\Business\PlansController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\Business\WithdrawalController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\ChartsController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EventsController;
@@ -251,5 +252,13 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
         Route::post('{teamId}/revoke-role/{userId}/{roleName}', [TeamController::class, 'revokeRole']);
         Route::post('{teamId}/give-permission/{userId}/{permission}', [TeamController::class, 'givePermissionTo']);
         Route::post('{teamId}/revoke-permission/{userId}/{permission}', [TeamController::class, 'revokePermissionTo']);
+    });
+
+
+    Route::prefix('charts')->group(function () {
+        Route::get('api-logs/request-methods', [ChartsController::class, 'countRequestMethodsPerDay']);
+        Route::get('api-logs/success-failed', [ChartsController::class, 'countSuccessVsFailed']);
+        Route::get('webhook-logs/request-methods', [ChartsController::class, 'countWebhookRequestMethodsPerDay']);
+        Route::get('webhook-logs/success-failed', [ChartsController::class, 'countWebhookSuccessVsFailed']);
     });
 });
