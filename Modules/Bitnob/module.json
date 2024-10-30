@@ -1,0 +1,11 @@
+{
+    "name": "Bitnob",
+    "alias": "bitnob",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Bitnob\\app\\Providers\\BitnobServiceProvider"
+    ],
+    "files": []
+}

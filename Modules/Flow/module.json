@@ -1,0 +1,11 @@
+{
+    "name": "Flow",
+    "alias": "flow",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Flow\\app\\Providers\\FlowServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/moneygram",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Moneygram\\": "",
+            "Modules\\Moneygram\\App\\": "app/",
+            "Modules\\Moneygram\\Database\\Factories\\": "database/factories/",
+            "Modules\\Moneygram\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Moneygram\\Tests\\": "tests/"
+        }
+    }
+}

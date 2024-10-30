@@ -1,0 +1,11 @@
+{
+    "name": "Moneygram",
+    "alias": "moneygram",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Moneygram\\app\\Providers\\MoneygramServiceProvider"
+    ],
+    "files": []
+}

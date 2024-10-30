@@ -1,0 +1,11 @@
+{
+    "name": "ShuftiPro",
+    "alias": "shuftipro",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ShuftiPro\\app\\Providers\\ShuftiProServiceProvider"
+    ],
+    "files": []
+}

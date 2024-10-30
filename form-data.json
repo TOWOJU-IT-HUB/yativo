@@ -1,0 +1,84 @@
+[
+    {
+        "mode": "monnet",
+        "address": {
+            "city": "Lugbe",
+            "state": "FCT - Abuja",
+            "country": "Nigeria",
+            "postal_code": "900709"
+        },
+        "nickname": "John Doe Zenith bank",
+        "currency": "NGN",
+        "beneficiary": {
+            "name": "Yativo Smith",
+            "email": "john@yativo.com"
+        },
+        "destination": {
+            "bank_name": "Access bank",
+            "bank_code": "044",
+            "account_number": "0719841763",
+            "account_name": "Yativo Smith"
+        }
+    },
+    {
+        "mode": "monnet",
+        "nickname": "Monnet PERU (C.C.I)",
+        "currency": "PEN",
+        "description": "Payout sample object for PERU (C.C.I)",
+        "address": {
+            "street": "Caranday",
+            "houseNumber": "966",
+            "additionalInfo": "Payout sample object for PERU (C.C.I)",
+            "city": "CABA",
+            "province": "Lima",
+            "zipCode": "1408"
+        },
+        "beneficiary": {
+            "name": "Sergio",
+            "lastName": "test",
+            "email": "test@test.com",
+            "document": {
+                "type": 1,
+                "number": "33446836"
+            }
+        },
+        "destination": {
+            "bankAccount": {
+                "bankCode": "001",
+                "accountType": "1",
+                "accountNumber": "",
+                "cci": "1234567891234567891"
+            }
+        }
+    },
+    {
+        "mode": "monnet",
+        "nickname": "Monnet Mexico (Clave)",
+        "currency": "MXN",
+        "description": "Payout sample object for Mexico (Clave)",
+        "address": {
+            "street": "Mexico",
+            "houseNumber": "966",
+            "additionalInfo": "Payout sample object for Mexico (Clave)",
+            "city": "CABA",
+            "province": "Lima",
+            "zipCode": "1408"
+        },
+        "beneficiary": {
+            "name": "Sergio",
+            "lastName": "test",
+            "email": "test@test.com",
+            "document": {
+                "type": 1,
+                "number": "33446836"
+            }
+        },
+        "destination": {
+            "bankAccount": {
+                "bankCode": "002",
+                "clave": "002123456789123456"
+            }
+        }
+    }
+]
+

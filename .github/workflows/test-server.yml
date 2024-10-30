@@ -1,0 +1,42 @@
+on: 
+    push:
+        branches:
+            - test-server
+name: 🚀 Deploy website on push
+
+jobs:
+    web-deploy:
+        name: 🎉 Deploy
+
+        runs-on: ubuntu-latest
+        steps:
+            - name: 🚚 Get latest code
+              uses: actions/checkout@v3
+            # - name: Prepare the environment
+            #   run: cp .env.example .env
+            - name: Run composer install
+              run: |
+                    composer validate && composer install --ignore-platform-reqs --prefer-dist
+            - name: 📂 Sync files
+              uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+              with:
+                    server: zinar.io
+                    username: ${{ secrets.USER_NAME }}
+                    password: ${{ secrets.PASSWORD }}
+                    server-dir: /public_html/
+                    exclude: |
+                        .env
+                        .git*
+                        .github/
+                        node_modules/
+                        vendor/
+                        storage/logs/*.log
+                        tests/
+                        .editorconfig
+                        .gitattributes
+                        .gitignore
+                        .styleci.yml
+                        README.md
+                        phpunit.xml
+
+                        

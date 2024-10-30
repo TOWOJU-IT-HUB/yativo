@@ -1,0 +1,11 @@
+{
+    "name": "WaaS",
+    "alias": "waas",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\WaaS\\app\\Providers\\WaaSServiceProvider"
+    ],
+    "files": []
+}

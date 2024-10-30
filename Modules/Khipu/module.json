@@ -1,0 +1,11 @@
+{
+    "name": "Khipu",
+    "alias": "khipu",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Khipu\\app\\Providers\\KhipuServiceProvider"
+    ],
+    "files": []
+}

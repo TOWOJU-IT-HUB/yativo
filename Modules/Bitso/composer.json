@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/bitso",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Bitso\\": "",
+            "Modules\\Bitso\\App\\": "app/",
+            "Modules\\Bitso\\Database\\Factories\\": "database/factories/",
+            "Modules\\Bitso\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Bitso\\Tests\\": "tests/"
+        }
+    }
+}

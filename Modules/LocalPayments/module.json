@@ -1,0 +1,11 @@
+{
+    "name": "LocalPayments",
+    "alias": "localpayments",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\LocalPayments\\app\\Providers\\LocalPaymentsServiceProvider"
+    ],
+    "files": []
+}

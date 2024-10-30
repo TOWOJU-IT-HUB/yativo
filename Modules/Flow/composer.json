@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/flow",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Flow\\": "",
+            "Modules\\Flow\\App\\": "app/",
+            "Modules\\Flow\\Database\\Factories\\": "database/factories/",
+            "Modules\\Flow\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Flow\\Tests\\": "tests/"
+        }
+    }
+}

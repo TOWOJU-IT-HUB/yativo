@@ -1,0 +1,11 @@
+{
+    "name": "CoinPayments",
+    "alias": "coinpayments",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\CoinPayments\\app\\Providers\\CoinPaymentsServiceProvider"
+    ],
+    "files": []
+}

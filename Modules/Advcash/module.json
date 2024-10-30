@@ -1,0 +1,11 @@
+{
+    "name": "Advcash",
+    "alias": "advcash",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Advcash\\app\\Providers\\AdvcashServiceProvider"
+    ],
+    "files": []
+}

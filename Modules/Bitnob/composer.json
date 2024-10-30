@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/bitnob",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Bitnob\\": "",
+            "Modules\\Bitnob\\App\\": "app/",
+            "Modules\\Bitnob\\Database\\Factories\\": "database/factories/",
+            "Modules\\Bitnob\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Bitnob\\Tests\\": "tests/"
+        }
+    }
+}

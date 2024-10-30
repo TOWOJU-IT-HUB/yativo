@@ -1,0 +1,1 @@
+<img src="{{ asset('images/logo/logo.png') }}" alt="{{ config('app.name') }} Logo" style="max-width: 350px;">

@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/waas",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\WaaS\\": "",
+            "Modules\\WaaS\\App\\": "app/",
+            "Modules\\WaaS\\Database\\Factories\\": "database/factories/",
+            "Modules\\WaaS\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\WaaS\\Tests\\": "tests/"
+        }
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "name": "Beneficiary",
+    "alias": "beneficiary",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Beneficiary\\app\\Providers\\BeneficiaryServiceProvider"
+    ],
+    "files": []
+}

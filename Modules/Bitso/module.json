@@ -1,0 +1,11 @@
+{
+    "name": "Bitso",
+    "alias": "bitso",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Bitso\\app\\Providers\\BitsoServiceProvider"
+    ],
+    "files": []
+}

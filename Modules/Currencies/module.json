@@ -1,0 +1,11 @@
+{
+    "name": "Currencies",
+    "alias": "currencies",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Currencies\\app\\Providers\\CurrenciesServiceProvider"
+    ],
+    "files": []
+}

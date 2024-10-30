@@ -1,0 +1,11 @@
+{
+    "name": "SendMoney",
+    "alias": "sendmoney",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\SendMoney\\app\\Providers\\SendMoneyServiceProvider"
+    ],
+    "files": []
+}

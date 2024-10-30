@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/shuftipro",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\ShuftiPro\\": "",
+            "Modules\\ShuftiPro\\App\\": "app/",
+            "Modules\\ShuftiPro\\Database\\Factories\\": "database/factories/",
+            "Modules\\ShuftiPro\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\ShuftiPro\\Tests\\": "tests/"
+        }
+    }
+}

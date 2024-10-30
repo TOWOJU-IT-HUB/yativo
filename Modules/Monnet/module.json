@@ -1,0 +1,11 @@
+{
+    "name": "Monnet",
+    "alias": "monnet",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Monnet\\app\\Providers\\MonnetServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "Transak",
+    "alias": "transak",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Transak\\app\\Providers\\TransakServiceProvider"
+    ],
+    "files": []
+}

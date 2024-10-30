@@ -1,0 +1,14 @@
+ {
+    "payout_webhook": {
+        "payinStateID": "5",
+        "payinState": "Autorizado",
+        "payinStatusErrorMessage": null,
+        "payinStatusErrorCode": "00",
+        "payinMerchantID": "618",
+        "payinAmount": "1030.0",
+        "payinCurrency": "MXN",
+        "payinMerchantOperationNumber": "101",
+        "payinMethod": "TC\/TD (Credit\/Debit Card)",
+        "payinVerification": "8679695985726f872afb024410d26b656320e4fd7941759f5c99a3bf73a56d1e00c266230b265bafb2389197ea92938d77a3286c9501a12ddf62c11b2e0c098b"
+    }
+}

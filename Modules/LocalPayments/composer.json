@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/localpayments",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\LocalPayments\\": "",
+            "Modules\\LocalPayments\\App\\": "app/",
+            "Modules\\LocalPayments\\Database\\Factories\\": "database/factories/",
+            "Modules\\LocalPayments\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\LocalPayments\\Tests\\": "tests/"
+        }
+    }
+}

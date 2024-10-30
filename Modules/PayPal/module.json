@@ -1,0 +1,11 @@
+{
+    "name": "PayPal",
+    "alias": "paypal",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\PayPal\\app\\Providers\\PayPalServiceProvider"
+    ],
+    "files": []
+}

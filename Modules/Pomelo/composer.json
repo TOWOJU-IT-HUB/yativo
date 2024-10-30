@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/pomelo",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Pomelo\\": "",
+            "Modules\\Pomelo\\App\\": "app/",
+            "Modules\\Pomelo\\Database\\Factories\\": "database/factories/",
+            "Modules\\Pomelo\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Pomelo\\Tests\\": "tests/"
+        }
+    }
+}

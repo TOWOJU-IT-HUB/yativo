@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/khipu",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Khipu\\": "",
+            "Modules\\Khipu\\App\\": "app/",
+            "Modules\\Khipu\\Database\\Factories\\": "database/factories/",
+            "Modules\\Khipu\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Khipu\\Tests\\": "tests/"
+        }
+    }
+}

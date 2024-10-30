@@ -1,0 +1,11 @@
+{
+    "name": "VitaWallet",
+    "alias": "vitawallet",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\VitaWallet\\app\\Providers\\VitaWalletServiceProvider"
+    ],
+    "files": []
+}

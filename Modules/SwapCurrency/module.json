@@ -1,0 +1,11 @@
+{
+    "name": "SwapCurrency",
+    "alias": "swapcurrency",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\SwapCurrency\\app\\Providers\\SwapCurrencyServiceProvider"
+    ],
+    "files": []
+}

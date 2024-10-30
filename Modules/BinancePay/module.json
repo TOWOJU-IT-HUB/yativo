@@ -1,0 +1,11 @@
+{
+    "name": "BinancePay",
+    "alias": "binancepay",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\BinancePay\\app\\Providers\\BinancePayServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "Pomelo",
+    "alias": "pomelo",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Pomelo\\app\\Providers\\PomeloServiceProvider"
+    ],
+    "files": []
+}
