@@ -26,9 +26,9 @@ use Yadahan\AuthenticationLog\AuthenticationLogable;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, HasProfilePhoto, //HasRoles, 
+    use HasApiTokens, HasFactory, HasProfilePhoto,
         Notifiable, TwoFactorAuthenticatable, AuthenticationLogable,
-        HasPermissions, HasWallet, HasWalletFloat, HasWallets, SoftDeletes, HasPlans;
+        HasRoles, HasPermissions, HasWallet, HasWalletFloat, HasWallets, SoftDeletes, HasPlans;
 
 
     protected $fillable = [

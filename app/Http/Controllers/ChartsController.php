@@ -55,6 +55,27 @@ class ChartsController extends Controller
 
         return response()->json($responseData);
     }
+    
+    public function countWebhookRequestMethodsPerDay(Request $request)
+    {
+        // Get the range from the request, defaulting to 'last_7_days'
+        $range = $request->input('range', 'last_7_days');
+        $startDate = $this->getStartDate($range);
+
+        $requestMethodCounts = DB::table('webhook_logs')->whereUserId(auth()->id())
+            ->select(DB::raw('DATE(created_at) as date'), 'method', DB::raw('COUNT(*) as count'))
+            ->whereBetween('created_at', [$startDate, Carbon::now()])
+            ->groupBy('date', 'status')
+            ->orderBy('date', 'asc')
+            ->get();
+
+        $data = [];
+        foreach ($requestMethodCounts as $logCount) {
+            $data[$logCount->date][$logCount->method] = $logCount->count;
+        }
+
+        return response()->json($data);
+    }
 
     public function getApiLogCounts(Request $request)
     {
