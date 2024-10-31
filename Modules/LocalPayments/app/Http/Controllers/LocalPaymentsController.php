@@ -126,12 +126,14 @@ class LocalPaymentsController extends Controller
 
     public function get_banks__call($country)
     {
-        $local = new Localpayments();
-        $endpoint = "/api/resources/banks?CountryISOCode3=" . urlencode($country);
-
-        $response = $local->curl($endpoint, "get");
-
-        return $response;
+        $cacheKey = "banks_list_{$country}";
+        
+        return cache()->remember($cacheKey, now()->addHours(24), function () use ($country) {
+            $local = new Localpayments();
+            $endpoint = "/api/resources/banks?CountryISOCode3=" . urlencode($country);
+            
+            return $local->curl($endpoint, "get");
+        });
     }
 
     public static function getPayinAccountNumber($country, $currency, $paymentCode = null)
