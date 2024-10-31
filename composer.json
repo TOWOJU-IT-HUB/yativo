@@ -33,7 +33,10 @@
         "towoju5/localpayments": "^1.2",
         "towoju5/plans": "^1.1",
         "tymon/jwt-auth": "*",
-        "yadahan/laravel-authentication-log": "^1.7"
+        "yadahan/laravel-authentication-log": "^1.7",
+        "yajra/laravel-datatables-buttons": "^11.2",
+        "yajra/laravel-datatables-html": "^11.6",
+        "yajra/laravel-datatables-oracle": "^11.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
