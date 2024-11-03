@@ -91,7 +91,7 @@ class DepositService
                 "tracking_status" => "Deposit initiated successfully",
                 "raw_data" => (array) $result
             ]);
-
+            Log::info($result);
             return $result;
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
@@ -101,271 +101,126 @@ class DepositService
     public function local_payment($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         try {
-            // ddd($amount);
             $request = request();
             $paymentMethod = null;
-            if (strtolower(getenv('LOCALPAYMENT_MODE')) === 'test') {
-                $accs = json_decode(file_get_contents(public_path("pay-methods/localpayment-account-test.json")), true);
-            } else {
-                $accs = json_decode(file_get_contents(public_path("pay-methods/localpayment-account.json")), true);
+            
+            // Determine account file path based on environment
+            $accountFilePath = public_path('pay-methods/' . (strtolower(getenv('LOCALPAYMENT_MODE')) === 'test' ? 'localpayment-account-test.json' : 'localpayment-account.json'));
+            
+            // Load and decode account data
+            if (!file_exists($accountFilePath)) {
+                throw new \Exception("File not found at path: " . $accountFilePath);
             }
-
-            if (strtolower($gateway->payment_mode) === 'apm') {
-                $payment_mode = "BankTransfer";
-                if (preg_match('/\((.*?)\)/', $gateway->method_name, $matches)) {
-                    $paymentMethod = strtolower($matches[1]);
-                }
-            } else {
-                $payment_mode = $gateway->payment_mode;
+            $accountData = json_decode(file_get_contents($accountFilePath), true);
+    
+            // Determine payment mode and method
+            $payment_mode = strtolower($gateway->payment_mode) === 'apm' ? 'BankTransfer' : $gateway->payment_mode;
+            if ($payment_mode === 'BankTransfer' && preg_match('/\((.*?)\)/', $gateway->method_name, $matches)) {
+                $paymentMethod = strtolower($matches[1]);
             }
-
-
-            foreach ($accs as $acc) {
-                $isMatch = strtolower($acc['country_iso3']) === strtolower($gateway->country)
+    
+            // Find matching account details
+            $payObj = collect($accountData)->first(function ($acc) use ($payment_mode, $gateway, $currency, $paymentMethod, $amount) {
+                return strtolower($acc['country_iso3']) === strtolower($gateway->country)
                     && strtolower($acc['currency_iso3']) === strtolower($currency)
-                    // && strtolower($acc["transactionType"]) === "payin"
-                    && strtolower($acc['paymentMethodType']) === strtolower($payment_mode);
-
-                if ($paymentMethod !== null) {
-                    $isMatch = $isMatch && strtolower($acc['name']) === strtolower($paymentMethod);
-                }
-
-                if ($isMatch) {
-                    if (isset($acc['minAmount']) && $amount < $acc['minAmount']) {
-                        return ['error' => 'Amount is below the minimum allowed: ' . $acc['minAmount']];
-                    }
-
-                    if (isset($acc['minAmount']) && $amount > $acc['maxAmount']) {
-                        return ['error' => 'Amount exceeds the maximum allowed: ' . $acc['maxAmount']];
-                    }
-
-                    $payObj = (object) $acc;
-                    break;
-                }
-            }
-
-            if (!isset($payObj)) {
+                    && strtolower($acc['paymentMethodType']) === strtolower($payment_mode)
+                    && ($paymentMethod === null || strtolower($acc['name']) === strtolower($paymentMethod))
+                    && (!isset($acc['minAmount']) || $amount >= $acc['minAmount'])
+                    && (!isset($acc['maxAmount']) || $amount <= $acc['maxAmount']);
+            });
+    
+            if (!$payObj) {
                 return ['error' => 'Payment method is currently unavailable, please contact support'];
             }
-
-
+    
             $customer = auth()->user();
-            $name = explode(" ", $customer->name);
-
-            $accountNumber = $payObj->number;
-
+            $accountNumber = $payObj['number'] ?? null;
+    
             if (is_array($accountNumber) && isset($accountNumber['error'])) {
                 return $accountNumber;
             }
-
-            switch (strtolower($gateway->payment_mode)) {
-                case 'cash':
-                    $payload = [
-                        "paymentMethod" => [
-                            "type" => "Cash",
-                            "code" => $payObj->gateway_code,
-                            "flow" => "REDIRECT"
-                        ],
-                        "externalId" => $deposit_id,
-                        "country" => $gateway->country,
-                        "amount" => floatval($amount),
-                        "currency" => $gateway->currency,
-                        "accountNumber" => $accountNumber,
-                        "conceptCode" => "0003",
-                        "comment" => "Yativo payin transaction id: " . $deposit_id,
-                        "merchant" => [
-                            "type" => "COMPANY",
-                            "name" => "Zee Technologies SPA",
-                            "email" => "michael@yativo.com"
-                        ],
-                        "payer" => [
-                            "type" => "INDIVIDUAL",
-                            "name" => $customer->firstName,
-                            "lastname" => $customer->lastName,
-                            "document" => [
-                                "id" => $customer->idNumber,
-                                "type" => $customer->idType
-                            ],
-                            "email" => $customer->email,
-                            "bank" => [
-                                "name" => $request->bank_name,
-                                "code" => $request->bank_code,
-                                "account" => [
-                                    "number" => $request->account_number,
-                                    "type" => $request->account_type
-                                ],
-                            ],
-                        ]
-                    ];
-                    // if ($customer->is_business) {
-                    //     unset($payload['payer']);
-                    //     $payload['payer'] = [
-                    //         "type" => "COMPANY",
-                    //         "name" => $customer->firstName,
-                    //         "document" => [
-                    //             "id" => $customer->idNumber,
-                    //             "type" => $customer->idType
-                    //         ],
-                    //         "email" => $customer->email,
-                    //         "bank" => [
-                    //             "name" => $request->bank_name,
-                    //             "code" => $request->bank_code,
-                    //             "account" => [
-                    //                 "number" => $request->account_number,
-                    //                 "type" => $request->account_type
-                    //             ],
-                    //         ],
-                    //     ];
-                    // }
-                    break;
-                case 'banktransfer':
-                    $payload = [
-                        "paymentMethod" => [
-                            "type" => ucfirst($payObj->paymentMethodType),
-                            "code" => $payObj->gateway_code,
-                            "flow" => "DIRECT"
-                        ],
-                        "externalId" => $deposit_id,
-                        "country" => strtoupper($payObj->country_iso3),
-                        "amount" => floatval($amount),
-                        "currency" => strtoupper($gateway->currency),
-                        "accountNumber" => $accountNumber,
-                        "conceptCode" => "0003",
-                        "comment" => "Yativo payin transaction id: " . $deposit_id,
-                        "merchant" => [
-                            "type" => "COMPANY",
-                            "name" => "Zee Technologies SPA",
-                            "email" => "michael@yativo.com"
-                        ],
-                        "payer" => [
-                            "type" => "INDIVIDUAL",
-                            "name" => $customer->firstName,
-                            "lastname" => $customer->lastName,
-                            "document" => [
-                                "id" => $request->document_id ?? $customer->idNumber,
-                                "type" => $request->document_type ?? $customer->idType
-                            ],
-                            "email" => $customer->email,
-                            "bank" => [
-                                "name" => $request->bank_name,
-                                "code" => $request->bank_code,
-                                "account" => [
-                                    "number" => $request->account_number,
-                                    "type" => $request->account_type
-                                ],
-                            ],
-                        ]
-                    ];
-
-                    // if ($customer->is_business) {
-                    //     unset($payload['payer']);
-                    //     $payload['payer'] = [
-                    //         "type" => "COMPANY",
-                    //         "name" => $customer->firstName,
-                    //         "document" => [
-                    //             "id" => $customer->idNumber,
-                    //             "type" => $customer->idType
-                    //         ],
-                    //         "email" => $customer->email,
-                    //         "bank" => [
-                    //             "name" => $request->bank_name,
-                    //             "code" => $request->bank_code,
-                    //             "account" => [
-                    //                 "number" => $request->account_number,
-                    //                 "type" => $request->account_type
-                    //             ],
-                    //         ],
-                    //     ];
-                    // }
-                    break;
-                case 'apm':
-                    $payload = [
-                        "paymentMethod" => [
-                            "type" => ucfirst($payObj->paymentMethodType),
-                            "code" => $payObj->gateway_code,
-                            "flow" => "REDIRECT"
-                        ],
-                        "externalId" => $deposit_id,
-                        "country" => $gateway->country,
-                        "amount" => floatval($amount),
-                        "currency" => $gateway->currency,
-                        "accountNumber" => $accountNumber,
-                        "conceptCode" => "0003",
-                        "comment" => "Yativo payin transaction id: " . $deposit_id,
-                        "merchant" => [
-                            "type" => "COMPANY",
-                            "name" => "Zee Technologies SPA",
-                            "email" => "michael@yativo.com"
-                        ],
-                        "payer" => [
-                            "type" => "INDIVIDUAL",
-                            "name" => $customer->firstName,
-                            "lastname" => $customer->lastName,
-                            "document" => [
-                                "id" => $request->document_id ?? $customer->idNumber,
-                                "type" => $request->document_type ?? $customer->idType
-                            ],
-                            "email" => $customer->email,
-                        ]
-                    ];
-                    // if ($customer->is_business) {
-                    //     unset($payload['payer']);
-                    //     $payload['payer'] = [
-                    //         "type" => "COMPANY",
-                    //         "name" => $customer->firstName,
-                    //         "document" => [
-                    //             "id" => $customer->idNumber,
-                    //             "type" => $customer->idType
-                    //         ],
-                    //         "email" => $customer->email
-                    //     ];
-                    // }
-                    break;
-
-                default:
-                    # code...
-                    break;
+    
+            // Prepare payload based on payment mode
+            $basePayload = [
+                "paymentMethod" => [
+                    "type" => ucfirst($payObj['paymentMethodType']),
+                    "code" => $payObj['gateway_code'],
+                    "flow" => strtolower($gateway->payment_mode) === 'apm' ? 'REDIRECT' : 'DIRECT',
+                ],
+                "externalId" => $deposit_id,
+                "country" => strtoupper($payObj['country_iso3']),
+                "amount" => floatval($amount),
+                "currency" => strtoupper($gateway->currency),
+                "accountNumber" => $accountNumber,
+                "conceptCode" => "0003",
+                "comment" => "Yativo payin transaction id: " . $deposit_id,
+                "merchant" => [
+                    "type" => "COMPANY",
+                    "name" => "Zee Technologies SPA",
+                    "email" => "michael@yativo.com",
+                ],
+            ];
+    
+            $payerDetails = [
+                "type" => "INDIVIDUAL",
+                "name" => $customer->firstName,
+                "lastname" => $customer->lastName,
+                "document" => [
+                    "id" => $request->document_id ?? $customer->idNumber,
+                    "type" => $request->document_type ?? $customer->idType,
+                ],
+                "email" => $customer->email,
+            ];
+    
+            if (strtolower($gateway->payment_mode) === 'cash') {
+                $payerDetails['bank'] = [
+                    "name" => $request->bank_name,
+                    "code" => $request->bank_code,
+                    "account" => [
+                        "number" => $request->account_number,
+                        "type" => $request->account_type,
+                    ],
+                ];
             }
-
+    
+            $payload = array_merge($basePayload, ["payer" => $payerDetails]);
+    
+            // Initiate local payment
             $local = new Localpayments();
-
             $payin = $local->payin()->init($payload);
-
-
+    
+            // Handle responses
             if (!is_array($payin)) {
-                result($payin);
+                return ['result' => $payin];
             }
-
+    
             if (isset($payin['error']) && !is_array($payin['error'])) {
-                $arr = json_decode($payin['error'], true);
-                if (isset($arr['errors'])) {
-                    return ['error' => $arr['errors']];
-                }
+                $errors = json_decode($payin['error'], true);
+                return ['error' => $errors['errors'] ?? $payin['error']];
             }
-
+    
             if (isset($payin["qr"])) {
                 return ['qr' => array_merge($payin["qr"], $payin['payment'])];
             }
-
+    
             if (isset($payin['redirectUrl'])) {
                 return $payin['redirectUrl'];
             }
-
-            if (isset($payin['wireInstructions']) && isset($payin['payment'])) {
+    
+            if (isset($payin['wireInstructions'], $payin['payment'])) {
                 return array_merge($payin['payment'], $payin['wireInstructions']);
             }
-
-
-            if (isset($payin['ticket']) && isset($payin['payment'])) {
+    
+            if (isset($payin['ticket'], $payin['payment'])) {
                 return array_merge($payin['payment'], $payin['ticket']);
             }
-
-
-            return (array) $payin;
+    
+            return (array)$payin;
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(),];
+            return ['error' => $th->getMessage()];
         }
     }
+    
 
     public function binance_pay($deposit_id, $amount, $currency, $txn_type, $gateway)
     {

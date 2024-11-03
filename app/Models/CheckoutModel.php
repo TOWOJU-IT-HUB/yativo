@@ -21,6 +21,11 @@ class CheckoutModel extends Model
         'checkout_status',
     ];
 
+    // Cast the provider_checkout_response attribute to array
+    protected $casts = [
+        'provider_checkout_response' => 'array', // Automatically encode/decode to/from JSON
+    ];
+
     // Optionally, you can add relationships if needed
     public function user()
     {

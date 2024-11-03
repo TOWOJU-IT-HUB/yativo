@@ -67,6 +67,8 @@ class DepositController extends Controller
                 return get_error_response(['error' => "Invalid wallet selected"], 400);
             }
 
+            $exchange_rate = floatval(get_transaction_rate($payin->currency, $deposit->deposit_currency, $payin->id, "payin"));
+
             $payin = PayinMethods::whereId($request->gateway)->first();
             // record deposit info into the DB
             $deposit = new Deposit();
@@ -75,9 +77,9 @@ class DepositController extends Controller
             $deposit->user_id = active_user();
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
-
-            $exchange_rate = floatval(get_transaction_rate($payin->currency, $deposit->deposit_currency, $payin->id, "payin"));
+            $deposit->receive_amount = floatval($request->amount * $exchange_rate);
             $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+
             // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
 
             if (!$payin) {
@@ -120,78 +122,78 @@ class DepositController extends Controller
     {
         try {
             $payment = new DepositService();
-
             $callback = $payment->makeDeposit($gateway, $currency, $amount, $deposit, $txn_type);
 
-            if (is_object($callback)) {
+            if (is_string($callback)) {
+                $callback = ['url' => $callback];  // Treat string responses as redirect URLs
+            } elseif (is_object($callback)) {
                 $callback = (array) $callback;
             }
 
-            if (empty($callback) or isset($callback['error'])) {
-                return ['error' => $callback];
+            if (empty($callback) || isset($callback['error'])) {
+                return ['error' => $callback['error'] ?? 'An unknown error occurred'];
             }
 
-            if ($callback) {
-                if (is_string($callback)) {
-                    $mode = 'redirect';
-                    $pay_data = $callback;
-                }
+            // Determine the payment mode and data based on callback response
+            $mode = null;
+            $pay_data = null;
 
-                if (isset($callback['url'])) {
-                    $mode = 'redirect';
-                    $pay_data = $callback['url'];
-                }
-
-                if (isset($callback['brCode'])) {
-                    $mode = 'qr_code';
-                    $pay_data = $callback['brCode'];
-                }
-
-                if (isset($callback['qr'])) {
-                    $mode = 'qr_code';
-                    $pay_data = $callback['qr'];
-                }
-
-                if (isset($callback['ticket'])) {
-                    $mode = "wire_details";
-                    $pay_data = $callback['ticket'];
-                }
-
-                if (isset($callback['wireInstructions'])) {
-                    $mode = "wire_details";
-                    $pay_data = $callback['wireInstructions'];
-                }
-
-                $transaction = TransactionRecord::where(["transaction_type" => $txn_type, 'transaction_id' => $deposit['id']])->first();
-                
-                $checkout = new CheckoutModel();
-                $checkout['user_id'] = auth()->id();
-                $checkout['transaction_id'] = $transaction->id;
-                $checkout['deposit_id'] = $deposit['id'];
-                $checkout['checkout_mode'] = $mode;
-                $checkout['checkout_id'] = session()->get("checkout_id", $callback['id']);
-                $checkout['provider_checkout_response'] = $callback;
-                $checkout['checkouturl'] = route("checkout.url", ['id' => $deposit['id']]);
-                $checkout['checkout_status'] = "pending";
-
-                if(!$checkout->save()){                
-                    return ['error' => "Unable to inititate payin, please contact support."];
-                }
-
-                $encryptedId = Crypt::encrypt($checkout->id);
-                $checkoutUrl = route('checkout.url', ['id' => $encryptedId]);
+            if (isset($callback['url'])) {
+                $mode = 'redirect';
+                $pay_data = $callback['url'];
+            } elseif (isset($callback['brCode'])) {
+                $mode = 'brCode';
+                $pay_data = $callback['brCode'];
+            } elseif (isset($callback['qr'])) {
+                $mode = 'qr_code';
+                $pay_data = $callback['qr'];
+            } elseif (isset($callback['ticket'])) {
+                $mode = 'wire_details';
+                $pay_data = $callback['ticket'];
+            } elseif (isset($callback['wireInstructions'])) {
+                $mode = 'wire_details';
+                $pay_data = $callback['wireInstructions'];
+            } else {
+                return ['error' => 'Unsupported payment response format'];
             }
+
+            $transaction = TransactionRecord::where([
+                "transaction_type" => $txn_type,
+                'transaction_id' => $deposit['id']
+            ])->first();
+
+            if (!$transaction) {
+                return ['error' => 'Transaction not found'];
+            }
+
+            // Create a new checkout entry
+            $checkout = new CheckoutModel();
+            $checkout->user_id = auth()->id();
+            $checkout->transaction_id = $transaction->id;
+            $checkout->deposit_id = $deposit['id'];
+            $checkout->checkout_mode = $mode;
+            $checkout->checkout_id = session()->get("checkout_id", $callback['id'] ?? null);
+            $checkout->provider_checkout_response = $callback;
+            $checkout->checkouturl = route("checkout.url", ['id' => $deposit['id']]);
+            $checkout->checkout_status = "pending";
+
+            if (!$checkout->save()) {
+                return ['error' => "Unable to initiate payment, please contact support."];
+            }
+
+            $encryptedId = Crypt::encrypt($checkout->id);
+            $checkoutUrl = route('checkout.url', ['id' => $encryptedId]);
 
             return [
-                'deposit_url' => $checkoutUrl ?? $callback,
-                'deposit_data' => $deposit
+                'deposit_url' => $checkoutUrl,
+                'deposit_data' => $deposit,
             ];
 
-            // return ['error' => "Deposit not saved, please contact support."];
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage(), "trace" => $th->getTrace()];
         }
     }
+
 
     /**
      * Display the specified resource.

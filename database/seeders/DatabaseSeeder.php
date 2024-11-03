@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CurrencyListSeeder::class,
             PayinMethodsSeeder::class,
             PayoutMethodsSeeder::class,
+            PlanSeeder::class,
         ]);
     }
 }

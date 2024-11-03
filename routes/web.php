@@ -8,6 +8,7 @@ use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\TransactionRecordController;
 use App\Models\ApiLog;
 use App\Models\Business\VirtualAccount;
+use App\Models\CheckoutModel;
 use App\Models\ExchangeRate;
 use App\Models\localPaymentTransactions;
 use App\Models\PayinMethods;
@@ -69,11 +70,10 @@ use App\Http\Controllers\ManageDBController;
 // });
 
 
-// Route::get('/', function () {
-//     $bitso = new BitsoServices();
-//     $cop = $bitso->getWallet();
-//     return response()->json($cop);
-// });
+Route::get('/', function () {
+    $records = CheckoutModel::all();
+    return response()->json($records);
+});
 
 
 
@@ -106,8 +106,6 @@ Route::get('clear', function () {
     // Artisan::call('cache:clear');
     // Artisan::call('view:clear');
     // Artisan::call('route:clear');
-
-    return redirect(route('db.backup'));
 
     // return response()->json(['result' => true]);
 });
