@@ -68,7 +68,7 @@ class DepositController extends Controller
             }
 
             $payin = PayinMethods::whereId($request->gateway)->first();
-            $exchange_rate = floatval(get_transaction_rate($payin->currency, $deposit->deposit_currency, $payin->id, "payin"));
+            $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
 
             // record deposit info into the DB
             $deposit = new Deposit();
