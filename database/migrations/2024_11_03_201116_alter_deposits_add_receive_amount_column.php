@@ -9,20 +9,20 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('deposits', function (Blueprint $table) {
-            $table->string('receive_amount')->nullable();
-        });
-    }
+    // public function up(): void
+    // {
+    //     Schema::table('deposits', function (Blueprint $table) {
+    //         // $table->string('receive_amount')->nullable();
+    //     });
+    // }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('deposits', function (Blueprint $table) {
-            $table->dropColumn('receive_amount');
-        });
-    }
+    // /**
+    //  * Reverse the migrations.
+    //  */
+    // public function down(): void
+    // {
+    //     Schema::table('deposits', function (Blueprint $table) {
+    //         $table->dropColumn('receive_amount');
+    //     });
+    // }
 };

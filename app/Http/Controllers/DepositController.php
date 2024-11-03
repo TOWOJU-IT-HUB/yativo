@@ -67,9 +67,9 @@ class DepositController extends Controller
                 return get_error_response(['error' => "Invalid wallet selected"], 400);
             }
 
+            $payin = PayinMethods::whereId($request->gateway)->first();
             $exchange_rate = floatval(get_transaction_rate($payin->currency, $deposit->deposit_currency, $payin->id, "payin"));
 
-            $payin = PayinMethods::whereId($request->gateway)->first();
             // record deposit info into the DB
             $deposit = new Deposit();
             $deposit->currency = $payin->currency;
