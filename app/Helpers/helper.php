@@ -318,7 +318,7 @@ if (!function_exists('get_business_id')) {
 }
 
 if (!function_exists('get_success_response')) {
-    function get_success_response($data, $status_code = 200)
+    function get_success_response($data, $status_code = 200, $message = "Request successful")
     {
         if (isset($data['error'])) {
             return get_error_response($data);
@@ -327,7 +327,7 @@ if (!function_exists('get_success_response')) {
         $response = [
             'status' => 'success',
             'status_code' => $status_code,
-            'message' => 'Request successful',
+            'message' => $message,
             'data' => $data
         ];
         // return $response;

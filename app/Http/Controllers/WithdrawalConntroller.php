@@ -113,6 +113,7 @@ class WithdrawalConntroller extends Controller
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
+
             $validate = $validate->validated();
 
             $is_beneficiary = BeneficiaryPaymentMethod::with('beneficiary')->where(['beneficiary_id' => $request->beneficiary_id, 'id' => $request->payment_method_id])->first();
@@ -149,30 +150,32 @@ class WithdrawalConntroller extends Controller
             $validate['currency'] = $payoutMethod->currency;
             $create = Withdraw::create($validate);
 
+            return get_success_response($create, 201, "Withdrawal request received and will be processed soon.");
+
             if ($create) {
                 $payout = new PayoutService();
                 $checkout = $payout->makePayment($create->id, $payoutMethod->gateway);
                 // return response()->json($checkout);
-                if (!is_array($checkout)) {
-                    $checkout = (array)$checkout; 
-                }
+                // if (!is_array($checkout)) {
+                //     $checkout = (array)$checkout; 
+                // }
 
-                if (isset($checkout['error'])) {
-                    return get_error_response(['error' => $checkout['error']]);
-                }
-                $create->raw_data = $checkout;
-                $create->save();
-                // user()->notify(new WithdrawalNotification($create));
-                $payout = Withdraw::whereId($create->id)->with('beneficiary')->first();
+                // if (isset($checkout['error'])) {
+                //     return get_error_response(['error' => $checkout['error']]);
+                // }
+                // $create->raw_data = $checkout;
+                // $create->save();
+                // // user()->notify(new WithdrawalNotification($create));
+                // $payout = Withdraw::whereId($create->id)->with('beneficiary')->first();
 
 
-                $webhook_url = Webhook::whereUserId(auth()->id())->first();
-                if ($webhook_url) {
-                    WebhookCall::create()->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
-                        "event.type" => "withdrawal",
-                        "payload" => $payout
-                    ])->dispatchSync();
-                }
+                // $webhook_url = Webhook::whereUserId(auth()->id())->first();
+                // if ($webhook_url) {
+                //     WebhookCall::create()->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
+                //         "event.type" => "withdrawal",
+                //         "payload" => $payout
+                //     ])->dispatchSync();
+                // }
 
                 return get_success_response(['response' => $checkout, 'payload' => $payout->makeHidden('raw_data')->toArray()]);
             }

@@ -22,23 +22,24 @@ class ChargeWalletMiddleware
             if ($request->has('amount')) {
 
                 $user = $request->user();
-                $wallet = $user->getWallet('usd');
-                $wallet->deposit(1000000);
-                
+
                 $amount = $request->amount;
                 $fees = 0;
                 $finalAmount = $amount + $fees;
-                if($request->has('payment_method_id')) {
-                   // transaction is withdrawal to beneficiary
-                   $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
-                   response()->json($beneficiary->toArray());
-                   $chargeNow = debit_user_wallet($finalAmount, $beneficiary->currency);
+                if ($request->has('payment_method_id')) {
+                    // transaction is withdrawal to beneficiary
+                    $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
+                    if (!$beneficiary) {
+                        return get_error_response(['error' => 'Beneficiary not found']);
+                    }
+                    //    response()->json($beneficiary->toArray());
+                    $chargeNow = debit_user_wallet($finalAmount, $beneficiary->currency);
                 } else {
                     // for endpoints like Yativo to Yativo transfer
                     $chargeNow = debit_user_wallet($finalAmount, $request->currency);
                 }
 
-                if(isset($chargeNow['error'])) {
+                if (isset($chargeNow['error'])) {
                     return get_error_response(['error' => $chargeNow['error']]);
                 }
 
@@ -48,7 +49,7 @@ class ChargeWalletMiddleware
                     return get_error_response(['error' => 'Insufficient wallet balance']);
                 }
             }
-            
+
             return get_error_response(['error' => "Sorry, we're currently unable to process your transaction"]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
