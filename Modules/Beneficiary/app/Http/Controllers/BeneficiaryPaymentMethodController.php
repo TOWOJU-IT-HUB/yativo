@@ -32,116 +32,92 @@ class BeneficiaryPaymentMethodController extends Controller
      * benefiary payment methods
      */
     public function store(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'gateway_id' => 'required',
-                'payment_data' => 'required',
-                'beneficiary_id' => 'required',
-                'currency' => 'required',
-                'nickname' => 'required',
-            ]);
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'gateway_id' => 'required',
+            'payment_data' => 'required',
+            'beneficiary_id' => 'required',
+            'currency' => 'required',
+            'nickname' => 'required',
+        ]);
 
-            if ($validator->fails()) {
-                return get_error_response($validator->errors());
-            }
-
-            $user = auth()->user();
-            $payload = $request;
-
-            $gateway = payoutMethods::whereId($request->gateway_id)->first();
-            $currency = $gateway->currency;
-
-            if ($gateway->gateway == 'bitso' && strtoupper($gateway->currency) == "USD") {
-                // $user = auth()->user();
-
-                // $where = [
-                //     'user_id' => $user->id,
-                //     'key' => 'bitso_usd_account'
-                // ];
-
-                // $userMeta = UserMeta::where($where)->first();
-
-                // if (is_null($userMeta) or empty($userMeta) or !$userMeta) {
-                //     return ['error' => "Please update you usd bank record firstly"];
-                // }
-
-
-                // $userMeta = $user->userMeta;
-                // $accountId = $userMeta->bitso_account_id;
-
-
-                /**
-                 * make a call to bitso server to store USD account 
-                 * and retrieve the account id for future transactions
-                 */
-
-
-
-            } else if ($gateway->gateway == 'local_payment') {
-                $result = $this->localPayments($request);
-                return get_success_response($result);
-            } elseif ($gateway->gateway == 'monnet') {
-                if (!in_array($currency, ['PEN', 'MXN'])) {
-                    return ['error' => 'Invalid or unsupported Currency type'];
-                }
-
-                if ($currency == "PEN") {
-                    $requirement = [
-                        "document_id" => 2,
-                        'currency' => 'PEN',
-                        'document_value_key' => 'PAS',
-                        'document_type_name' => 'International Passport',
-                        'document_validation_regex' => '/^\d{7,12}$/'
-                    ];
-                } else if ($currency == 'MXN') {
-                    $requirement = [
-                        "document_id" => 4,
-                        'currency' => 'MXN',
-                        'document_value_key' => 'PAS',
-                        'document_type_name' => 'International Passport',
-                        'document_validation_regex' => '/^\d{7,18}$/'
-                    ];
-                }
-
-                $idType = (int) $payload['payment_data']['beneficiary']['document']['type'];
-                $idNumber = $payload['payment_data']['beneficiary']['document']['number'];
-
-                if ($idType !== 4 && $idType !== 2) {
-                    return get_error_response(['error' => "International passport is the only acceptable means of verification. Contact support for other options"]);
-                }
-
-                if (!preg_match($requirement['document_validation_regex'], $idNumber)) {
-                    return get_error_response(['error' => 'Invalid Dcoument ID number']);
-                }
-
-                $model = new BeneficiaryPaymentMethod;
-                $model->user_id = active_user();
-                $model->currency = $gateway->currency;
-                $model->gateway_id = $request->gateway_id;
-                $model->nickname = $request->nickname;
-                $model->address = $request->address;
-                $model->payment_data = $request->payment_data;
-                $model->beneficiary_id = $request->beneficiary_id;
-
-            } else {
-                $model = new BeneficiaryPaymentMethod;
-                $model->user_id = active_user();
-                $model->currency = $gateway->currency;
-                $model->gateway_id = $request->gateway_id;
-                $model->nickname = $request->nickname ?? null;
-                $model->address = $request->address ?? null;
-                $model->payment_data = $request->payment_data;
-                $model->beneficiary_id = $request->beneficiary_id;
-            }
-
-            if ($data = $model->save()) {
-                return get_success_response(['message' => "Payment data processed successfully"]);
-            }
-        } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+        if ($validator->fails()) {
+            return get_error_response($validator->errors()->toArray()); // Convert errors to an array
         }
+
+        $user = auth()->user();
+        $payload = $request;
+
+        $gateway = payoutMethods::whereId($request->gateway_id)->first();
+        $currency = $gateway->currency;
+
+        if ($gateway->gateway == 'bitso' && strtoupper($gateway->currency) == "USD") {
+            // Code for bitso USD gateway handling
+        } else if ($gateway->gateway == 'local_payment') {
+            $result = $this->localPayments($request);
+            return get_success_response($result);
+        } elseif ($gateway->gateway == 'monnet') {
+            if (!in_array($currency, ['PEN', 'MXN'])) {
+                return get_error_response(['error' => 'Invalid or unsupported Currency type']);
+            }
+
+            if ($currency == "PEN") {
+                $requirement = [
+                    "document_id" => 2,
+                    'currency' => 'PEN',
+                    'document_value_key' => 'PAS',
+                    'document_type_name' => 'International Passport',
+                    'document_validation_regex' => '/^\d{7,12}$/'
+                ];
+            } else if ($currency == 'MXN') {
+                $requirement = [
+                    "document_id" => 4,
+                    'currency' => 'MXN',
+                    'document_value_key' => 'PAS',
+                    'document_type_name' => 'International Passport',
+                    'document_validation_regex' => '/^\d{7,18}$/'
+                ];
+            }
+
+            $idType = (int) $payload['payment_data']['beneficiary']['document']['type'];
+            $idNumber = $payload['payment_data']['beneficiary']['document']['number'];
+
+            if ($idType !== 4 && $idType !== 2) {
+                return get_error_response(['error' => "International passport is the only acceptable means of verification. Contact support for other options"]);
+            }
+
+            if (!preg_match($requirement['document_validation_regex'], $idNumber)) {
+                return get_error_response(['error' => 'Invalid Document ID number']);
+            }
+
+            $model = new BeneficiaryPaymentMethod;
+            $model->user_id = active_user();
+            $model->currency = $gateway->currency;
+            $model->gateway_id = $request->gateway_id;
+            $model->nickname = $request->nickname;
+            $model->address = $request->address;
+            $model->payment_data = $request->payment_data;
+            $model->beneficiary_id = $request->beneficiary_id;
+        } else {
+            $model = new BeneficiaryPaymentMethod;
+            $model->user_id = active_user();
+            $model->currency = $gateway->currency;
+            $model->gateway_id = $request->gateway_id;
+            $model->nickname = $request->nickname ?? null;
+            $model->address = $request->address ?? null;
+            $model->payment_data = $request->payment_data;
+            $model->beneficiary_id = $request->beneficiary_id;
+        }
+
+        if ($model->save()) {
+            return get_success_response(['message' => "Payment data processed successfully", "data" => $model]);
+        }
+    } catch (\Throwable $th) {
+        return get_error_response(['error' => $th->getMessage()]);
     }
+}
+
 
     public function localPayments(Request $request)
     {

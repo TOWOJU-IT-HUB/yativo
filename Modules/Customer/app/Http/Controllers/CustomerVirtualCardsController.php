@@ -70,6 +70,12 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => "Customer not found!"]);
             }
 
+            if(($cust->can_create_vc == true) && (null != $cust->vc_customer_id))  {
+                return get_error_response([
+                    "error" => "Customer already enrolled and activated"
+                ], 421);
+            }
+
             $validatedData = $validate->validated();
             $validatedData['date_of_birth'] = $validatedData['dateOfBirth'];
             $requiredFields = [
@@ -104,7 +110,7 @@ class CustomerVirtualCardsController extends Controller
 
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
-            $validatedData["idImage"] = $cust->customer_idFront;
+            $validatedData["idImage"] = convertToBase64ImageUrl(decryptCustomerData($cust->customer_idFront));
             $validatedData["country"] = $cust->customer_address['country'];
             $validatedData["city"] = $cust->customer_address['city'];
             $validatedData["state"] = $cust->customer_address['state'];
@@ -112,9 +118,9 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["line1"] = $cust->customer_address['street'];
             $validatedData["houseNumber"] = $cust->customer_address['number'];
             $validatedData["idType"] = "NATIONAL_ID";
-            $validatedData["idNumber"] = $cust->customer_idNumber;
+            $validatedData["idNumber"] = decryptCustomerData($cust->customer_idNumber);
 
-            var_dump($validatedData); exit;
+            return response()->json($validatedData); exit;
 
             $req = $this->card->regUser($validatedData);
 

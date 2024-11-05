@@ -7,8 +7,10 @@ use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\TransactionRecordController;
 use App\Models\ApiLog;
+use App\Models\BeneficiaryFoems;
 use App\Models\Business\VirtualAccount;
 use App\Models\CheckoutModel;
+use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\localPaymentTransactions;
 use App\Models\PayinMethods;
@@ -71,8 +73,13 @@ use App\Http\Controllers\ManageDBController;
 
 
 Route::get('/', function () {
-    $records = CheckoutModel::all();
-    return response()->json($records);
+    $bitso = new BitsoServices();
+    // $clabe = $bitso->getWallet(); // generate clabe number for customer.
+    $result = $bitso->retrieveCOPAccountBalance(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
+    if (!is_array($result)) {
+        $result = json_decode($result, true);
+    }
+    return response()->json($result);
 });
 
 

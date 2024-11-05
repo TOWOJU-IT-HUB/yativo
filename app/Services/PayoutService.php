@@ -68,6 +68,7 @@ class PayoutService
                     "transaction_status" => "In Progress",
                     "transaction_type" => $txn_type ?? 'payout',
                     "transaction_memo" => "payout",
+                    "transaction_currency" => $withdrawal->currency,
                     "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
                     "transaction_payin_details" => $withdrawal->beneficiary->payment_object,
                     "transaction_payout_details" => $withdrawal,

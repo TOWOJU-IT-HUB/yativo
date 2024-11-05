@@ -172,6 +172,7 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
     Route::prefix('business')->group(function () {
         Route::get('transactions/all', [TransactionRecordController::class, 'index']);
         Route::get('transaction/show/{transactionId}', [TransactionRecordController::class, 'show']);
+        Route::get('transaction/by-currency', [TransactionRecordController::class, 'byCurrency']);
         Route::get('chart-data', [TransactionRecordController::class, 'getChartData']);
 
         Route::get('details', [BusinessController::class, 'show'])->name('business.show');

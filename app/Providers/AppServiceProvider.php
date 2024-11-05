@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Mail\Transport\AzureTransport;
 use Artisan;
+use Auth;
 use GuzzleHttp\Client;
+use Http;
 use Illuminate\Mail\MailManager;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Country;
 use App\Models\CurrencyList;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -255,9 +256,16 @@ class CurrencyListSeeder extends Seeder
             array('name' => 'Zimbabwe', 'iso_alpha2' => 'ZW', 'iso_alpha3' => 'ZWE', 'iso_numeric' => '716', 'calling_code' => '263', 'currency_code' => 'ZWD', 'currency_name' => 'Dollar', 'currency_symbol' => 'Z$')
         );
 
+        
         set_time_limit(0);
         foreach ($countries as $country) {
-            CurrencyList::create($country);
+            CurrencyList::updateOrCreate(
+                ['iso_alpha2' => $country['iso_alpha2']], 
+                $country
+            );
+
+            Country::where('iso3', $country['iso_alpha3'])
+                ->update(['currency_code' => $country['currency_code']]);
         }
     }
 }

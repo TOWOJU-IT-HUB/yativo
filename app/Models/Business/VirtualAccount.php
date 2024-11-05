@@ -18,11 +18,12 @@ class VirtualAccount extends Model
         "account_info",
         "request_object",
         "account_number",
-        'provider_name'
+        'provider_name',
+        'extra_data',
     ];
 
     protected $hidden = [
-        // 'created_at',
+        'extra_data',
         'updated_at',
         'id',
         'provider_name',
@@ -32,6 +33,7 @@ class VirtualAccount extends Model
 
     protected $casts = [
         "account_info" => "array",
-        "request_object" => "array"
+        "request_object" => "array",
+        "extra_data" => "array"
     ];
 }

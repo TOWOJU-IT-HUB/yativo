@@ -34,20 +34,7 @@ class BitsoController extends Controller
      */
     public function deposit($amount, $customerId = null)
     {
-        // if (null == $customerId) {
-        //     $customerId = request()->customer_id;
-        // }
-
-        // if (empty($customerId)) {
-        //     return [
-        //         "error" => "Customer ID is required"
-        //     ];
-        // }
-
         $user = auth()->id();
-        // $account = BitsoAccounts::where(["user_id" => $user, "customer_id" => $customerId])->first();
-        // // since account does not exist, create a new one
-
         $bitso = new BitsoServices();
         $payload = '';
         $result = $bitso->retrieveCOPAccountBalance(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");

@@ -81,6 +81,7 @@ class DepositService
                 "transaction_status" => "In Progress",
                 "transaction_type" => $txn_type,
                 "transaction_memo" => "payin",
+                "transaction_currency" => $currency,
                 "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
                 "transaction_payin_details" => array_merge([$send, $result]),
                 "transaction_payout_details" => [],

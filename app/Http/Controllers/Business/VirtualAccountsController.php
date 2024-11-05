@@ -27,7 +27,7 @@ class VirtualAccountsController extends Controller
     public function __construct()
     {
         $this->baseUrl = env('FINCRA_BASE_URL', 'https://sandboxapi.fincra.com/');
-        $this->api_key = env('FINCRA_API_KEY', '8G5hwaiw7oy9q8tCBJ6X1ltp5C20QDwJ');
+        $this->api_key = env('FINCRA_API_SECRET', '8G5hwaiw7oy9q8tCBJ6X1ltp5C20QDwJ');
     }
 
     public function index()
@@ -70,11 +70,14 @@ class VirtualAccountsController extends Controller
                 $endpoint = "/api/virtual-account/$account_id";
                 $local = new Localpayments;
                 $request = $local->curl($endpoint, "GET");
-                // var_dump($request); exit;
 
                 // sample account ID: 0a148340-4bec-4ccf-8cdc-49ab565159e7
                 if (isset($request['error'])) {
                     return get_error_response(['error' => $request['message']]);
+                }
+
+                if(!isset($request['currency'])) {
+                    return get_error_response(['error' => "Please try again in 5minutes"]);
                 }
 
                 $accounts = $this->handleVirtualAccountCreation($request, false);
@@ -124,7 +127,7 @@ class VirtualAccountsController extends Controller
             }
 
             $customer = Customer::where('customer_id', $request->customer_id)->first();
-            if (!$customer && $request->currency === "USD" || $request->currency === "EUR") {
+            if (!$customer && ($request->currency === "USD" || $request->currency === "EUR")) {
                 return get_error_response(['error' => 'Customer not found']);
             }
 
@@ -233,7 +236,7 @@ class VirtualAccountsController extends Controller
                 "customer_id" => $request->customer_id
             ]);
 
-            return get_success_response($record);
+            return get_success_response(['record' => $record, 'result' => $curl]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
@@ -485,6 +488,7 @@ class VirtualAccountsController extends Controller
 
     public function handleVirtualAccountCreation($accountData, $isApi = true)
     {
+        // var_dump($accountData); exit;
         $country = Country::where('currency_code', $accountData['currency'])->first();
         // Extract the required information
         $extractedData = [
@@ -516,9 +520,11 @@ class VirtualAccountsController extends Controller
                 'account_number' => $extractedData['account_number'],
                 'bank_code' => $extractedData['bank_code'],
                 'bank_name' => $bank_name,
+                'account_name' => $accountData['beneficiary']['fullName'],
             ];
             $virtualAccount->account_number = $extractedData['account_number'];
             $virtualAccount->account_info = $accountInfo;
+            $virtualAccount->extra_data = $accountData;
             $virtualAccount->save();
             if ($isApi == false) {
                 return $virtualAccount;
@@ -561,10 +567,10 @@ class VirtualAccountsController extends Controller
      * 
      * @return 
      */
-    public function get_history($account_id)
+    public function get_history($accountNumber)
     {
         try {
-            $transactions = localPaymentTransactions::paginate(per_page());
+            $transactions = localPaymentTransactions::where('account_number', $accountNumber)->paginate(per_page());
             
             return paginate_yativo($transactions);
         } catch (\Throwable $th) {

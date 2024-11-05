@@ -394,6 +394,19 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
             "profile_photo_path" => $input['profile_photo_path'] ?? $user->profile_photo_path,
         ]));
 
+        if ($user->registration_country == null) {
+            $ip = request()->ip();
+            $response = Http::get("https://ipinfo.io/{$ip}/country");
+            // var_dump($response->json());
+            if (Auth::check() && Auth::user()->registration_country === null) {
+                if ($response->successful()) {
+                    $countryIso2 = $response->json()['country'];
+                    // echo $countryIso2;
+                    $user->registration_country = get_iso3_by_iso2($countryIso2);
+                    $user->save();
+                }
+            }
+        }
 
         // Check if verification document file was provided
         if (isset($input['verificationDocument']) && $input['verificationDocument'] instanceof UploadedFile) {

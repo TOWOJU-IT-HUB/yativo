@@ -113,10 +113,13 @@ class SwapCurrencyController extends Controller
                     "transaction_status" => "success",
                     "transaction_type" => 'currency_swap',
                     "transaction_memo" => "currency swap",
+                    "swap_to_currency" => $validatedData['to_currency'], 
+                    "swap_from_currency" => $validatedData['from_currency'], 
                     "transaction_purpose" => request()->transaction_purpose ?? "Currency swap from {$validatedData['from_currency']} to {$validatedData['to_currency']}",
                     "transaction_payin_details" => null,
                     "transaction_payout_details" => null,
                     "transaction_swap_details" => $swap_data,
+                    "customer_id" => $request->customer_id ?? null
                 ]);
 
                 return get_success_response($swap_data);

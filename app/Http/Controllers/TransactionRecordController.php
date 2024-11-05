@@ -14,13 +14,31 @@ class TransactionRecordController extends Controller
     public function index()
     {
         try {
-            $records = TransactionRecord::with(['beneficiary', 'user'])->whereUserId(auth()->id())->paginate(per_page());
+            $records = TransactionRecord::with(['beneficiary', 'user'])->whereUserId(auth()->id())->latest()->paginate(per_page());
             return paginate_yativo($records);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
     }
 
+    /**
+     * Display a listing of the resource.
+     */
+    public function byCurrency(Request $request)
+    {
+        try {
+            $currency = $request->input('currency', 'usd');
+            $records = TransactionRecord::with(['beneficiary', 'user', 'customer'])
+                        ->where('transaction_currency', $currency)
+                        // ->whereUserId(auth()->id())
+                        ->latest()
+                        ->paginate(per_page());
+
+            return paginate_yativo($records);
+        } catch (\Throwable $th) {
+            return get_error_response(['error' => $th->getMessage()], 500);
+        }
+    }
  
     /**
      * Display the specified resource.

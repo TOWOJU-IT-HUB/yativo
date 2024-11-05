@@ -232,7 +232,7 @@ if (!function_exists('per_page')) {
      */
     function per_page($perPage = null)
     {
-        if(isset(request()->per_page)) {
+        if (isset(request()->per_page)) {
             $perPage = request()->per_page;
         }
         return $perPage ?? 10;
@@ -782,55 +782,77 @@ if (!function_exists('add_transaction_details')) {
 }
 
 
-/**
- * Encrypt customer data using AES and RSA
- *
- * @param mixed $customerData
- * @return string  
- * */
-function encryptCustomerData($customerData)
-{
-    $encryptionService = new EncryptionService();
-    return $encryptionService->encrypt($customerData);
+
+if (!function_exists('decryptCustomerData')) {
+    /**
+     * Encrypt customer data with AES-256-GCM using the app key
+     *
+     * @param mixed $customerData
+     * @return string Base64-encoded string of IV, ciphertext, and tag
+     */
+    function encryptCustomerData($customerData)
+    {
+        // Get the app key from environment variables and ensure it's exactly 32 bytes
+        $appKey = substr(env('APP_KEY'), 0, 32);
+
+        // Generate a random IV for each encryption
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-gcm'));
+
+        // Encrypt the data
+        $encryptedData = openssl_encrypt(
+            json_encode($customerData),
+            'aes-256-gcm',
+            $appKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        // Concatenate the IV, encrypted data, and tag
+        $finalData = base64_encode($iv . $encryptedData . $tag);
+
+        return $finalData;
+    }
+
+}
+
+if (!function_exists('decryptCustomerData')) {
+    /**
+     * Decrypt customer data with AES-256-GCM using the app key
+     *
+     * @param string $encryptedData Base64-encoded string of IV, ciphertext, and tag
+     * @return array|null The decrypted customer data as an associative array, or null if decryption fails
+     */
+    function decryptCustomerData($encryptedData)
+    {
+        // Get the app key from environment variables and ensure it's exactly 32 bytes
+        $appKey = substr(env('APP_KEY'), 0, 32);
+
+        // Decode the base64-encoded data
+        $decodedData = base64_decode($encryptedData);
+
+        // Extract the IV, encrypted data, and tag
+        $ivLength = openssl_cipher_iv_length('aes-256-gcm');
+        $iv = substr($decodedData, 0, $ivLength);
+        $tag = substr($decodedData, -16);
+        $ciphertext = substr($decodedData, $ivLength, -16);
+
+        // Decrypt the data
+        $decryptedData = openssl_decrypt(
+            $ciphertext,
+            'aes-256-gcm',
+            $appKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        // Return the decoded data or null if decryption failed
+        return $decryptedData === false ? null : json_decode($decryptedData, true);
+    }
 }
 
 
-/**
- * Decrypt customer data using AES and RSA
- *
- * @param string $encryptedData
- * @param string $encryptedKey
- * @return array|null
- */
-function decryptCustomerData($encryptedData, $encryptedKey)
-{
-    // Decrypt the AES key with RSA
-    $aesKey = Crypt::decryptString($encryptedKey);
-
-    if ($aesKey === false) {
-        return null; // Failed to decrypt the AES key
-    }
-
-    $encryptedData = base64_decode($encryptedData);
-    $iv = substr($encryptedData, 0, openssl_cipher_iv_length('aes-256-gcm'));
-    $tag = substr($encryptedData, -16);
-    $encryptedData = substr($encryptedData, openssl_cipher_iv_length('aes-256-gcm'), strlen($encryptedData) - openssl_cipher_iv_length('aes-256-gcm') - 16);
-
-    // Decrypt customer data with AES
-    $decryptedData = openssl_decrypt(
-        $encryptedData,
-        'aes-256-gcm',
-        $aesKey,
-        $iv,
-        $tag
-    );
-
-    if ($decryptedData === false) {
-        return null; // Failed to decrypt the data
-    }
-
-    return json_decode($decryptedData, true);
-}
 
 
 if (!function_exists('convertToUSD')) {
@@ -878,7 +900,7 @@ if (!function_exists('debit_user_wallet')) {
             // return ['error' => 'Invalid currency provided'];
             $currency = "USD";
         }
-        
+
         $request = request();
         $user = $request->user();
         // Find or create wallet for the user
@@ -1075,6 +1097,25 @@ if (!function_exists('formatSettlementTime')) {
     }
 }
 
+
+if (!function_exists('convertToBase64ImageUrl')) {
+    function convertToBase64ImageUrl($base64String)
+    {
+        // Decode the base64 string
+        $decodedString = base64_decode($base64String);
+
+        // Check if decoding was successful
+        if ($decodedString === false) {
+            return null; // Return null or handle the error as needed
+        }
+
+        // Convert the decoded string back to base64 for image embedding
+        $imageBase64 = base64_encode($decodedString);
+
+        // Construct the data URI for the image
+        return 'data:image/png;base64,' . $imageBase64;
+    }
+}
 
 if (!function_exists('get_payout_code')) {
     function get_payout_code($currency)
