@@ -73,12 +73,7 @@ use App\Http\Controllers\ManageDBController;
 
 
 Route::get('/', function () {
-    $bitso = new BitsoServices();
-    // $clabe = $bitso->getWallet(); // generate clabe number for customer.
-    $result = $bitso->retrieveCOPAccountBalance(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
-    if (!is_array($result)) {
-        $result = json_decode($result, true);
-    }
+    $result = \App\Models\Transaction::with(['wallet', 'payable'])->latest()->get();
     return response()->json($result);
 });
 

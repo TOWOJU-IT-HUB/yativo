@@ -29,17 +29,17 @@ class TransactionRecordController extends Controller
         try {
             $currency = $request->input('currency', 'usd');
             $records = TransactionRecord::with(['beneficiary', 'user', 'customer'])
-                        ->where('transaction_currency', $currency)
-                        // ->whereUserId(auth()->id())
-                        ->latest()
-                        ->paginate(per_page());
+                ->where('transaction_currency', $currency)
+                // ->whereUserId(auth()->id())
+                ->latest()
+                ->paginate(per_page());
 
             return paginate_yativo($records);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
     }
- 
+
     /**
      * Display the specified resource.
      */
@@ -66,52 +66,75 @@ class TransactionRecordController extends Controller
     {
         // Default currency filter (optional)
         $currency = $request->input('currency', null);
-
+    
         // Date range filter
         $dateRange = $request->input('range', 'last_7_days'); // Default is 'last 7 days'
-        $startDate = $this->getStartDateForRange($dateRange);
-        $endDate = Carbon::now();
-
+        $startDate = $this->getStartDateForRange($dateRange)->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+    
         // Query the TransactionRecords model
         $query = TransactionRecord::where('user_id', auth()->id());
-
+    
         // Filter by currency if provided
         if ($currency) {
             $query->where('transaction_currency', $currency);
         }
-
+    
         // Filter by date range
         $query->whereBetween('created_at', [$startDate, $endDate]);
-
-        // Get the data
-        $transactionRecords = $query->get();
-
-        // Group the transactions by date for Chart.js
-        $chartData = $this->formatForChartJs($transactionRecords);
-
+    
+        // Get the data and group by day
+        $transactionRecords = $query->get()->groupBy(function ($date) {
+            return Carbon::parse($date->created_at)->format('Y-m-d'); // Group by date
+        });
+    
+        // Prepare data for Chart.js
+        $chartData = [
+            'labels' => [],
+            'data' => []
+        ];
+    
+        // Initialize daily data for last 7 days
+        $currentDate = Carbon::now();
+        for ($i = 0; $i < 7; $i++) {
+            $date = $currentDate->copy()->subDays($i)->format('Y-m-d');
+    
+            // Add the date label
+            $chartData['labels'][] = $date;
+    
+            // Calculate daily transaction sum or count (adjust as needed)
+            $dailyTotal = $transactionRecords->get($date, collect())->sum('transaction_amount'); // Sum transaction amounts for each day
+            $chartData['data'][] = $dailyTotal;
+        }
+    
+        // Reverse to show oldest date first
+        $chartData['labels'] = array_reverse($chartData['labels']);
+        $chartData['data'] = array_reverse($chartData['data']);
+    
         return response()->json($chartData);
     }
-
+    
     // Helper method to determine the start date based on the selected range
     private function getStartDateForRange($range)
     {
         switch ($range) {
             case 'last_7_days':
-                return Carbon::now()->subDays(7);
+                return Carbon::now()->subDays(6); // 6 days back + today for 7 days
             case 'last_2_weeks':
-                return Carbon::now()->subWeeks(2);
+                return Carbon::now()->subWeeks(2)->startOfDay();
             case 'last_1_month':
-                return Carbon::now()->subMonth();
+                return Carbon::now()->subMonth()->startOfDay();
             case 'last_3_months':
-                return Carbon::now()->subMonths(3);
+                return Carbon::now()->subMonths(3)->startOfDay();
             case 'last_6_months':
-                return Carbon::now()->subMonths(6);
+                return Carbon::now()->subMonths(6)->startOfDay();
             case 'last_1_year':
-                return Carbon::now()->subYear();
+                return Carbon::now()->subYear()->startOfDay();
             default:
-                return Carbon::now()->subDays(7); // Default: last 7 days
+                return Carbon::now()->subDays(6); // Default: last 7 days
         }
     }
+
 
     // Helper method to format the data for Chart.js
     private function formatForChartJs($transactionRecords)

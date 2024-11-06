@@ -14,13 +14,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // CountryStateCityTableSeeder::class,
-            // CurrencyListSeeder::class,
-            // PayinMethodsSeeder::class,
-            // PayoutMethodsSeeder::class,
-            // PlanSeeder::class,
-            // CurrencySeeder::class,
+            CountryStateCityTableSeeder::class,
+            CurrencyListSeeder::class,
+            PayinMethodsSeeder::class,
+            PayoutMethodsSeeder::class,
+            PlanSeeder::class,
+            CurrencySeeder::class,
             ExchangeRateSeeder::class,
+            CryptoDepositSeeder::class
         ]);
     }
 }

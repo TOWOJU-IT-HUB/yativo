@@ -167,23 +167,58 @@ class ChartsController extends Controller
         // Get the range from the request, defaulting to 'last_7_days'
         $range = $request->input('range', 'last_7_days');
         $startDate = $this->getStartDate($range);
-
+        $endDate = Carbon::now();
+    
         $successCount = DB::table('api_logs')->whereUserId(auth()->id())
-            ->whereBetween('created_at', [$startDate, Carbon::now()])
-            ->where('response_status', 200) 
-            ->orWhere('response_status', 201)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where(function($query) {
+                $query->where('response_status', 200)
+                      ->orWhere('response_status', 201);
+            })
             ->count();
-
-        $failedCount = DB::table('api_logs')
-            ->whereBetween('created_at', [$startDate, Carbon::now()])
+    
+        $failedCount = DB::table('api_logs')->whereUserId(auth()->id())
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->where('response_status', '>=', 400)
             ->count();
-
+    
+        // Initialize daily logs array
+        $dailyLogs = [];
+        $currentDate = Carbon::now();
+    
+        for ($i = 0; $i < 7; $i++) {
+            $date = $currentDate->copy()->subDays($i)->startOfDay();
+            $nextDay = $date->copy()->endOfDay();
+    
+            $dailySuccessCount = DB::table('api_logs')->whereUserId(auth()->id())
+                ->whereBetween('created_at', [$date, $nextDay])
+                ->where(function($query) {
+                    $query->where('response_status', 200)
+                          ->orWhere('response_status', 201);
+                })
+                ->count();
+    
+            $dailyFailedCount = DB::table('api_logs')->whereUserId(auth()->id())
+                ->whereBetween('created_at', [$date, $nextDay])
+                ->where('response_status', '>=', 400)
+                ->count();
+    
+            // Add daily count to the logs array
+            $dailyLogs[$date->format('Y-m-d')] = [
+                'success' => $dailySuccessCount,
+                'failed' => $dailyFailedCount,
+            ];
+        }
+    
         return response()->json([
-            'success' => $successCount,
-            'failed' => $failedCount,
+            "total" => [
+                'success' => $successCount,
+                'failed' => $failedCount,
+            ],
+            "logs" => $dailyLogs,
         ]);
     }
+    
 
     private function getStartDate($range)
     {

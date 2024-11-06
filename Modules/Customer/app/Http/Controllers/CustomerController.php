@@ -304,7 +304,7 @@ class CustomerController extends Controller
                 'user_id' => active_user(),
                 'customer_id' => $request->customer_id,
             ];
-            $accounts = VirtualAccount::whereUserId($where)->latest()->limit(5)->get();
+            $accounts = VirtualAccount::where($where)->latest()->limit(5)->get();
             return $accounts;
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];

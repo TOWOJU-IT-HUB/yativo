@@ -26,7 +26,7 @@ class VirtualAccountsController extends Controller
 
     public function __construct()
     {
-        $this->baseUrl = env('FINCRA_BASE_URL', 'https://sandboxapi.fincra.com/');
+        $this->baseUrl = env('FINCRA_BASE_URL', 'https://api.fincra.com/');
         $this->api_key = env('FINCRA_API_SECRET', '8G5hwaiw7oy9q8tCBJ6X1ltp5C20QDwJ');
     }
 
@@ -76,7 +76,7 @@ class VirtualAccountsController extends Controller
                     return get_error_response(['error' => $request['message']]);
                 }
 
-                if(!isset($request['currency'])) {
+                if (!isset($request['currency'])) {
                     return get_error_response(['error' => "Please try again in 5minutes"]);
                 }
 
@@ -236,12 +236,15 @@ class VirtualAccountsController extends Controller
                 "customer_id" => $request->customer_id
             ]);
 
+            if (isset($curl['success']) && ($curl['success'] == false)) {
+                return get_error_response(['error' => $curl['errors']]);
+            }
+
             return get_success_response(['record' => $record, 'result' => $curl]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
-
 
     public function get_account_details($account_id, $isApi = true)
     {
@@ -488,6 +491,68 @@ class VirtualAccountsController extends Controller
 
     public function handleVirtualAccountCreation($accountData, $isApi = true)
     {
+        if ($accountData['currency'] == "USD" or $accountData['currency'] == "EUR" or $accountData['currency'] == "GBP") {
+            return $this->handleVirtualAccountCreationForUSD($accountData, $isApi);
+        } else if ($accountData['currency'] == "MXN") {
+            return $this->handleVirtualAccountCreationForMXN($accountData, $isApi);
+        }
+        
+        return http_response_code(200);
+    }
+
+    private function handleVirtualAccountCreationForUSD($accountData, $isApi = true)
+    {
+        // Define the endpoint and build the URL
+        $endpoint = 'profile/virtual-accounts/'; // Set your endpoint here
+        $url = $this->baseUrl . $endpoint . $accountData['external_id'];
+
+        // Make the API request using Laravel's Http facade
+        $response = Http::withHeaders([
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $this->api_key,
+        ])->get($url);
+
+        // Check if the API request was successful
+        if ($response->successful()) {
+            // Get the response data
+            $responseData = $response->json();
+
+            // Check if the API's response indicates success
+            if ($responseData['success']) {
+                // Extract the relevant data
+                $extractedData = $responseData['data'];
+
+                // Retrieve the virtual account record
+                $virtualAccount = VirtualAccount::where('account_id', $accountData['_id'])->first();
+                $country = Country::where('currency_code', $accountData['currency'])->first();
+                // Prepare account information
+                $accountInfo = [
+                    'country' => $country->iso3, // Set country as Nigeria
+                    'currency' => $extractedData['currency'],
+                    'account_number' => $extractedData['accountInformation']['accountNumber'],
+                    'bank_code' => null, // Set bank code if available
+                    'bank_name' => $extractedData['accountInformation']['bankName'],
+                    'account_name' => $extractedData['accountInformation']['accountName'],
+                ];
+
+                if ($virtualAccount) {
+                    $virtualAccount->account_number = $extractedData['accountInformation']['accountNumber'];
+                    $virtualAccount->account_info = $accountInfo;
+                    $virtualAccount->extra_data = $accountData; // Optionally store original account data
+                    $virtualAccount->save();
+                } else {
+                    return ['error' => "Virtual account not found"];
+                }
+            } else {
+                return ['error' => "Error encountered while retrieving Virtual account"];
+            }
+        } else {
+            return ['error' => "Try again in 5 minutes or contact support if error persists"];
+        }
+    }
+
+    private function handleVirtualAccountCreationForMXN($accountData, $isApi = true)
+    {
         // var_dump($accountData); exit;
         $country = Country::where('currency_code', $accountData['currency'])->first();
         // Extract the required information
@@ -532,7 +597,6 @@ class VirtualAccountsController extends Controller
             Log::channel('virtual_account')->error("Virtual account creation completed: ", $virtualAccount->toArray());
         }
 
-        return http_response_code(200);
     }
 
 
@@ -571,7 +635,7 @@ class VirtualAccountsController extends Controller
     {
         try {
             $transactions = localPaymentTransactions::where('account_number', $accountNumber)->paginate(per_page());
-            
+
             return paginate_yativo($transactions);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
