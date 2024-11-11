@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Business;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\User;
 use Creatydev\Plans\Models\PlanModel;
 use Illuminate\Http\Request;
@@ -16,9 +17,9 @@ class PlansController extends Controller
         $currentPlan = $user->activeSubscription();
         if (!$currentPlan) {
             $plan = PlanModel::where('price', 0)->latest()->first();
-            if($plan && $user->subscribeTo($plan, 30, true)) {
+            if ($plan && $user->subscribeTo($plan, 30, true)) {
                 $currentPlan = $user->activeSubscription();
-            }            
+            }
         }
         return get_success_response($currentPlan->makeHidden('model_type', 'payment_method', 'model_id'));
     }
@@ -26,7 +27,14 @@ class PlansController extends Controller
     public function plans()
     {
         try {
-            $plans = PlanModel::with('features')->get();
+            $plans = Plan::with('features')->get();
+            $plans->transform(function ($plan) {
+                if ($plan->id == 3) {
+                    $plan->price = "Custom";
+                }
+                $plan->metadata = json_decode($plan->metadata, true);
+                return $plan;
+            });
             return get_success_response($plans);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
@@ -47,7 +55,7 @@ class PlansController extends Controller
                 return get_error_response(['error' => "You're already subscribed to the selected plan"]);
             }
 
-            if ((int)$planId == 3) {
+            if ((int) $planId == 3) {
                 return get_error_response(['error' => 'Please contact support to activate this plan']);
             }
 
@@ -64,7 +72,8 @@ class PlansController extends Controller
                 !$wallet->withdraw($plan->price, [
                     "purpose" => "Subscription to $plan->name Business Plan"
                 ])
-            );
+            )
+                ;
 
             if ($plan->price < 1) {
                 $request->merge([
@@ -97,7 +106,7 @@ class PlansController extends Controller
             $user = $request->user();
             $wallet = $user->getWallet('USD');
 
-            if ((int)$newPlanId == 3) {
+            if ((int) $newPlanId == 3) {
                 return get_error_response(['error' => 'Please contact support to activate this plan']);
             }
 
@@ -109,12 +118,22 @@ class PlansController extends Controller
                 !$wallet->withdraw($newPlan->price, [
                     "purpose" => "Subscription to $newPlan->name Business Plan, please confirm you have enough funds inyour USD wallet to upgrade"
                 ])
-            );
+            )
+                ;
 
             $currentSubscription = $user->activeSubscription();
 
             if ($currentSubscription) {
-                $user->upgradeCurrentPlanTo($newPlan);
+                if ($currentSubscription->plan_id == 1) {
+                    $user->cancelCurrentSubscription();
+                }
+
+                if ($currentSubscription->plan_id == $newPlan->id) {
+                    return get_error_response(['error' => 'You are already subscribed to this plan']);
+                }
+
+                $user->upgradeCurrentPlanTo($newPlan, $newPlan->duration, false, true);
+                $user->upgradeCurrentPlanTo($newPlan, $newPlan->duration, false, true);
             } else {
                 // subscribe to new plan
                 $user->subscribeTo($newPlan);

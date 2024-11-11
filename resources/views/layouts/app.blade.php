@@ -39,6 +39,9 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
 
             <!-- ===== Main Content Start ===== -->
             <main class="my-3 mx-3">
+                <div class="container mx-auto px-4 py-8">
+                    @include('layouts.alerts')
+                </div>
                 @yield('content')
             </main>
             <!-- ===== Main Content End ===== -->

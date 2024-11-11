@@ -45,7 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.2fa' => \App\Http\Middleware\Admin\Require2FA::class,
         ]);
         $middleware->statefulApi();
-    })    ->withExceptions(function (Exceptions $exceptions) {
+    })->withExceptions(function (Exceptions $exceptions) {
         $exceptions->renderable(
             fn(AuthenticationException $exception, $request) => get_error_response(
                 'Unauthenticated',

@@ -1,7 +1,7 @@
-@extends('admin.layout')
+@extends('layouts.admin')
 
 @section('content')
-<div class="bg-white dark:bg-slate-800 rounded-lg p-6 ring-1 ring-slate-900/5 shadow-xl">
+<div class="bg-white dark:bg-boxdark rounded-lg p-6 ring-1 ring-slate-900/5 shadow-xl">
     <h2 class="text-slate-900 dark:text-white text-lg font-semibold">Payment Method Details</h2>
     <p><strong>Method Name:</strong> {{ $payinMethod->method_name }}</p>
     <p><strong>Gateway:</strong> {{ $payinMethod->gateway }}</p>

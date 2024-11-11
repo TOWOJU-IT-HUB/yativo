@@ -48,8 +48,7 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
                 return get_error_response(['error' => $validator->errors()->toArray()], 422);
             }
 
-            // $credentials = ['email' => base64_decode($request->account_id), 'password' => $request->app_secret];
-            $credentials = ['email' => $request->account_id, 'password' => $request->app_secret];
+            $credentials = ['email' => $email, 'password' => $request->app_secret];
 
             $token = auth()->attempt($credentials);
 
@@ -484,8 +483,8 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
                 if ($token === false) {
                     return get_error_response(['error' => 'Unauthorized'], 401);
                 }
-                $loginToken = $this->respondWithToken($token, $is_registered);
-                return $loginToken;
+                $loginToken = $this->respondWithToken($token);
+                return get_success_response([$loginToken, "is_registered" => $is_registered]);
             }
             return get_error_response(['error' => 'Invalid social login'], 422);
         } catch (\Throwable $th) {

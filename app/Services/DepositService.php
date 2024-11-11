@@ -8,6 +8,7 @@ use App\Models\PayinMethods;
 use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
+use Modules\Customer\app\Models\Customer;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Log;
@@ -82,6 +83,8 @@ class DepositService
                 "transaction_type" => $txn_type,
                 "transaction_memo" => "payin",
                 "transaction_currency" => $currency,
+                "base_currency" => $currency,
+                "secondary_currency" => $paymentMethods->currency,
                 "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
                 "transaction_payin_details" => array_merge([$send, $result]),
                 "transaction_payout_details" => [],
@@ -288,16 +291,25 @@ class DepositService
     {
         // return [];
         $bitso = new BitsoController();
-        $checkout = $bitso->deposit($amount);
+        $checkout = $bitso->deposit($amount, $currency);
         return $checkout;
     }
 
     public function brla_qr($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
+        $request = request();
         $checkout_id = rand(102930, 9999999);
         session()->put("checkout_id", $checkout_id);
         $payload['amount'] = $amount;
         $payload['referenceLabel'] = $checkout_id;
+        if($request->has('customer_id')){
+            $customer  = Customer::where('customer_id', $request->customer_id)->first();
+            if(!$customer->brla_subaccount_id) {
+                // create and retrieve the brla_subaccount_id
+            }
+            //retrieve the customer sub_account_id
+            $payload['subaccountId'] = $customer->brla_subaccount_id;
+        }
 
         $brla = new BrlaDigitalService();
         $checkout = $brla->generatePayInBRCode($payload);

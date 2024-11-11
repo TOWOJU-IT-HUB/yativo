@@ -26,6 +26,7 @@
         "spatie/laravel-webhook-server": "^3.8",
         "stephenjude/laravel-wallet": "^2.0",
         "symfony/http-client": "^7.1",
+        "tightenco/ziggy": "^2.3",
         "towoju5/advcash": "^0.1.0",
         "towoju5/bitnob": "^1.2",
         "towoju5/laravel-azure-mailer": "^1.1",

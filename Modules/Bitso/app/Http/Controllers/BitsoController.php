@@ -32,12 +32,16 @@ class BitsoController extends Controller
      * @method post
      * GET sample response : {"success":true,"payload":{"total_items":"1","total_pages":"1","current_page":"1","page_size":"25","response":[{"clabe":"710969000035509567","type":"INTERNATIONAL","status":"ENABLED","created_at":"2024-04-08T19:06:19","updated_at":null}]}}
      */
-    public function deposit($amount, $customerId = null)
+    public function deposit($amount, $currency, $customerId = null)
     {
         $user = auth()->id();
         $bitso = new BitsoServices();
         $payload = '';
-        $result = $bitso->retrieveCOPAccountBalance(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
+
+        if (strtolower($currency) == 'mxn') {
+        } elseif (strtolower($currency) == 'cop') {
+        }
+        $result = $bitso->depositCop(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
         if (!is_array($result)) {
             $result = json_decode($result, true);
         }

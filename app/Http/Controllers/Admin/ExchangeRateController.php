@@ -13,7 +13,7 @@ class ExchangeRateController extends Controller
 {
     public function index()
     {
-        $exchangeRates = ExchangeRate::all();
+        $exchangeRates = ExchangeRate::with('payin', 'payout')->paginate(15);
         return view('admin.exchange_rates.index', compact('exchangeRates'));
     }
 
@@ -30,8 +30,8 @@ class ExchangeRateController extends Controller
         $validate = Validator::make($request->all(), [
             "gateway_id" => 'required|string',
             "rate_type" => 'required|string',
-            "float_percentage" => 'required|string',
-            // "float_amount" => 'required|numeric',
+            "float_percentage" => 'sometimes|string',
+            "float_amount" => 'sometimes|numeric',
         ]);
 
         if($validate->fails()) {

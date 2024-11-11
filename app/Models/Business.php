@@ -19,6 +19,7 @@ class Business extends Model
         "documents"     => 'array',
         "administrator" => 'array',
         "other_datas"   => 'array',
+        "terms_agreed_date" => "string"
     ];
 
     protected $hidden = [

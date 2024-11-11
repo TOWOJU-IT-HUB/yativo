@@ -102,7 +102,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function business(): BelongsTo
     {
-        return $this->belongsTo(Business::class, 'user_id', 'id');
+        return $this->belongsTo(Business::class, 'id', 'user_id');
     }
 
     protected static function boot(): void

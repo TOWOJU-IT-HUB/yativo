@@ -207,7 +207,7 @@ class WithdrawalConntroller extends Controller
     {
         try {
             $countries = PayoutMethods::join('countries', 'countries.iso3', '=', 'payout_methods.country')
-                ->select('countries.iso3', 'countries.name')
+                ->select('countries.iso3', 'countries.iso2', 'countries.name')
                 ->distinct()
                 ->get();
             return get_success_response($countries);

@@ -33,4 +33,15 @@ class ExchangeRate extends Model
     {
         return $this->belongsTo(Gateways::class);
     }
+
+    public function payin()
+    {
+        return $this->belongsTo(PayinMethods::class, 'gateway_id');
+    }
+
+    public function payout()
+    {
+        return $this->belongsTo(payoutMethods::class, 'gateway_id');
+    }
+
 }

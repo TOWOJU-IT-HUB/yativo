@@ -13,6 +13,7 @@
     {{-- @vite('resources/css/app.css') --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('css')
+    {{-- <script src="//unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script> --}}
 </head>
 
 <body x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': true, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }" x-init="darkMode = JSON.parse(localStorage.getItem('darkMode'));
@@ -40,7 +41,10 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
             <!-- ===== Header End ===== -->
 
             <!-- ===== Main Content Start ===== -->
-            <main class="my-3 mx-3">
+            <main class="m-3">
+                <div class="container mx-auto px-4 py-2">
+                    @include('layouts.alerts')
+                </div>
                 @yield('content')
             </main>
             <!-- ===== Main Content End ===== -->
@@ -50,6 +54,7 @@ $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(valu
     <!-- ===== Page Wrapper End ===== -->
     <script defer src="{{ asset('assets/js/bundle.js') }}"></script>
     @stack('script')
+    @stack('scripts')
 </body>
 
 </html>

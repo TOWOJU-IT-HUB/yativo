@@ -6,8 +6,10 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\TransactionRecordController;
+use App\Models\Admin;
 use App\Models\ApiLog;
 use App\Models\BeneficiaryFoems;
+use App\Models\Business;
 use App\Models\Business\VirtualAccount;
 use App\Models\CheckoutModel;
 use App\Models\Country;
@@ -46,47 +48,40 @@ use App\Http\Controllers\ManageDBController;
 |
 */
 
-// Route::get("cue", function () {
-//     $bitso = new BitsoServices();
-//     $return = $bitso->getWallet();
-//     // return response()->json($return);
+Route::get("cue", function () {
+    $bitso = new BitsoServices();
+    $return = $bitso->getWallet();
+    response()->json($return);
 
-//     $payload = '';
-//     $result = $bitso->retrieveCOPAccountBalance(
-//         100,
-//         "+573103922790",
-//         "towojuads@gmail.com",
-//         "CC",
-//         "05900007351",
-//         "Daniela Aldana Valencia",
-//         // "007",
-//         // "aHR0cHM6Ly9hcGkucWF0aXZvLmNvbS9jYWsYmFjay9zdWNlXkNz"
-//     );
+    $payload = '';
+    $result = $bitso->depositCop(
+        100,
+        "+573103922790",
+        "towojuads@gmail.com",
+        "CC",
+        "05900007351",
+        "Daniela Aldana Valencia"
+    );
 
-//     if (!is_array($result)) {
-//         $result = json_decode($result, true);
-//     }
+    if (!is_array($result)) {
+        $result = json_decode($result, true);
+    }
 
-//     Log::info(json_encode(['response_cop' => $result]));
-//     return response()->json($result);
-// });
+    Log::info(json_encode(['response_cop' => $result]));
+    return response()->json(['clabe' => $return, "cop" => $result]);
+});
 
 
 Route::get('/', function () {
-    $result = \App\Models\Transaction::with(['wallet', 'payable'])->latest()->get();
-    return response()->json($result);
+    $methods = payoutMethods::where('gateway', 'flutterwave')->update(['deleted_at' => now()]);
+    return response()->json($methods);
 });
 
-
-
-
-Route::prefix('db')->group(function () {
-    Route::post('backup', [ManageDBController::class, 'backup'])->name('db.backup');
-    Route::post('restore', [ManageDBController::class, 'restore'])->name('db.restore');
-    Route::post('drop-tables', [ManageDBController::class, 'dropAllTables'])->name('db.dropTables');
-});
-
-
+// Route::prefix('db')->group(function () {
+//     Route::post('backup', [ManageDBController::class, 'backup'])->name('db.backup');
+//     Route::post('restore', [ManageDBController::class, 'restore'])->name('db.restore');
+//     Route::post('drop-tables', [ManageDBController::class, 'dropAllTables'])->name('db.dropTables');
+// });
 
 
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
@@ -132,7 +127,7 @@ Route::get('callback/payOutn/onramp', [OnrampService::class, 'payOutCallback'])-
 
 Route::any('callback/webhook/coinpayments', [CryptoWalletsController::class, 'wallet_webhook']);
 Route::any('callback/webhook/local-payments', [LocalPaymentWebhookController::class, 'handle']);
-Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposit_webhook']);
+Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposit_webhook'])->name('bitso.cop.deposit');
 
 
 Route::any('callback/webhook/vitawallet', [VitaWalletController::class, 'callback'])->name('vitawallet.callback.success');

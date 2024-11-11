@@ -10,68 +10,75 @@ class ChartsController extends Controller
 {
     public function getWebhookStatusCounts(Request $request)
     {
-        // Get the range from the request, defaulting to 'last_7_days'
         $range = $request->input('range', 'last_7_days');
         $startDate = $this->getStartDate($range);
+        
+        // Determine grouping interval based on range
+        $groupBy = $this->getGroupByInterval($range);
 
-        $statusCounts = DB::table('webhook_logs')->whereUserId(auth()->id())
-            ->select(DB::raw('DATE(created_at) as date'), 'status', DB::raw('COUNT(*) as count'))
+        $statusCounts = DB::table('webhook_logs')
+            ->whereUserId(auth()->id())
+            ->select(
+                DB::raw("$groupBy as period"),
+                'status',
+                DB::raw('COUNT(*) as count')
+            )
             ->whereBetween('created_at', [$startDate, Carbon::now()])
-            ->groupBy('date', 'status')
-            ->orderBy('date', 'asc')
+            ->groupBy('period', 'status')
+            ->orderBy('period', 'asc')
             ->get();
 
-        // Initialize arrays to store daily counts for each status
-        $dates = [];
+        // Initialize arrays to store counts
+        $periods = [];
         $successData = [];
         $failedData = [];
 
-        // Populate the data arrays
         foreach ($statusCounts as $statusCount) {
-            $date = Carbon::parse($statusCount->date)->format('Y-m-d');
+            $period = $statusCount->period;
 
-            // Ensure each date appears in the results
-            if (!in_array($date, $dates)) {
-                $dates[] = $date;
+            if (!in_array($period, $periods)) {
+                $periods[] = $period;
             }
 
             if ($statusCount->status === 'success') {
-                $successData[$date] = $statusCount->count;
+                $successData[$period] = $statusCount->count;
             } elseif ($statusCount->status === 'failed') {
-                $failedData[$date] = $statusCount->count;
+                $failedData[$period] = $statusCount->count;
             }
         }
 
-        // Fill in missing dates with zeroes for each status
-        $successData = array_map(fn($date) => $successData[$date] ?? 0, $dates);
-        $failedData = array_map(fn($date) => $failedData[$date] ?? 0, $dates);
+        // Fill in missing periods with zeros
+        $successData = array_map(fn($period) => $successData[$period] ?? 0, $periods);
+        $failedData = array_map(fn($period) => $failedData[$period] ?? 0, $periods);
 
-        // Prepare the response data
-        $responseData = [
-            'dates' => $dates,
+        return response()->json([
+            'periods' => $periods,
             'success' => $successData,
             'failed' => $failedData,
-        ];
-
-        return response()->json($responseData);
+        ]);
     }
-    
+
     public function countWebhookRequestMethodsPerDay(Request $request)
     {
-        // Get the range from the request, defaulting to 'last_7_days'
         $range = $request->input('range', 'last_7_days');
         $startDate = $this->getStartDate($range);
+        $groupBy = $this->getGroupByInterval($range);
 
-        $requestMethodCounts = DB::table('webhook_logs')->whereUserId(auth()->id())
-            ->select(DB::raw('DATE(created_at) as date'), 'method', DB::raw('COUNT(*) as count'))
+        $requestMethodCounts = DB::table('webhook_logs')
+            ->whereUserId(auth()->id())
+            ->select(
+                DB::raw("$groupBy as period"),
+                'method',
+                DB::raw('COUNT(*) as count')
+            )
             ->whereBetween('created_at', [$startDate, Carbon::now()])
-            ->groupBy('date', 'status')
-            ->orderBy('date', 'asc')
+            ->groupBy('period', 'method')
+            ->orderBy('period', 'asc')
             ->get();
 
         $data = [];
         foreach ($requestMethodCounts as $logCount) {
-            $data[$logCount->date][$logCount->method] = $logCount->count;
+            $data[$logCount->period][$logCount->method] = $logCount->count;
         }
 
         return response()->json($data);
@@ -79,84 +86,68 @@ class ChartsController extends Controller
 
     public function getApiLogCounts(Request $request)
     {
-        // Get the range from the request, defaulting to 'last_7_days'
         $range = $request->input('range', 'last_7_days');
         $startDate = $this->getStartDate($range);
+        $groupBy = $this->getGroupByInterval($range);
 
-        $logCounts = DB::table('api_logs')->whereUserId(auth()->id())
-            ->select(DB::raw('DATE(created_at) as date'), 'method', DB::raw('COUNT(*) as count'), DB::raw('SUM(CASE WHEN response_status > 400 THEN 1 ELSE 0 END) as failed_count'))
+        $logCounts = DB::table('api_logs')
+            ->whereUserId(auth()->id())
+            ->select(
+                DB::raw("$groupBy as period"),
+                'method',
+                DB::raw('COUNT(*) as count'),
+                DB::raw('SUM(CASE WHEN response_status > 400 THEN 1 ELSE 0 END) as failed_count')
+            )
             ->whereBetween('created_at', [$startDate, Carbon::now()])
-            ->groupBy('date', 'method')
-            ->orderBy('date', 'asc')
+            ->groupBy('period', 'method')
+            ->orderBy('period', 'asc')
             ->get();
 
-        // Initialize arrays to store daily counts for each method
         $methods = ['GET', 'POST', 'PUT', 'DELETE'];
         $successData = [];
         $failedData = [];
 
-        // Populate the data arrays
         foreach ($methods as $method) {
             $successData[$method] = [];
             $failedData[$method] = [];
         }
 
         foreach ($logCounts as $logCount) {
-            $date = Carbon::parse($logCount->date)->format('Y-m-d');
+            $period = $logCount->period;
             $successCount = $logCount->count - $logCount->failed_count;
 
-            // Initialize the date in success and failed data if not present
-            if (!isset($successData[$logCount->method][$date])) {
-                $successData[$logCount->method][$date] = 0;
-            }
-            if (!isset($failedData[$logCount->method][$date])) {
-                $failedData[$logCount->method][$date] = 0;
-            }
-
-            // Update counts
-            $successData[$logCount->method][$date] += $successCount;
-            $failedData[$logCount->method][$date] += $logCount->failed_count;
+            $successData[$logCount->method][$period] = $successCount;
+            $failedData[$logCount->method][$period] = $logCount->failed_count;
         }
 
-        // Fill in missing dates with zeroes for each method
-        foreach ($methods as $method) {
-            foreach ($logCounts as $logCount) {
-                $date = Carbon::parse($logCount->date)->format('Y-m-d');
-                if (!array_key_exists($date, $successData[$method])) {
-                    $successData[$method][$date] = 0;
-                }
-                if (!array_key_exists($date, $failedData[$method])) {
-                    $failedData[$method][$date] = 0;
-                }
-            }
-        }
-
-        // Prepare the response data
-        $responseData = [
-            'dates' => array_keys($successData['GET']),
+        return response()->json([
+            'periods' => array_keys($successData['GET']),
             'success' => $successData,
             'failed' => $failedData,
-        ];
-
-        return response()->json($responseData);
+        ]);
     }
 
     public function countRequestMethodsPerDay(Request $request)
     {
-        // Get the range from the request, defaulting to 'last_7_days'
         $range = $request->input('range', 'last_7_days');
         $startDate = $this->getStartDate($range);
+        $groupBy = $this->getGroupByInterval($range);
 
-        $requestMethodCounts = DB::table('api_logs')->whereUserId(auth()->id())
-            ->select(DB::raw('DATE(created_at) as date'), 'method', DB::raw('COUNT(*) as count'))
+        $requestMethodCounts = DB::table('api_logs')
+            ->whereUserId(auth()->id())
+            ->select(
+                DB::raw("$groupBy as period"),
+                'method',
+                DB::raw('COUNT(*) as count')
+            )
             ->whereBetween('created_at', [$startDate, Carbon::now()])
-            ->groupBy('date', 'method')
-            ->orderBy('date', 'asc')
+            ->groupBy('period', 'method')
+            ->orderBy('period', 'asc')
             ->get();
 
         $data = [];
         foreach ($requestMethodCounts as $logCount) {
-            $data[$logCount->date][$logCount->method] = $logCount->count;
+            $data[$logCount->period][$logCount->method] = $logCount->count;
         }
 
         return response()->json($data);
@@ -164,52 +155,42 @@ class ChartsController extends Controller
 
     public function countSuccessVsFailed(Request $request)
     {
-        // Get the range from the request, defaulting to 'last_7_days'
         $range = $request->input('range', 'last_7_days');
         $startDate = $this->getStartDate($range);
-        $endDate = Carbon::now();
-    
-        $successCount = DB::table('api_logs')->whereUserId(auth()->id())
-            ->whereBetween('created_at', [$startDate, $endDate])
+        $groupBy = $this->getGroupByInterval($range);
+
+        $successCount = DB::table('api_logs')
+            ->whereUserId(auth()->id())
+            ->whereBetween('created_at', [$startDate, Carbon::now()])
             ->where(function($query) {
                 $query->where('response_status', 200)
                       ->orWhere('response_status', 201);
             })
             ->count();
-    
-        $failedCount = DB::table('api_logs')->whereUserId(auth()->id())
-            ->whereBetween('created_at', [$startDate, $endDate])
+
+        $failedCount = DB::table('api_logs')
+            ->whereUserId(auth()->id())
+            ->whereBetween('created_at', [$startDate, Carbon::now()])
             ->where('response_status', '>=', 400)
             ->count();
-    
-        // Initialize daily logs array
+
         $dailyLogs = [];
-        $currentDate = Carbon::now();
-    
         for ($i = 0; $i < 7; $i++) {
-            $date = $currentDate->copy()->subDays($i)->startOfDay();
-            $nextDay = $date->copy()->endOfDay();
-    
-            $dailySuccessCount = DB::table('api_logs')->whereUserId(auth()->id())
-                ->whereBetween('created_at', [$date, $nextDay])
-                ->where(function($query) {
-                    $query->where('response_status', 200)
-                          ->orWhere('response_status', 201);
-                })
-                ->count();
-    
-            $dailyFailedCount = DB::table('api_logs')->whereUserId(auth()->id())
-                ->whereBetween('created_at', [$date, $nextDay])
-                ->where('response_status', '>=', 400)
-                ->count();
-    
-            // Add daily count to the logs array
-            $dailyLogs[$date->format('Y-m-d')] = [
-                'success' => $dailySuccessCount,
-                'failed' => $dailyFailedCount,
+            $date = Carbon::now()->subDays($i)->format('Y-m-d');
+            $dailyLogs[$date] = [
+                'success' => DB::table('api_logs')
+                    ->whereUserId(auth()->id())
+                    ->whereDate('created_at', $date)
+                    ->whereIn('response_status', [200, 201])
+                    ->count(),
+                'failed' => DB::table('api_logs')
+                    ->whereUserId(auth()->id())
+                    ->whereDate('created_at', $date)
+                    ->where('response_status', '>=', 400)
+                    ->count(),
             ];
         }
-    
+
         return response()->json([
             "total" => [
                 'success' => $successCount,
@@ -218,25 +199,30 @@ class ChartsController extends Controller
             "logs" => $dailyLogs,
         ]);
     }
-    
 
     private function getStartDate($range)
     {
         switch ($range) {
-            case 'last_7_days':
-                return Carbon::now()->subDays(7);
-            case 'last_2_weeks':
-                return Carbon::now()->subWeeks(2);
-            case 'last_1_month':
-                return Carbon::now()->subMonth();
-            case 'last_3_months':
-                return Carbon::now()->subMonths(3);
-            case 'last_6_months':
-                return Carbon::now()->subMonths(6);
-            case 'last_1_year':
-                return Carbon::now()->subYear();
-            default:
-                return Carbon::now()->subDays(7); 
+            case 'last_7_days': return Carbon::now()->subDays(7);
+            case 'last_2_weeks': return Carbon::now()->subWeeks(2);
+            case 'last_1_month': return Carbon::now()->subMonth();
+            case 'last_3_months': return Carbon::now()->subMonths(3);
+            case 'last_6_months': return Carbon::now()->subMonths(6);
+            case 'last_1_year': return Carbon::now()->subYear();
+            default: return Carbon::now()->subDays(7); 
+        }
+    }
+
+    private function getGroupByInterval($range)
+    {
+        switch ($range) {
+            case 'last_7_days': return 'DATE(created_at)';
+            case 'last_2_weeks': return 'WEEK(created_at)';
+            case 'last_1_month': return 'WEEK(created_at)';
+            case 'last_3_months': return 'WEEK(created_at)';
+            case 'last_6_months': return 'MONTH(created_at)';
+            case 'last_1_year': return 'MONTH(created_at)';
+            default: return 'DATE(created_at)';
         }
     }
 }

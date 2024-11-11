@@ -39,12 +39,24 @@ class Withdraw extends Model
             }
         });
     }
+    
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function transactions()
     {
-        return $this->hasMany(Transaction::class)
-            ->where('meta_id', '=', $this->getKey())
-            ->where('meta_type', '=', 'payouts');
+        return $this->hasMany(TransactionRecord::class, 'transaction_id', 'id')
+            ->where('transaction_type', 'deposit');
+    }
+
+       /**
+     * Get the payin method associated with the exchange rate.
+     */
+    public function payoutGateway()
+    {
+        return $this->belongsTo(payoutMethods::class, 'gateway');
     }
 
     public function beneficiary()

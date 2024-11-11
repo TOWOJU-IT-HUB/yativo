@@ -19,27 +19,30 @@ class BusinessController extends Controller
         try {
             $validated = $request->validated();
             $validated['user_id'] = auth()->id();
+            $validated['ip_address'] = $request->ip();
 
-            // make call to shufti pro for business name verification
-            if($request->incorporation_country)
+            if($request->incorporation_country) {
                 $jurisdiction = $request->incorporation_country;
-
-            if (Business::whereUserId($validated['user_id'])->exists()) {
-                return get_error_response(['error' => 'Record already exist, please use update record']);
             }
 
-            $business = Business::create($validated);
+            $business = Business::updateOrCreate(
+                ['user_id' => $validated['user_id']],
+                $validated
+            );
 
             if (!empty($business->business_legal_name)) {
                 $user = auth()->user();
-                $user->is_kyc_submitted = true;
-                $user->membership_id = uuid(9, "B");
-                $user->kyc_status = null;
-                $user->user_type = "business";
-                $user->bussinessName = $business->business_operating_name;
-                $user->save();
+                $user->update([
+                    'is_kyc_submitted' => true,
+                    'membership_id' => uuid(9, "B"),
+                    'kyc_status' => null,
+                    'user_type' => "business",
+                    'bussinessName' => $business->business_operating_name
+                ]);
             }
+
             return get_success_response($business, 201);
+            
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 500);
         }
@@ -49,9 +52,9 @@ class BusinessController extends Controller
     public function show()
     {
         try {
-            if (request()->user()->is_business != true) {
-                return get_error_response(['error' => 'Please enable the Bussiness option in your profile to get access to this feature'], 403);
-            }
+            // if (request()->user()->is_business != true) {
+            //     return get_error_response(['error' => 'Please enable the Bussiness option in your profile to get access to this feature'], 403);
+            // }
             $business = Business::whereUserId(auth()->id())->with(['business_ubo', 'preference'])->first();
             return get_success_response($business, 200);
         } catch (\Exception $e) {

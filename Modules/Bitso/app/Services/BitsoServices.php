@@ -120,9 +120,10 @@ class BitsoServices
         return $result;
     }
 
-    public function retrieveCOPAccountBalance($amount, $cellphone, $email, $documentType, $documentNumber, $fullName)
+    public function depositCop($amount, $cellphone, $email, $documentType, $documentNumber, $fullName)
     {
         $this->requestPath = "/api/v3/funding_details/pse/payment_links";
+        $callback_url = $request->callback_url ?? env('WEB_URL', route('bitso.cop.deposit'));
         $data = [
             "amount" => $amount,
             "cellphone" => $cellphone,
@@ -130,6 +131,7 @@ class BitsoServices
             "document_type" => $documentType,
             "document_number" => $documentNumber,
             "full_name" => $fullName,
+            "callback_url" => base64_encode($callback_url)
         ];
 
         $payload = json_encode($data);
@@ -139,6 +141,7 @@ class BitsoServices
     public function payout($amount, $clabe, $currency)
     {
         $beneficiary = Beneficiary::whereId(request()->beneficiary_id)->first();
+        $pay_data = $beneficiary->payment_data;
         $customer = $beneficiary->customer_name;
 
         if (strtolower($currency) == 'mxn') {
@@ -154,17 +157,16 @@ class BitsoServices
             $data = [
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
-                'amount' => '10000',
-                'bankAccount' => '059-000073-51',
-                'bankCode' => '007',
+                'amount' => $amount,
+                'bankAccount' => $pay_data->account_number, //'059-000073-51',
+                'bankCode' => $pay_data->bank_code, // '007',
                 'AccountType' => '2',
                 'third_party_withdrawal' => true,
-                'beneficiary_name' => 'Daniela Aldana',
-                'beneficiary_lastname' => 'Valencia',
-                'document_id' => '1053851282',
-                'document_type' => 'CC',
-                'email' => 'towojuads@gmail.com',
-                'origin_id' => 'bitso_dfedfedfe',
+                'beneficiary_name' => $pay_data->beneficiary_name, // 'Daniela Aldana',
+                'beneficiary_lastname' => $pay_data->beneficiary_lastname, //'Valencia',
+                'document_id' => $pay_data->document_id, // '1053851282',
+                'document_type' => $pay_data->document_type, //'CC',
+                'email' => $pay_data->beneficiary_email, //'towojuads@gmail.com',
             ];
         } else {
             return ['error' => "We currently can not process this currency"];

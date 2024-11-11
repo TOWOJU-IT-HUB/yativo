@@ -1,48 +1,67 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="container mx-auto px-4">
-    <h1 class="text-2xl font-bold mb-4">Deposits</h1>
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Deposits</h1>
+    </div>
 
-    <div class="bg-white dark:bg-slate-800 rounded-lg px-6 py-8 ring-1 ring-slate-900/5 shadow-xl">
-        <table class="min-w-full bg-white dark:bg-slate-800">
-            <thead>
-                <tr>
-                    <th class="text-left text-slate-900 dark:text-white">User Name</th>
-                    <th class="text-left text-slate-900 dark:text-white">Deposit Gateway</th>
-                    <th class="text-left text-slate-900 dark:text-white">Status</th>
-                    <th class="text-left text-slate-900 dark:text-white">Currency</th>
-                    <th class="text-left text-slate-900 dark:text-white">Amount</th>
-                    <th class="text-left text-slate-900 dark:text-white">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($deposits as $deposit)
-                <tr>
-                    <td class="text-slate-500 dark:text-slate-400">{{ $deposit->user?->name }}</td>
-                    <td class="text-slate-500 dark:text-slate-400">{{ $deposit->depositGateway?->method_name }}</td>
-                    <td class="text-slate-500 dark:text-slate-400">
-                        @php
-                        $status = $deposit->transactions->transaction_status;
-                        $color = match ($status) {
-                            'pending' => 'warning',
-                            'completed' => 'success',
-                            'cancelled', 'failed', 'expired' => 'danger',
-                            'processing' => 'primary',
-                            default => 'secondary',
-                        };
-                        @endphp
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium leading-4 bg-{{ $color }}-100 text-{{ $color }}-800">{{ $status }}</span>
-                    </td>
-                    <td class="text-slate-500 dark:text-slate-400">{{ $deposit?->currency }}</td>
-                    <td class="text-slate-500 dark:text-slate-400">{{ $deposit?->amount }}</td>
-                    <td class="text-slate-500 dark:text-slate-400">
-                        <a href="{{ route('admin.deposits.show', $deposit->id) }}" class="text-blue-500">View</a>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <div class="bg-white dark:bg-boxdark rounded-lg shadow-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead class="bg-gray-50 dark:bg-slate-800">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Deposit Gateway</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Currency</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white dark:bg-boxdark divide-y divide-gray-200 dark:divide-gray-700">
+                    @foreach($deposits as $deposit)
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors duration-200">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                            {{ $deposit->user?->firstName }} {{ $deposit->user?->lastName }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                            {{ $deposit->depositGateway?->method_name ?? 'N/A - Deleted' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @php
+                            $status = $deposit->status;
+                            $color = match ($status) {
+                                'pending' => 'yellow',
+                                'completed' => 'green',
+                                'cancelled', 'failed', 'expired' => 'red',
+                                'processing' => 'blue',
+                                default => 'gray',
+                            };
+                            @endphp
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-{{ $color }}-100 dark:bg-{{ $color }}-900/50 text-{{ $color }}-800 dark:text-{{ $color }}-200">
+                                {{ $status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                            {{ $deposit?->currency }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                            {{ $deposit?->amount }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <a href="{{ route('admin.deposits.show', $deposit->id) }}" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300">View</a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="px-6 py-4 bg-white dark:bg-boxdark border-t border-gray-200 dark:border-gray-700">
+            <div class="flex justify-end">
+                {{ $deposits->links() }}
+            </div>
+        </div>
     </div>
 </div>
 @endsection

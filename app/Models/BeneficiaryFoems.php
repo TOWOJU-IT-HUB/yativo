@@ -23,4 +23,8 @@ class BeneficiaryFoems extends Model
     protected $casts = [
         "form_data" => "array"
     ];
+
+    public function gateway() {
+        return $this->belongsTo(payoutMethods::class);
+    }
 }

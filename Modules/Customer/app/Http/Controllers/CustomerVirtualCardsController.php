@@ -139,7 +139,7 @@ class CustomerVirtualCardsController extends Controller
                     'success' => "Customer activated successfully."
                 ]);
             } else {
-                $result = $req; // get_error_response(['error' => "User registration failed, please check your payload is correct."]);
+                $result = get_error_response($req); // get_error_response(['error' => "User registration failed, please check your payload is correct."]);
             }
 
             return $result;

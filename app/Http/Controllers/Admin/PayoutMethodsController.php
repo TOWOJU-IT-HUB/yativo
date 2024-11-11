@@ -19,7 +19,7 @@ class PayoutMethodsController extends Controller
 
     public function index()
     {
-        $payoutMethods = PayoutMethods::all();
+        $payoutMethods = PayoutMethods::paginate(15);
         return view('admin.payout_methods.index', compact('payoutMethods'));
     }
 

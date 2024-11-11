@@ -50,7 +50,7 @@ class Deposit extends Model
      */
     public function depositGateway()
     {
-        return $this->belongsTo(PayinMethods::class, 'gateway_id');
+        return $this->belongsTo(PayinMethods::class, 'gateway');
     }
 
     public function transaction()
@@ -62,7 +62,7 @@ class Deposit extends Model
 
     public function transactions()
     {
-        return $this->hasMany(TransactionRecord::class)
+        return $this->hasMany(TransactionRecord::class, 'transaction_id', 'id')
             ->where('transaction_type', 'deposit');
     }
 

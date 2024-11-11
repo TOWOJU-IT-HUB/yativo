@@ -10,7 +10,7 @@ class PayinMethodsController extends Controller
 {
     public function index()
     {
-        $payinMethods = PayinMethods::all();
+        $payinMethods = PayinMethods::paginate(15);
         return view('admin.payin_methods.index', compact('payinMethods'));
     }
 
@@ -26,21 +26,21 @@ class PayinMethodsController extends Controller
             'gateway' => 'required|string|max:255',
             'country' => 'required|string|max:255',
             'currency' => 'required|string|max:10',
-            'payment_mode' => 'required|string|max:50',
-            'charges_type' => 'required|string|max:50',
-            'fixed_charge' => 'required|numeric',
-            'float_charge' => 'required|numeric',
-            'settlement_time' => 'required|string|max:50',
+            'payment_mode' => 'nullable|string|max:50',
+            'charges_type' => 'nullable|string|max:50',
+            'fixed_charge' => 'nullable|numeric',
+            'float_charge' => 'nullable|numeric',
+            'settlement_time' => 'nullable|string|max:50',
             'pro_fixed_charge' => 'nullable|numeric',
             'pro_float_charge' => 'nullable|numeric',
-            'minimum_deposit' => 'required|numeric',
-            'maximum_deposit' => 'required|numeric',
-            'minimum_charge' => 'required|numeric',
-            'maximum_charge' => 'required|numeric',
-            'cutoff_hrs_start' => 'required|string|max:10',
-            'cutoff_hrs_end' => 'required|string|max:10',
-            'Working_hours_start' => 'required|string|max:10',
-            'Working_hours_end' => 'required|string|max:10',
+            'minimum_deposit' => 'nullable|numeric',
+            'maximum_deposit' => 'nullable|numeric',
+            'minimum_charge' => 'nullable|numeric',
+            'maximum_charge' => 'nullable|numeric',
+            'cutoff_hrs_start' => 'nullable|string|max:10',
+            'cutoff_hrs_end' => 'nullable|string|max:10',
+            'Working_hours_start' => 'nullable|string|max:10',
+            'Working_hours_end' => 'nullable|string|max:10',
         ]);
 
         PayinMethods::create($validatedData);

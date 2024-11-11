@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\payoutMethods;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class PayoutMethodsSeeder extends Seeder
 {
@@ -6988,15 +6989,14 @@ class PayoutMethodsSeeder extends Seeder
             ],
         ];
 
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=0;'); 
+        payoutMethods::truncate();     
+        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        
+
         foreach ($methods as $method) {
-            payoutMethods::updateOrCreate(
-                [
-                    'id' => $method['id'],
-                    'gateway' => $method['gateway'],
-                    'country' => $method['country'],
-                    'currency' => $method['currency']
-                ],
-                [
+            payoutMethods::InsertOrIgnore([
                     'method_name' => $method['method_name'],
                     'gateway' => $method['gateway'],
                     'country' => $method['country'],

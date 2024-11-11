@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\PayinMethods;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class PayinMethodsSeeder extends Seeder
 {
@@ -387,16 +388,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             8 => [
@@ -443,21 +434,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -602,21 +578,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             12 => [
@@ -667,21 +628,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             13 => [
@@ -728,21 +674,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -883,21 +814,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -1807,21 +1723,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             37 => [
@@ -1868,21 +1769,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -1982,21 +1868,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             40 => [
@@ -2047,21 +1918,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             41 => [
@@ -2108,21 +1964,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -3032,21 +2873,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             62 => [
@@ -3093,21 +2919,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -3162,21 +2973,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             64 => [
@@ -3223,21 +3019,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -3292,21 +3073,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             66 => [
@@ -3353,21 +3119,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -3422,21 +3173,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             68 => [
@@ -3483,21 +3219,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -3552,21 +3273,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             70 => [
@@ -3613,21 +3319,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -7156,21 +6847,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             215 => [
@@ -7217,21 +6893,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -7286,21 +6947,6 @@ class PayinMethodsSeeder extends Seeder
                   'field' => 'branch_code',
                   'required' => true,
                 ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
               ],
             ],
             217 => [
@@ -7347,21 +6993,6 @@ class PayinMethodsSeeder extends Seeder
                   'required' => true,
                 ],
                 4 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                5 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                6 => [
-                  'type' => 'text',
-                  'field' => 'branch_code',
-                  'required' => true,
-                ],
-                7 => [
                   'type' => 'text',
                   'field' => 'branch_code',
                   'required' => true,
@@ -7534,12 +7165,12 @@ class PayinMethodsSeeder extends Seeder
             ],
           ];
 
+
+
           foreach($methods as $method) {
-            PayinMethods::updateOrCreate([
-                'method_name' => $method['method_name'],
-                'gateway' => $method['gateway'],
-                'payment_mode' => $method['gateway'],
-            ],[
+            PayinMethods::InsertOrIgnore([
+				'method_name' => $method['method_name'],
+				'gateway' => $method['gateway'],
                 'country' => $method['country'],
                 'currency' => $method['currency'],
                 'payment_mode' => $method['payment_mode'],
@@ -7558,8 +7189,8 @@ class PayinMethodsSeeder extends Seeder
                 'cutoff_hrs_end' => $method['cutoff_hrs_end'],
                 'Working_hours_start' => $method['Working_hours_start'],
                 'Working_hours_end' => $method['Working_hours_end'],
-                'required_extra_data' => $method['required_extra_data']
+                'required_extra_data' => $method['required_extra_data'] ? json_encode($method['required_extra_data']) : null, // JSON encode
             ]);
-        }    
+        }   
     }
 }

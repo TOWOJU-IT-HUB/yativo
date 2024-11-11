@@ -42,7 +42,7 @@
                     <option value="individual" {{ request('user_type') === 'individual' ? 'selected' : '' }}>Individual</option>
                 </select>
             </div>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700">Filter</button>
+            <button type="submit" class="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary dark:bg-primary dark:hover:bg-primary">Filter</button>
         </form>
     </div>
 

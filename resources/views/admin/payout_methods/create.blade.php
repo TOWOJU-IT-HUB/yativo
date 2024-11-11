@@ -4,115 +4,220 @@
 @section('header', 'Create New Payout Method')
 
 @section('content')
-    <form action="{{ route('admin.payout-methods.store') }}" method="POST" class="bg-white dark:bg-gray-800 p-6 shadow rounded">
+<div class="container mx-auto px-4 py-8">
+    <p class="text-2xl dark:text-white">Add New Payout Method</p>
+    <form action="{{ route('admin.payout-methods.store') }}" method="POST" class="bg-white dark:bg-boxdark p-6 shadow rounded">
         @csrf
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Method Name -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Method Name</label>
-                <input type="text" name="method_name" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+        <div class="p-6.5">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Method Name -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Method Name</label>
+                    <input 
+                        type="text" 
+                        name="method_name" 
+                        placeholder="Enter method name" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Gateway -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Gateway</label>
+                    <input 
+                        type="text" 
+                        name="gateway" 
+                        placeholder="Enter gateway" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Gateway -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Gateway</label>
-                <input type="text" name="gateway" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Country -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Country</label>
+                    <input 
+                        type="text" 
+                        name="country" 
+                        placeholder="Enter country" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Currency -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Currency</label>
+                    <input 
+                        type="text" 
+                        name="currency" 
+                        placeholder="Enter currency" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Country -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Country</label>
-                <input type="text" name="country" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Payment Mode -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Payment Mode</label>
+                    <input 
+                        type="text" 
+                        name="payment_mode" 
+                        placeholder="Enter payment mode" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Charges Type -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Charges Type</label>
+                    <input 
+                        type="text" 
+                        name="charges_type" 
+                        placeholder="Enter charges type" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Currency -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Currency</label>
-                <input type="text" name="currency" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Fixed Charge -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Fixed Charge</label>
+                    <input 
+                        type="number" 
+                        name="fixed_charge" 
+                        placeholder="Enter fixed charge" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Float Charge -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Float Charge</label>
+                    <input 
+                        type="number" 
+                        name="float_charge" 
+                        placeholder="Enter float charge" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Payment Mode -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Payment Mode</label>
-                <input type="text" name="payment_mode" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Estimated Delivery -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Estimated Delivery</label>
+                    <input 
+                        type="text" 
+                        name="estimated_delivery" 
+                        placeholder="Enter estimated delivery" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Pro Fixed Charge -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Pro Fixed Charge</label>
+                    <input 
+                        type="number" 
+                        name="pro_fixed_charge" 
+                        placeholder="Enter pro fixed charge" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Charges Type -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Charges Type</label>
-                <input type="text" name="charges_type" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Pro Float Charge -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Pro Float Charge</label>
+                    <input 
+                        type="number" 
+                        name="pro_float_charge" 
+                        placeholder="Enter pro float charge" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Minimum Withdrawal -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Minimum Withdrawal</label>
+                    <input 
+                        type="number" 
+                        name="minimum_withdrawal" 
+                        placeholder="Enter minimum withdrawal" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Fixed Charge -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Fixed Charge</label>
-                <input type="number" name="fixed_charge" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Maximum Withdrawal -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Maximum Withdrawal</label>
+                    <input 
+                        type="number" 
+                        name="maximum_withdrawal" 
+                        placeholder="Enter maximum withdrawal" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Minimum Charge -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Minimum Charge</label>
+                    <input 
+                        type="number" 
+                        name="minimum_charge" 
+                        placeholder="Enter minimum charge" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Float Charge -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Float Charge</label>
-                <input type="number" name="float_charge" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Maximum Charge -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Maximum Charge</label>
+                    <input 
+                        type="number" 
+                        name="maximum_charge" 
+                        placeholder="Enter maximum charge" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
+
+                <!-- Cutoff Hours Start -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Cutoff Hours Start</label>
+                    <input 
+                        type="time" 
+                        name="cutoff_hrs_start" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Estimated Delivery -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Estimated Delivery</label>
-                <input type="text" name="estimated_delivery" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
+            <div class="mb-4.5 flex flex-col gap-6 xl:flex-row">
+                <!-- Cutoff Hours End -->
+                <div class="w-full xl:w-1/2">
+                    <label class="mb-3 block text-sm font-medium text-black dark:text-white">Cutoff Hours End</label>
+                    <input 
+                        type="time" 
+                        name="cutoff_hrs_end" 
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
+                    >
+                </div>
             </div>
 
-            <!-- Pro Fixed Charge -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Pro Fixed Charge</label>
-                <input type="number" name="pro_fixed_charge" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Pro Float Charge -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Pro Float Charge</label>
-                <input type="number" name="pro_float_charge" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Minimum Withdrawal -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Minimum Withdrawal</label>
-                <input type="number" name="minimum_withdrawal" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Maximum Withdrawal -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Maximum Withdrawal</label>
-                <input type="number" name="maximum_withdrawal" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Minimum Charge -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Minimum Charge</label>
-                <input type="number" name="minimum_charge" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Maximum Charge -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Maximum Charge</label>
-                <input type="number" name="maximum_charge" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Cutoff Hours Start -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Cutoff Hours Start</label>
-                <input type="time" name="cutoff_hrs_start" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
-
-            <!-- Cutoff Hours End -->
-            <div>
-                <label class="block text-gray-700 dark:text-gray-200">Cutoff Hours End</label>
-                <input type="time" name="cutoff_hrs_end" class="mt-1 block w-full border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 rounded-md">
-            </div>
         </div>
 
-        <div class="mt-6">
-            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded">Save Payout Method</button>
-            <a href="{{ route('admin.payout-methods.index') }}" class="px-4 py-2 bg-gray-500 text-white rounded">Cancel</a>
+        <div class="mt-6 flex justify-between">
+            <a href="{{ route('admin.payout-methods.index') }}" class="px-4 py-2 hover:bg-red-700 bg-danger text-white rounded">Cancel</a>
+            <button type="submit" class="px-4 py-2 hover:bg-primary bg-primary text-white rounded">Save Payout Method</button>
         </div>
     </form>
+</div>
 @endsection
