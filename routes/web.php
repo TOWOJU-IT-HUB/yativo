@@ -31,7 +31,9 @@ use Modules\Advcash\app\Http\Controllers\AdvcashController;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Bitso\app\Http\Controllers\BitsoController as ControllersBitsoController;
 use Modules\Bitso\app\Services\BitsoServices;
+use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
+use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
 use Spatie\WebhookServer\WebhookCall;
@@ -48,34 +50,12 @@ use App\Http\Controllers\ManageDBController;
 |
 */
 
-Route::get("cue", function () {
-    $bitso = new BitsoServices();
-    $return = $bitso->getWallet();
-    response()->json($return);
-
-    $payload = '';
-    $result = $bitso->depositCop(
-        100,
-        "+573103922790",
-        "towojuads@gmail.com",
-        "CC",
-        "05900007351",
-        "Daniela Aldana Valencia"
-    );
-
-    if (!is_array($result)) {
-        $result = json_decode($result, true);
-    }
-
-    Log::info(json_encode(['response_cop' => $result]));
-    return response()->json(['clabe' => $return, "cop" => $result]);
-});
-
-
 Route::get('/', function () {
-    $methods = payoutMethods::where('gateway', 'flutterwave')->update(['deleted_at' => now()]);
-    return response()->json($methods);
+    $floid = new FlowController();
+    $result = $floid->makePayment('1234567890', 100, 'CLP');
+    dd($result);
 });
+
 
 // Route::prefix('db')->group(function () {
 //     Route::post('backup', [ManageDBController::class, 'backup'])->name('db.backup');
@@ -131,6 +111,10 @@ Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposi
 
 
 Route::any('callback/webhook/vitawallet', [VitaWalletController::class, 'callback'])->name('vitawallet.callback.success');
+
+
+Route::any('callback/webhook/floid', [FlowController::class, 'callback'])->name('floid.callback.success');
+Route::any('callback/webhook/floid-redirect', [FlowController::class, 'getPaymentStatus'])->name('floid.callback.redirect');
 
 Route::post("callback/webhook/virtual-account-webhook", [VirtualAccountsController::class, 'virtualAccountWebhook'])->name('business.virtual-account.virtualAccountWebhook');
 Route::any('callback/wallet/webhook/{userId}/{currency}', [CryptoWalletsController::class, 'walletWebhook'])->name('crypto.wallet.address.callback');

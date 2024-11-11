@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MiscController;
 use App\Models\Balance;
 use App\Models\Business;
 use App\Models\Country;
@@ -432,6 +433,30 @@ if (!function_exists('save_image')) {
         return $result;
     }
 }
+
+
+if (!function_exists('save_base64_image')) {
+    function save_base64_image($path, $imagePath)
+    {
+        $result = null;
+        
+        if (!empty($imagePath) && file_exists($imagePath)) {
+            // Assuming user is authenticated; modify if needed
+            $user = request()->user();
+            $userPath = "documents/{$user->membership_id}";
+
+            // Upload the file to the Cloudflare R2 storage
+            $imgPath = "{$userPath}/" . basename($imagePath);
+            Storage::disk('r2')->put($imgPath, file_get_contents($imagePath));
+
+            // Generate and return the full Cloudflare URL
+            $result = getenv("CLOUDFLARE_BASE_URL") . $imgPath;
+        }
+        
+        return $result;
+    }
+}
+
 
 if (!function_exists('get_fees')) {
     /**
@@ -1113,7 +1138,7 @@ if (!function_exists('convertToBase64ImageUrl')) {
         $imageBase64 = base64_encode($decodedString);
 
         // Construct the data URI for the image
-        return 'data:image/png;base64,' . $imageBase64;
+        return MiscController::uploadBase64ImageToCloudflare('data:image/png;base64,' . $imageBase64);
     }
 }
 
@@ -1141,5 +1166,22 @@ if (!function_exists('get_payout_code')) {
 
         // Return null if no match is found or file does not exist
         return null;
+    }
+}
+
+if (!function_exists('update_deposit_gateway_id')) {
+    /**
+     * update the ID of checkout gateway into the deposit DB for easy record retrieval
+     * @param mixed $depositId
+     * @param mixed $gatewayDepositId
+     * @return void
+     */
+    function update_deposit_gateway_id($depositId, $gatewayDepositId)
+    {
+        $deposit = Deposit::find($depositId);
+        if($deposit){
+            $deposit->gateway_deposit_id = $gatewayDepositId;
+            $deposit->save();
+        }
     }
 }

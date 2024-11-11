@@ -277,7 +277,7 @@ class DepositService
         return $checkout;
     }
 
-    public function flow($deposit_id, $amount, $currency, $txn_type, $gateway)
+    public function floid($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $flow = new FlowController();
         $checkout = $flow->makePayment($deposit_id, $amount, $currency);

@@ -111,7 +111,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
             $validatedData["idImage"] = convertToBase64ImageUrl(decryptCustomerData($cust->customer_idFront));
-            $validatedData["country"] = $cust->customer_address['country'];
+            $validatedData["country"] = $cust->customer_country;
             $validatedData["city"] = $cust->customer_address['city'];
             $validatedData["state"] = $cust->customer_address['state'];
             $validatedData["zipCode"] = $cust->customer_address['zipcode'];
@@ -120,7 +120,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["idType"] = "NATIONAL_ID";
             $validatedData["idNumber"] = decryptCustomerData($cust->customer_idNumber);
 
-            // return response()->json($validatedData); exit;
+            return response()->json($validatedData); exit;
 
             $req = $this->card->regUser($validatedData);
 
@@ -264,6 +264,10 @@ class CustomerVirtualCardsController extends Controller
 
             // var_dump($card);exit;
 
+            if(empty($card)) {
+                return get_error_response(['error' => "Card not found!"], 404);
+            }
+
             // Define the keys to be removed from the card data
             $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
@@ -284,6 +288,8 @@ class CustomerVirtualCardsController extends Controller
             if ($arrOnly) {
                 return $arrData;
             }
+
+            // return response()->json($arrData);
 
             if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int)$arrData['statusCode'] === 500)) {
                 return get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);

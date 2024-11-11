@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Str;
 
 class MiscController extends Controller
 {
@@ -300,4 +301,40 @@ class MiscController extends Controller
             return get_error_response(['error' => 'An error occurred: ' . $e->getMessage()]);
         }
     }
+    public static function uploadBase64ImageToCloudflare($imageBase64)
+    {
+        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $imageBase64));
+
+        // Generate a unique filename with the appropriate extension
+        $fileName = Str::uuid() . '.png';
+
+        // Save the decoded image temporarily
+        $tempFilePath = storage_path("app/public/{$fileName}");
+        file_put_contents($tempFilePath, $imageData);
+
+        try {
+            // Make a POST request to upload the image to Cloudflare
+            if ($imgUrl = save_base64_image("bitnob", $tempFilePath)) {
+                return $imgUrl;
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'Failed to upload image to Cloudflare.',
+                ];
+            }
+        } catch (\Exception $e) {
+            // Handle exceptions
+            return [
+                'success' => false,
+                'message' => 'An error occurred while uploading image.',
+                'error' => $e->getMessage(),
+            ];
+        } finally {
+            if (file_exists($tempFilePath)) {
+                unlink($tempFilePath);
+            }
+        }
+    }
+
+
 }
