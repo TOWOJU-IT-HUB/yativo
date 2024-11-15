@@ -98,7 +98,7 @@ class SendMoneyController extends Controller
 				[
 					'send_amount' => 'required', // Amount to Receive by beneficiary
 					'send_gateway' => 'required', // ID of the deposit/payin method
-					'beneficiary_id' => 'required', // payment beneficiary ID
+					'beneficiary_id' => 'sometimes', // payment beneficiary ID
 					'payment_method_id' => 'required', // ID of the beneficiary payment method 
 					'transfer_purpose' => 'sometimes',
 				]

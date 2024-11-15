@@ -22,25 +22,25 @@
         <table class="w-full table-auto">
             <thead>
                 <tr class="bg-gray-50 dark:bg-navy-800">
-                    <th class="px-4 py-3 text-left text-gray-700 dark:text-gray-300">Method ID</th>
-                    <th class="px-4 py-3 text-left text-gray-700 dark:text-gray-300">Method Name</th>
-                    <th class="px-4 py-3 text-left text-gray-700 dark:text-gray-300">Gateway</th>
-                    <th class="px-4 py-3 text-left text-gray-700 dark:text-gray-300">Country</th>
-                    <th class="px-4 py-3 text-left text-gray-700 dark:text-gray-300">Currency</th>
-                    <th class="px-4 py-3 text-left text-gray-700 dark:text-gray-300">Actions</th>
+                    <th class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">Method ID</th>
+                    <th class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">Method Name</th>
+                    <th class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">Gateway</th>
+                    <th class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">Country</th>
+                    <th class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">Currency</th>
+                    <th class="px-4 py-3 text-center text-gray-700 dark:text-gray-300">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($payoutMethods as $method)
-                    <tr class="border-b">
+                    <tr class="border-b text-center">
                         <td class="py-2">{{ $method->id }}</td>
                         <td class="py-2">{{ $method->method_name }}</td>
                         <td class="py-2">{{ $method->gateway }}</td>
                         <td class="py-2">{{ $method->country }}</td>
                         <td class="py-2">{{ $method->currency }}</td>
                         <td class="py-2">
-                            <a href="{{ route('admin.payin_methods.edit', $method->id) }}" class="text-blue-500">Edit</a>
-                            <form action="{{ route('admin.payin_methods.destroy', $method->id) }}" method="POST"
+                            <a href="{{ route('admin.payout-methods.edit', $method->id) }}" class="text-blue-500">Edit</a>
+                            <form action="{{ route('admin.payout-methods.destroy', $method->id) }}" method="POST"
                                 style="display:inline;">
                                 @csrf
                                 @method('DELETE')

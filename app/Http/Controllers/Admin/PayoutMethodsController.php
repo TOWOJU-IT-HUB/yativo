@@ -19,9 +19,30 @@ class PayoutMethodsController extends Controller
 
     public function index()
     {
-        $payoutMethods = PayoutMethods::paginate(15);
-        return view('admin.payout_methods.index', compact('payoutMethods'));
-    }
+            $query = PayoutMethods::query();
+
+            if (request('currency')) {
+                $query->where('currency', request('currency'));
+            }
+
+            if (request('gateway')) {
+                $query->where('gateway', 'like', '%' . request('gateway') . '%');
+            }
+
+            if (request('method_name')) {
+                $query->where('method_name', 'like', '%' . request('method_name') . '%');
+            }
+
+            if (request('country')) {
+                $query->where('country', 'like', '%' . request('country') . '%');
+            }
+
+            if (request('show_deleted')) {
+                $query->withTrashed();
+            }
+
+            $payoutMethods = $query->paginate(15)->withQueryString();
+            return view('admin.payout_methods.index', compact('payoutMethods'));    }
 
     public function create()
     {
@@ -36,7 +57,7 @@ class PayoutMethodsController extends Controller
             'country' => 'required|string|max:255',
             'currency' => 'required|string|max:3',
             'payment_mode' => 'required|string|max:255',
-            'charges_type' => 'required|string|in:fixed,percentage',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
             'float_charge' => 'nullable|numeric',
             'estimated_delivery' => 'nullable|integer',
@@ -72,7 +93,7 @@ class PayoutMethodsController extends Controller
             'country' => 'required|string|max:255',
             'currency' => 'required|string|max:3',
             'payment_mode' => 'required|string|max:255',
-            'charges_type' => 'required|string|in:fixed,percentage',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
             'float_charge' => 'nullable|numeric',
             'estimated_delivery' => 'nullable|integer',

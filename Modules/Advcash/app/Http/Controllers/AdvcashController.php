@@ -62,9 +62,13 @@ class AdvcashController extends Controller
 
     public function withdrawal($quoteId, $currency, $payoutObject)
     {
+        $gateway = (object)[];
         $amount = $payoutObject->amount;
         $description = "Payout from Yativo";
         $curl = $this->initiatePayment($amount, $currency);
+        if($gateway->payment_mode == "advcash_card") {
+            $this->sendMoneyToBankCard($amount, $currency, $payoutObject);
+        }
         if (is_string($curl)) {
             if (strpos($curl, 'error') !== false) {
                 return ['error' => $curl];
@@ -96,24 +100,42 @@ class AdvcashController extends Controller
         http_response_code(200);
     }
 
-    public function sendMoneyToBankCard($amount, $currency, $note)
+    public function sendMoneyToBankCard($amount, $currency, $payoutObject)
     {
         try {
-            $action = "sendMoneyToBankCard";
-            $payload = [
-                'amount' => '1.00',
-                'currency' => 'USD',
-                'cardNumber' => '4149605912035536',
-                'expiryMonth' => '08',
-                'expiryYear' => '17',
-                'note' => 'Some note',
-                'savePaymentTemplate' => 'false',
-                'cardHolder' => 'John Smith',
-                'cardHolderCountry' => 'DE',
-                'cardHolderCity' => 'Town',
-                'cardHolderDOB' => '1985-04-04',
-                'cardHolderMobilePhoneNumber' => '79011234567'
+            $currencies = [
+                "USD" => "US Dollar",
+                "EUR" => "Euro",
+                "RUR" => "Russian Ruble",
+                "GBP" => "Pound Sterling",
+                "UAH" => "Ukrainian Hryvnia",
+                "KZT" => "Kazakhstani Tenge",
+                "BRL" => "Brazilian Real",
+                "TRY" => "Turkish Lira",
+                "VND" => "Vietnamese Dong"
             ];
+            
+            if (!array_key_exists($currency, $currencies)) {
+                return ['error' => 'Invalid currency'];
+            }            
+            
+            $action = "sendMoneyToBankCard";
+
+            $payload = [
+                'note'          => $payoutObject->note,
+                'amount'        => $amount,
+                'currency'      => $currency,
+                'cardNumber'    => $payoutObject->cardNumber,
+                'expiryMonth'   => $payoutObject->expiryMonth,
+                'expiryYear'    => $payoutObject->expiryYear,
+                'cardHolder'    => $payoutObject->cardHolder,
+                'cardHolderCity'=> $payoutObject->cardHolderCity,
+                'cardHolderDOB' => $payoutObject->cardHolderDOB,
+                'cardHolderCountry'   => $payoutObject->cardHolderCountry,
+                'savePaymentTemplate' => false,
+                'cardHolderMobilePhoneNumber' => $payoutObject->cardHolderMobilePhoneNumber
+            ];
+
             $curl = $this->advCashService->processAdvCashPayout($action, $payload);
             return $curl;
         } catch (\Throwable $th) {

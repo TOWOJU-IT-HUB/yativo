@@ -51,9 +51,94 @@ use App\Http\Controllers\ManageDBController;
 */
 
 Route::get('/', function () {
-    $floid = new FlowController();
-    $result = $floid->makePayment('1234567890', 100, 'CLP');
-    dd($result);
+    $user = User::whereEmail('towojuads@gmail.com')->first();
+    // $user->
+    
+    // $floid = new FlowController();
+    // $result = $floid->makePayment('1234567890', 100, 'PEN');
+    // dd($result);
+
+    // $payouts = payoutMethods::where('gateway', 'vitawallet')->pluck('id')->toArray();
+    // $forms = BeneficiaryFoems::whereIn('gateway_id', $payouts)->get();
+    // return response()->json([
+    //     'data' => $forms,
+    //     "332" => payoutMethods::whereId('332')->first()
+    // ]);
+
+    // $methods = payoutMethods::whereNotIn('id', $forms)->where('payment_mode', 'Advcash_card')->get();
+    // foreach($methods as $key => $method) {
+    //     $formStructure = [
+    //         "gateway_id" => $method->id,
+    //         "currency" => $method->currency,
+    //         "form_data" => [
+    //             "payment_data" => [
+    //                 [
+    //                     "key" => "cardNumber",
+    //                     "name" => "Card Number",
+    //                     "type" => "text",
+    //                     "description" => "The credit card number."
+    //                 ],
+    //                 [
+    //                     "key" => "expiryMonth",
+    //                     "name" => "Expiry Month",
+    //                     "type" => "text",
+    //                     "description" => "Month of expiration for the card."
+    //                 ],
+    //                 [
+    //                     "key" => "expiryYear",
+    //                     "name" => "Expiry Year",
+    //                     "type" => "text",
+    //                     "description" => "Year of expiration for the card."
+    //                 ],
+    //                 [
+    //                     "key" => "note",
+    //                     "name" => "Note",
+    //                     "type" => "text",
+    //                     "description" => "Additional notes for the payment."
+    //                 ],
+    //                 [
+    //                     "key" => "savePaymentTemplate",
+    //                     "name" => "Save Payment Template",
+    //                     "type" => "checkbox",
+    //                     "description" => "Option to save this payment method as a template."
+    //                 ],
+    //                 [
+    //                     "key" => "cardHolder",
+    //                     "name" => "Card Holder",
+    //                     "type" => "text",
+    //                     "description" => "Name of the cardholder."
+    //                 ],
+    //                 [
+    //                     "key" => "cardHolderCountry",
+    //                     "name" => "Card Holder Country",
+    //                     "type" => "text",
+    //                     "description" => "Country of the cardholder."
+    //                 ],
+    //                 [
+    //                     "key" => "cardHolderCity",
+    //                     "name" => "Card Holder City",
+    //                     "type" => "text",
+    //                     "description" => "City of the cardholder."
+    //                 ],
+    //                 [
+    //                     "key" => "cardHolderDOB",
+    //                     "name" => "Card Holder Date of Birth",
+    //                     "type" => "date",
+    //                     "description" => "Date of birth of the cardholder."
+    //                 ],
+    //                 [
+    //                     "key" => "cardHolderMobilePhoneNumber",
+    //                     "name" => "Card Holder Mobile Phone Number",
+    //                     "type" => "tel",
+    //                     "description" => "Mobile phone number of the cardholder."
+    //                 ]
+    //             ]
+    //         ]
+    //     ];
+        
+    //     $forms[] = BeneficiaryFoems::firstOrCreate($formStructure);
+    // }
+    // return response()->json($forms);
 });
 
 

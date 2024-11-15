@@ -17,13 +17,14 @@ use Yajra\DataTables\DataTables;
 
 class BusinessController extends Controller
 {
-    public function index(UsersDataTable $dataTable)
-    {
-        return $dataTable->render('admin/business/index');
-    }
+    // public function index(UsersDataTable $dataTable)
+    // {
+    //     // var_dump($dataTable);
+    //     return $dataTable->render('admin/business/index');
+    // }
 
 
-    public function _index(Request $request)
+    public function index(Request $request)
     {
         // Filter by user_type if provided
         $query = Business::query();

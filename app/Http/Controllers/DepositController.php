@@ -141,6 +141,9 @@ class DepositController extends Controller
             if (isset($callback['url'])) {
                 $mode = 'redirect';
                 $pay_data = $callback['url'];
+            } elseif (isset($callback['payment_url'])) { // for floid
+                $mode = 'redirect';
+                $pay_data = $callback['url'] = $callback['payment_url'];
             } elseif (isset($callback['brCode'])) {
                 $mode = 'brCode';
                 $pay_data = $callback['brCode'];
@@ -154,6 +157,7 @@ class DepositController extends Controller
                 $mode = 'wire_details';
                 $pay_data = $callback['wireInstructions'];
             } else {
+                Log::info("Received payment response", $callback);
                 return ['error' => 'Unsupported payment response format'];
             }
 

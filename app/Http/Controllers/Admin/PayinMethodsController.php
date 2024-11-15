@@ -27,7 +27,7 @@ class PayinMethodsController extends Controller
             'country' => 'required|string|max:255',
             'currency' => 'required|string|max:10',
             'payment_mode' => 'nullable|string|max:50',
-            'charges_type' => 'nullable|string|max:50',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
             'float_charge' => 'nullable|numeric',
             'settlement_time' => 'nullable|string|max:50',

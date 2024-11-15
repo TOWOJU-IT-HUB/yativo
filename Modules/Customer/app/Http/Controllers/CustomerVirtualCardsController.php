@@ -285,6 +285,7 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // If only the array data is requested, return it
+            
             if ($arrOnly) {
                 return $arrData;
             }

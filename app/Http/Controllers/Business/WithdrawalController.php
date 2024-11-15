@@ -21,13 +21,14 @@ class WithdrawalController extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                'beneficiary_id' => 'required',
+                'beneficiary_id' => 'sometimes',
                 'amount' => 'required',
                 'beneficiary_details_id' => 'required'
             ]);
 
             $request->merge([
-                'payment_method_id' => $request->beneficiary_details_id
+                'payment_method_id' => $request->beneficiary_details_id,
+                'user_id' => auth()->id()
             ]);
 
             if ($validate->fails()) {
@@ -48,9 +49,9 @@ class WithdrawalController extends Controller
             // Validate the batch withdrawal request
             $validate = Validator::make($request->all(), [
                 'payouts' => 'required|array',
-                'payouts.*.beneficiary_id' => 'required|numeric|min:1',
+                'payouts.*.beneficiary_id' => 'sometimes|numeric',
                 'payouts.*.amount' => 'required|numeric|min:1',
-                'payouts.*.beneficiary_details_id' => 'required|numeric|min:1'
+                'payouts.*.beneficiary_details_id' => 'required|numeric'
             ]);
 
             if ($validate->fails()) {
@@ -67,7 +68,7 @@ class WithdrawalController extends Controller
                         // Check if the beneficiary has a valid payout method
                         $is_beneficiary = BeneficiaryPaymentMethod::with('beneficiary')
                             ->where([
-                                'beneficiary_id' => $withdrawalRequest['beneficiary_id'],
+                                // 'beneficiary_id' => $withdrawalRequest['beneficiary_id'],
                                 'id' => $withdrawalRequest['payment_method_id']
                             ])->first();
 
@@ -92,7 +93,7 @@ class WithdrawalController extends Controller
                         // Create the withdrawal data
                         $withdrawalData = [
                             'user_id' => auth()->id(),
-                            'beneficiary_id' => $withdrawalRequest['beneficiary_id'],
+                            'beneficiary_id' => $withdrawalRequest['beneficiary_id'] ?? null,
                             'amount' => $withdrawalRequest['amount'],
                             'gateway' => $payoutMethod->gateway,
                             'currency' => $payoutMethod->currency,

@@ -37,13 +37,13 @@ class BeneficiaryPaymentMethodController extends Controller
         $validator = Validator::make($request->all(), [
             'gateway_id' => 'required',
             'payment_data' => 'required',
-            'beneficiary_id' => 'required',
+            'beneficiary_id' => 'sometimes',
             'currency' => 'required',
             'nickname' => 'required',
         ]);
 
         if ($validator->fails()) {
-            return get_error_response($validator->errors()->toArray()); // Convert errors to an array
+            return get_error_response($validator->errors()->toArray());
         }
 
         $user = auth()->user();
@@ -126,7 +126,7 @@ class BeneficiaryPaymentMethodController extends Controller
                 'gateway_id' => 'required',
                 'currency' => 'required',
                 'payment_data' => 'required',
-                'beneficiary_id' => 'required',
+                'beneficiary_id' => 'sometimes',
             ]);
 
             if ($validate->fails()) {

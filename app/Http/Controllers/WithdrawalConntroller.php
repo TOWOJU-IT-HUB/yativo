@@ -105,7 +105,7 @@ class WithdrawalConntroller extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                'beneficiary_id' => 'required',
+                'beneficiary_id' => 'sometimes',
                 'amount' => 'required',
                 'payment_method_id' => 'required'
             ]);
@@ -116,10 +116,10 @@ class WithdrawalConntroller extends Controller
 
             $validate = $validate->validated();
 
-            $is_beneficiary = BeneficiaryPaymentMethod::with('beneficiary')->where(['beneficiary_id' => $request->beneficiary_id, 'id' => $request->payment_method_id])->first();
+            $is_beneficiary = BeneficiaryPaymentMethod::with('user')->where(['id' => $request->payment_method_id])->first();
 
             if (!$is_beneficiary) {
-                return get_error_response(['error' => "Beneficiary not found"]);
+                return get_error_response(['error' => "Payment method not found"]);
             }
 
             // check if beneficiary is has a payout method
