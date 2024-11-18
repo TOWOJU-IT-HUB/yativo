@@ -70,170 +70,185 @@
                         @endif
                     </div>
 
-
-                    <div x-data="{ modalOpen: false }">
-                        <button @click="modalOpen = true" class="rounded-md bg-primary px-9 py-3 font-medium text-white">
-                            Reject Payout
-                        </button>
-                        <div x-show="modalOpen" x-transition=""
-                            class="fixed left-0 top-0 z-999999 flex h-full min-h-screen w-full items-center justify-center bg-black/90 px-4 py-5">
-                            <div @click.outside="modalOpen = false"
-                                class="w-full max-w-142.5 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15">
-                                <span class="mx-auto inline-block">
-                                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <rect opacity="0.1" width="60" height="60" rx="30" fill="#DC2626">
-                                        </rect>
-                                        <path
-                                            d="M30 27.2498V29.9998V27.2498ZM30 35.4999H30.0134H30ZM20.6914 41H39.3086C41.3778 41 42.6704 38.7078 41.6358 36.8749L32.3272 20.3747C31.2926 18.5418 28.7074 18.5418 27.6728 20.3747L18.3642 36.8749C17.3296 38.7078 18.6222 41 20.6914 41Z"
-                                            stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"
-                                            stroke-linejoin="round"></path>
-                                    </svg>
-                                </span>
-                                <h3 class="mt-5.5 pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
+                    <div class="flex justify-center gap-4 my-3">
+                        @if ($payout->status === 'pending')
+                            <div x-data="{ modalOpen: false }">
+                                <button @click="modalOpen = true"
+                                    class="rounded-md bg-primary px-9 py-3 font-medium text-white">
                                     Reject Payout
-                                </h3>
-                                <p class="mb-10 font-medium">
-                                    Are you sure you want to reject this payout? Please select a reason.
-                                </p>
-                                <form action="{{ route('admin.payouts.reject', $payout->id) }}" method="POST">
-                                    @csrf
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason for Rejection</label>
-                                        <select name="reason"
-                                            class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input">
-                                            <option value="insufficient_funds">Insufficient Funds</option>
-                                            <option value="invalid_account">Invalid Account Details</option>
-                                            <option value="suspicious_activity">Suspicious Activity</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                </button>
+                                <div x-show="modalOpen" x-transition=""
+                                    class="fixed left-0 top-0 z-999999 flex h-full min-h-screen w-full items-center justify-center bg-black/90 px-4 py-5">
+                                    <div @click.outside="modalOpen = false"
+                                        class="w-full max-w-142.5 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15">
+                                        <span class="mx-auto inline-block">
+                                            <svg width="60" height="60" viewBox="0 0 60 60" fill="none"
+                                                xmlns="http://www.w3.org/2000/svg">
+                                                <rect opacity="0.1" width="60" height="60" rx="30"
+                                                    fill="#DC2626">
+                                                </rect>
+                                                <path
+                                                    d="M30 27.2498V29.9998V27.2498ZM30 35.4999H30.0134H30ZM20.6914 41H39.3086C41.3778 41 42.6704 38.7078 41.6358 36.8749L32.3272 20.3747C31.2926 18.5418 28.7074 18.5418 27.6728 20.3747L18.3642 36.8749C17.3296 38.7078 18.6222 41 20.6914 41Z"
+                                                    stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"
+                                                    stroke-linejoin="round"></path>
+                                            </svg>
+                                        </span>
+                                        <h3 class="mt-5.5 pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
+                                            Reject Payout
+                                        </h3>
+                                        <p class="mb-10 font-medium">
+                                            Are you sure you want to reject this payout? Please select a reason.
+                                        </p>
+                                        <form action="{{ route('admin.payouts.reject', $payout->id) }}" method="POST">
+                                            @csrf
+                                            <div class="mb-4">
+                                                <label
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason
+                                                    for
+                                                    Rejection</label>
+                                                <select name="reason"
+                                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input">
+                                                    <option value="insufficient_funds">Insufficient Funds</option>
+                                                    <option value="invalid_account">Invalid Account Details</option>
+                                                    <option value="suspicious_activity">Suspicious Activity</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-4">
+                                                <label
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional
+                                                    Comments</label>
+                                                <textarea name="comments" rows="3"
+                                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input"></textarea>
+                                            </div>
+                                            <div class="flex justify-between gap-3">
+                                                <button @click="modalOpen = false"
+                                                    class="block w-full rounded border border-stroke bg-gray p-3 text-center font-medium text-black transition hover:border-meta-1 hover:bg-meta-1 hover:text-white dark:border-strokedark dark:bg-meta-4 dark:text-white dark:hover:border-meta-1 dark:hover:bg-meta-1">
+                                                    Cancel
+                                                </button>
+                                                <button type="submit"
+                                                    class="px-4 py-2 text-sm font-medium text-white bg-danger rounded-md hover:bg-red-600">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional Comments</label>
-                                        <textarea name="comments" rows="3"
-                                            class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input"></textarea>
-                                    </div>
-                                    <div class="flex justify-end">
-                                        <button @click="modalOpen = false"
-                                            class="block w-full rounded border border-stroke bg-gray p-3 text-center font-medium text-black transition hover:border-meta-1 hover:bg-meta-1 hover:text-white dark:border-strokedark dark:bg-meta-4 dark:text-white dark:hover:border-meta-1 dark:hover:bg-meta-1">
-                                            Cancel
-                                        </button>
-                                        <button type="submit"
-                                            class="px-4 py-2 text-sm font-medium text-white bg-danger rounded-md hover:bg-red-600">
-                                            Reject
-                                        </button>
-                                    </div>
-                                </form>
+                                </div>
+
                             </div>
-                        </div>
 
-                    </div>
-
-
-                    @if ($payout->status === 'pending')
-                    <div class="mt-6 space-y-4">
-                        <!-- Reject Payout Button -->
-                        <button @click="modalRejectOpen = true"
-                            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium">
-                            Reject Payout
-                        </button>
-                
-                        <!-- Accept Payout Button -->
-                        <button @click="modalAcceptOpen = true"
-                            class="ml-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium">
-                            Accept Payout
-                        </button>
-                
-                        <!-- Automated Process Button -->
-                        <button onclick="processAutomatically({{ $payout->id }})"
-                            class="ml-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">
-                            Process Automatically
-                        </button>
-                    </div>
-                
-                    <!-- Reject Modal with Alpine.js -->
-                    <div x-data="{ modalRejectOpen: false }">
-                        <div x-show="modalRejectOpen" x-transition
-                            class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
-                            <div @click.outside="modalRejectOpen = false" class="w-full max-w-96 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15">
-                                <span class="mx-auto inline-block">
-                                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect opacity="0.1" width="60" height="60" rx="30" fill="#DC2626"></rect>
-                                        <path d="M30 27.2498V29.9998V27.2498ZM30 35.4999H30.0134H30ZM20.6914 41H39.3086C41.3778 41 42.6704 38.7078 41.6358 36.8749L32.3272 20.3747C31.2926 18.5418 28.7074 18.5418 27.6728 20.3747L18.3642 36.8749C17.3296 38.7078 18.6222 41 20.6914 41Z" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </svg>
-                                </span>
-                                <h3 class="mt-5.5 pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
-                                    Reject Payout
-                                </h3>
-                                <p class="mb-10 font-medium">
-                                    Are you sure you want to reject this payout? Please select a reason.
-                                </p>
-                                <form action="{{ route('admin.payouts.reject', $payout->id) }}" method="POST">
-                                    @csrf
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason for Rejection</label>
-                                        <select name="reason"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600">
-                                            <option value="insufficient_funds">Insufficient Funds</option>
-                                            <option value="invalid_account">Invalid Account Details</option>
-                                            <option value="suspicious_activity">Suspicious Activity</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-4">
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional Comments</label>
-                                        <textarea name="comments" rows="3"
-                                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"></textarea>
-                                    </div>
-                                    <div class="flex justify-end">
-                                        <button type="button" @click="modalRejectOpen = false"
-                                            class="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
-                                            Cancel
-                                        </button>
-                                        <button type="submit"
-                                            class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600">
-                                            Reject
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                
-                    <!-- Accept Modal with Alpine.js -->
-                    <div x-data="{ modalAcceptOpen: false }">
-                        <div x-show="modalAcceptOpen" x-transition
-                            class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
-                            <div @click.outside="modalAcceptOpen = false" class="w-full max-w-96 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15">
-                                <span class="mx-auto inline-block">
-                                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <rect opacity="0.1" width="60" height="60" rx="30" fill="#22C55E"></rect>
-                                        <path d="M30 27.2498V29.9998V27.2498ZM30 35.4999H30.0134H30ZM20.6914 41H39.3086C41.3778 41 42.6704 38.7078 41.6358 36.8749L32.3272 20.3747C31.2926 18.5418 28.7074 18.5418 27.6728 20.3747L18.3642 36.8749C17.3296 38.7078 18.6222 41 20.6914 41Z" stroke="#22C55E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
-                                    </svg>
-                                </span>
-                                <h3 class="mt-5.5 pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
+                            <div x-data="{ modalOpen: false }">
+                                <button @click="modalOpen = true"
+                                    class="rounded-md bg-primary px-9 py-3 font-medium text-white">
                                     Accept Payout
-                                </h3>
-                                <p class="mb-10 font-medium">
-                                    Are you sure you want to accept this payout?
-                                </p>
-                                <form action="{{ route('admin.payouts.accept', $payout->id) }}" method="POST">
-                                    @csrf
-                                    <div class="flex justify-end">
-                                        <button type="button" @click="modalAcceptOpen = false"
-                                            class="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
-                                            Cancel
-                                        </button>
-                                        <button type="submit"
-                                            class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600">
-                                            Accept
-                                        </button>
+                                </button>
+                                <div x-show="modalOpen" x-transition=""
+                                    class="fixed left-0 top-0 z-999999 flex h-full min-h-screen w-full items-center justify-center bg-black/90 px-4 py-5">
+                                    <div @click.outside="modalOpen = false"
+                                        class="w-full max-w-142.5 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15">
+                                        <span class="mx-auto inline-block">
+                                            <svg width="60" height="60" viewBox="0 0 60 60" fill="none"
+                                                xmlns="http://www.w3.org/2000/svg">
+                                                <rect opacity="0.1" width="60" height="60" rx="30"
+                                                    fill="#DC2626">
+                                                </rect>
+                                                <path
+                                                    d="M30 27.2498V29.9998V27.2498ZM30 35.4999H30.0134H30ZM20.6914 41H39.3086C41.3778 41 42.6704 38.7078 41.6358 36.8749L32.3272 20.3747C31.2926 18.5418 28.7074 18.5418 27.6728 20.3747L18.3642 36.8749C17.3296 38.7078 18.6222 41 20.6914 41Z"
+                                                    stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"
+                                                    stroke-linejoin="round"></path>
+                                            </svg>
+                                        </span>
+                                        <h3 class="mt-5.5 pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
+                                            Reject Payout
+                                        </h3>
+                                        <p class="mb-10 font-medium">
+                                            Are you sure you want to reject this payout? Please select a reason.
+                                        </p>
+                                        <form action="{{ route('admin.payouts.reject', $payout->id) }}" method="POST">
+                                            @csrf
+                                            <div class="mb-4">
+                                                <label
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason
+                                                    for
+                                                    Rejection</label>
+                                                <select name="reason"
+                                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input">
+                                                    <option value="insufficient_funds">Insufficient Funds</option>
+                                                    <option value="invalid_account">Invalid Account Details</option>
+                                                    <option value="suspicious_activity">Suspicious Activity</option>
+                                                    <option value="other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-4">
+                                                <label
+                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional
+                                                    Comments</label>
+                                                <textarea name="comments" rows="3"
+                                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input"></textarea>
+                                            </div>
+                                            <div class="flex justify-between gap-3">
+                                                <button @click="modalOpen = false"
+                                                    class="block w-full rounded border border-stroke bg-gray p-3 text-center font-medium text-black transition hover:border-meta-1 hover:bg-meta-1 hover:text-white dark:border-strokedark dark:bg-meta-4 dark:text-white dark:hover:border-meta-1 dark:hover:bg-meta-1">
+                                                    Cancel
+                                                </button>
+                                                <button type="submit"
+                                                    class="px-4 py-2 text-sm font-medium text-white bg-danger rounded-md hover:bg-red-600">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
-                                </form>
+                                </div>
+
                             </div>
-                        </div>
-                    </div>                
-                    @endif
+
+                            <div x-data="{ modalOpen: false }">
+                                <button @click="modalOpen = true"
+                                    class="rounded-md bg-primary px-9 py-3 font-medium text-white">
+                                    Process Automatically via API
+                                </button>
+                                <div x-show="modalOpen" x-transition=""
+                                    class="fixed left-0 top-0 z-999999 flex h-full min-h-screen w-full items-center justify-center bg-black/90 px-4 py-5">
+                                    <div @click.outside="modalOpen = false"
+                                        class="w-full max-w-142.5 rounded-lg bg-white px-8 py-12 text-center dark:bg-boxdark md:px-17.5 md:py-15">
+                                        <span class="mx-auto inline-block">
+                                            <svg width="60" height="60" viewBox="0 0 60 60" fill="none"
+                                                xmlns="http://www.w3.org/2000/svg">
+                                                <rect opacity="0.1" width="60" height="60" rx="30"
+                                                    fill="#DC2626">
+                                                </rect>
+                                                <path
+                                                    d="M30 27.2498V29.9998V27.2498ZM30 35.4999H30.0134H30ZM20.6914 41H39.3086C41.3778 41 42.6704 38.7078 41.6358 36.8749L32.3272 20.3747C31.2926 18.5418 28.7074 18.5418 27.6728 20.3747L18.3642 36.8749C17.3296 38.7078 18.6222 41 20.6914 41Z"
+                                                    stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"
+                                                    stroke-linejoin="round"></path>
+                                            </svg>
+                                        </span>
+
+                                        <h3 class="mt-5.5 pb-2 text-xl font-bold text-black dark:text-white sm:text-2xl">
+                                            Accept Payout
+                                        </h3>
+                                        <p class="mb-10 font-medium">
+                                            Are you sure you want to accept this payout?
+                                        </p>
+                                        <form action="{{ route('admin.payouts.accept', $payout->id) }}" method="POST">
+                                            @csrf
+                                            <div class="flex justify-end">
+                                                <button type="button" @click="modalAcceptOpen = false"
+                                                    class="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                                                    Cancel
+                                                </button>
+                                                <button type="submit"
+                                                    class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-md hover:bg-green-600">
+                                                    Accept
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                            </div>
+                        @endif
+                    </div>
 
 
                 </div>
