@@ -3,6 +3,7 @@
 use App\Http\Controllers\BitsoController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CronController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\TransactionRecordController;
@@ -203,6 +204,9 @@ Route::any('callback/webhook/floid-redirect', [FlowController::class, 'getPaymen
 
 Route::post("callback/webhook/virtual-account-webhook", [VirtualAccountsController::class, 'virtualAccountWebhook'])->name('business.virtual-account.virtualAccountWebhook');
 Route::any('callback/wallet/webhook/{userId}/{currency}', [CryptoWalletsController::class, 'walletWebhook'])->name('crypto.wallet.address.callback');
+
+
+Route::any('cron', [CronController::class, 'index'])->name('cron.index');
 
 
 Route::fallback(function () {
