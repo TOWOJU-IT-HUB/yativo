@@ -107,7 +107,8 @@ class WithdrawalConntroller extends Controller
             $validate = Validator::make($request->all(), [
                 'beneficiary_id' => 'sometimes',
                 'amount' => 'required',
-                'payment_method_id' => 'required'
+                'payment_method_id' => 'required',
+                'customer_id' => 'sometimes|exists:customers,customer_id',
             ]);
 
             if ($validate->fails()) {
@@ -147,10 +148,11 @@ class WithdrawalConntroller extends Controller
             $validate['user_id'] = auth()->id();
             $validate['raw_data'] = $request->all();
             $validate['gateway'] = $payoutMethod->gateway;
+            $validate['gateway_id'] = $is_beneficiary->gateway_id;
             $validate['currency'] = $payoutMethod->currency;
             $create = Withdraw::create($validate);
 
-            return get_success_response($create, 201, "Withdrawal request received and will be processed soon.");
+            return get_success_response($create, 201, "Withdrawal request received and will be processed shortlly.");
 
             if ($create) {
                 $payout = new PayoutService();

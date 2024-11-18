@@ -18,7 +18,7 @@ class BeneficiaryPaymentMethodController extends Controller
     public function index(Request $request)
     {
         try {
-            $beneficiaries = BeneficiaryPaymentMethod::with('gateway')->where("user_id", active_user())->get();
+            $beneficiaries = BeneficiaryPaymentMethod::with('gateway')->where("user_id", active_user())->latest()->get();
             if (isApi())
                 return get_success_response($beneficiaries);
 

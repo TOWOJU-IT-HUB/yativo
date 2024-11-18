@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Laratrust\Models\Role as RoleModel;
+use Role as RoleModel;
 
 class Role extends RoleModel
 {

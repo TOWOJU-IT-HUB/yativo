@@ -62,7 +62,9 @@ class Customer extends Model
 
     protected $casts = [
         "json_data" => 'array',
-        "customer_address" => "array"
+        "customer_address" => "array",
+        "can_create_vc" => "boolean",
+        // "can_create_va" => "boolean",
     ];
 
     protected $keyType = 'string';

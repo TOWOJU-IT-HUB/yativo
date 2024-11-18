@@ -44,21 +44,32 @@ class BusinessController extends Controller
             }
         }
 
-        $businesses = $query->paginate(10);
+        $businesses = $query->with('user')->paginate(10);
         return view('admin.business.index', compact('businesses'));
     }
 
     public function show($id)
     {
-        $user = User::with('business')->first();
-        // $business = $user->business?->id;
-        $customers = Customer::where('user_id', $user->id)->get();
-        $virtualAccounts = VirtualAccount::where('user_id', $user->id)->get();
-        $virtualCards = CustomerVirtualCards::where('business_id', $user->id)->get();
-        $transactions = TransactionRecord::where('user_id', $user->id)->get();
-        $deposits = Deposit::where('user_id', $user->id)->get();
-        $withdrawals = Withdraw::where('user_id', $user->id)->get();
-        $business = $user;
+        $business = Business::with('user')->first();
+        $user = $business->user;
+        $customers = Customer::latest()->limit(20)->where('user_id', $user->id)->get();
+        $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $user->id)->get();
+        $virtualCards = CustomerVirtualCards::latest()->limit(20)->where('business_id', $business->id)->get();
+        $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $user->id)->get();
+        $deposits = Deposit::latest()->limit(20)->where('user_id', $user->id)->get();
+        $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $user->id)->get();
+        // $business = $user;
+
+        // return [
+        //     "business" => $business,
+        //     "user" => $user,
+        //     "customers" => $customers,
+        //     "virtualAccounts" => $virtualAccounts,
+        //     "virtualCards" => $virtualCards,
+        //     // "transactions" => $transactions,
+        //     "deposits" => $deposits,
+        //     "withdrawals" => $withdrawals,
+        // ];
 
         return view('admin.business.show', compact('business', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
     }

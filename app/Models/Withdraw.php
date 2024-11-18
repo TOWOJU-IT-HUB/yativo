@@ -21,6 +21,7 @@ class Withdraw extends Model
     protected $hidden = [
         'deleted_at',
         'gateway',
+        'gateway_id',
         'id'
     ];
 
@@ -56,7 +57,7 @@ class Withdraw extends Model
      */
     public function payoutGateway()
     {
-        return $this->belongsTo(payoutMethods::class, 'gateway');
+        return $this->belongsTo(payoutMethods::class, 'gateway_id', 'id');
     }
 
     public function beneficiary()

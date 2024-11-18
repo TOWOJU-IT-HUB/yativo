@@ -26,6 +26,7 @@
                 <tr>
                     <th class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-left text-sm font-medium text-gray-500 dark:text-white">Business Legal Name</th>
                     <th class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-left text-sm font-medium text-gray-500 dark:text-white">Operating Name</th>
+                    <th class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-left text-sm font-medium text-gray-500 dark:text-white">Membership ID</th>
                     <th class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-left text-sm font-medium text-gray-500 dark:text-white">Country</th>
                     <th class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-left text-sm font-medium text-gray-500 dark:text-white">Created At</th>
                     <th class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-left text-sm font-medium text-gray-500 dark:text-white">Actions</th>
@@ -36,6 +37,7 @@
                     <tr>
                         <td class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white">{{ $business->business_legal_name }}</td>
                         <td class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white">{{ $business->business_operating_name }}</td>
+                        <td class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">{{ $business->user?->membership_id }}</td>
                         <td class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">{{ $business->incorporation_country }}</td>
                         <td class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">{{ $business->created_at->format('d M Y, h:i A') }}</td>
                         <td class="px-6 py-4 border-b hover:bg-gray-200 dark:border-gray-700">

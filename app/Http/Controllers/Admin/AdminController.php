@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AdminController extends Controller
 {
@@ -34,8 +36,10 @@ class AdminController extends Controller
     }
 
     public function edit(Admin $admin)
-    {
-        return view('admin.edit', compact('admin'));
+    { 
+        $roles = Role::all();
+        $permissions = Permission::all();
+        return view('admin.edit', compact('admin', 'roles', 'permissions'));
     }
 
     public function update(Request $request, Admin $admin)
@@ -44,11 +48,28 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:admins,email,' . $admin->id,
             'roles' => 'nullable|array',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'exists:permissions,id',
         ]);
 
-        $admin->update($request->only('name', 'email'));
-        $admin->roles()->sync($request->input('roles', []));
+        // $admin->update($request->only('name', 'email'));
+        // $admin->roles()->sync($request->input('roles', []));
 
+        // $validated = $request->validate([
+        //     'name' => 'required|string|max:255',
+        //     'email' => 'required|email|max:255',
+        //     'roles' => 'nullable|array',
+        //     'roles.*' => 'exists:roles,id',
+        // ]);
+    
+        // $admin->update([
+        //     'name' => $validated['name'],
+        //     'email' => $validated['email'],
+        // ]);
+    
+        // Sync roles and permissions
+        $admin->syncRoles($validated['roles'] ?? []);
+        $admin->syncPermissions($validated['permissions'] ?? []);
         return redirect()->route('admin.index')->with('success', 'Admin updated successfully.');
     }
 

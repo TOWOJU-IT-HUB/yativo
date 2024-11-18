@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\DepositController;
 use App\Http\Controllers\Admin\ExchangeRateController;
 use App\Http\Controllers\Admin\PayinMethodsController;
+use App\Http\Controllers\Admin\PayoutController;
 use App\Http\Controllers\Admin\PayoutMethodsController;
 use App\Http\Controllers\Admin\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -66,8 +67,11 @@ Route::prefix('backoffice')->group(function () {
         });
 
         Route::group([], function () {
-            Route::get('payouts', [DepositController::class, 'index'])->name('payouts.index');
-            Route::get('payouts/{id}', [DepositController::class, 'show'])->name('payouts.show');
+            Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
+            Route::get('payouts/{id}', [PayoutController::class, 'show'])->name('payouts.show');
+            Route::get('payouts/{id}/reject', [PayoutController::class, 'show'])->name('payouts.reject');
+            Route::get('payouts/{id}/accept', [PayoutController::class, 'show'])->name('payouts.accept');
+            Route::get('payouts/{id}/process-manual', [PayoutController::class, 'show'])->name('payouts.process-manual');
         });
 
         Route::resource('exchange_rates', ExchangeRateController::class);
