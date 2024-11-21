@@ -53,11 +53,12 @@ use App\Http\Controllers\ManageDBController;
 
 Route::get('/', function () {
     
-    // $user = User::whereEmail('sotonyemcleod@gmail.com')->first();
-    // $wallet = $user->getWallet('usd');
-    // if($wallet->deposit(100000)) {
-    //     return response()->json(['message' => "User approved successfully"]);
-    // }
+    $user = DB::table('users')->where('email','towojuads@gmail.com')->first();
+    if($user) {
+        return response()->json(['message' => "User approved successfully","userData" => $user]);
+    } else {
+        return response()->json(['message' => "User not approved","userData" => $user]);
+    }
 
     // $configs = App\Models\BusinessConfig::all();
     // return response()->json($configs);

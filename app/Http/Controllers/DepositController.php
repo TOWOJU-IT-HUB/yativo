@@ -68,6 +68,15 @@ class DepositController extends Controller
             }
 
             $payin = PayinMethods::whereId($request->gateway)->first();
+            
+            if($payin->minimum_deposit > $request->amount) {
+                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is {$payin->minimum_deposit}"], 400);
+            }
+
+            if($payin->maximum_deposit < $request->amount) {
+                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is {$payin->maximum_deposit}"], 400);
+            }
+
             $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
 
             // record deposit info into the DB

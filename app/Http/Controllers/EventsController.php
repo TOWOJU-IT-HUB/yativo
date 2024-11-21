@@ -12,7 +12,15 @@ class EventsController extends Controller
     public function index()
     {
         try {
-            $activity = ApiLog::where('user_id', auth()->id())->latest()->paginate(per_page());
+            $activity = ApiLog::where('user_id', auth()->id())
+                ->when(request('status'), function($query) {
+                    return $query->where('response_status', request('status'));
+                })
+                ->when(request('method'), function($query) {
+                    return $query->where('method', request('method'));
+                })
+                ->latest()
+                ->paginate(per_page());
             return paginate_yativo($activity);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);

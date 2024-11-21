@@ -118,7 +118,5 @@ class FlowController extends Controller
         $requestBody = $request->all();
         Log::info('Floid callback request body:', $requestBody);
 
-
-        //
     }
 }

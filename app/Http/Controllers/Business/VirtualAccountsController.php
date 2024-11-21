@@ -34,17 +34,37 @@ class VirtualAccountsController extends Controller
         $this->businessConfig = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         try {
             // retrieve all users virtual accounts.
-            $accounts = VirtualAccount::whereUserId(auth()->id())->paginate(per_page());
+            $accounts = VirtualAccount::whereUserId(auth()->id());
+
+            if ($request->has('currency')) {
+                $accounts->where('currency', $request->currency);
+            }
+
+            if ($request->has('status')) {
+                $accounts->where('status', $request->status);
+            }
+
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $accounts->whereBetween('created_at', [$request->start_date, $request->end_date]);
+            }
+
+            if ($request->has('search')) {
+                $accounts->where(function($query) use ($request) {
+                    $query->where('account_name', 'LIKE', "%{$request->search}%")
+                          ->orWhere('account_number', 'LIKE', "%{$request->search}%");
+                });
+            }
+
+            $accounts = $accounts->paginate(per_page());
             return paginate_yativo($accounts);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
-
     public function customerVirtualAccounts($customerId)
     {
         try {

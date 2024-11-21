@@ -18,6 +18,11 @@ class CheckoutController extends Controller
             // Attempt to decrypt the ID and retrieve the checkout record
             $decryptedId = Crypt::decrypt($id);
             $checkout = CheckoutModel::findOrFail($decryptedId);
+            if($checkout->checkout_status == 'used'){
+                abort(403, 'This checkout has already been used.');
+            }
+            $checkout->checkout_status = 'used';
+            $checkout->save();
         } catch (DecryptException | ModelNotFoundException $e) {
             // If decryption or finding fails, attempt direct match with checkouturl or abort
             $checkout = CheckoutModel::where('checkouturl', $id)->first();

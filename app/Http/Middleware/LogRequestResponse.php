@@ -18,6 +18,9 @@ class LogRequestResponse
         if (!auth()->check()) {
             return $next($request);
         }
+
+        KycStatusMiddleware::class;
+
         $data = $request->all();
 
         // If logging an authentication request, mask the password in the log
@@ -68,9 +71,10 @@ class LogRequestResponse
             $origin = "Yativo API";
         }
 
+        $user = auth()->user();
         // Prepare the log entry
         $logEntry = [
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'method' => $request->method(),
             'url' => $request->fullUrl(),
             'request_headers' => $request->headers->all(),
@@ -84,7 +88,7 @@ class LogRequestResponse
         $eResponse = $response->getContent();
         if (!is_array($eResponse)) {
             $eResponse = json_decode($eResponse, true);
-            if(isset($eResponse['data']) && isset($eResponse['data']['app_secret'])) {
+            if (isset($eResponse['data']) && isset($eResponse['data']['app_secret'])) {
                 $eResponse['data']['app_secret'] = "REDACTED";
             }
         }

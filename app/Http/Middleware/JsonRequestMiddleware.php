@@ -12,9 +12,7 @@ class JsonRequestMiddleware
     {
         if (auth()->check()) {
             $user = auth()->user();
-
-            $businessConfig = $user->businessConfig;
-
+            $businessConfig = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
             if (!$businessConfig) {
                 // If not, create a new one
                 $businessConfig = BusinessConfig::create([

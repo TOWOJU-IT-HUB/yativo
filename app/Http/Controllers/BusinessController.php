@@ -229,4 +229,62 @@ class BusinessController extends Controller
             return get_error_response(['error' => $th->getMessage()], 500);
         }
     }
+
+    /**
+     * Update business prefences
+     * @param \Illuminate\Http\Request $request
+     * @return mixed|\Illuminate\Http\JsonResponse
+     */
+    public function updatePreference(Request $request)
+    {
+        try {
+            $validate = Validator::make($request->all(), [
+                'key' => 'required|in:disabled,pending',
+                'value' => 'required',
+            ]);
+
+            if ($validate->fails()) {
+                return get_error_response(['error' => $validate->errors()->toArray()]);
+            }
+
+            // Retrieve the authenticated user's business configuration
+            $user = $request->user();
+            $businessConfig = $user->businessConfig;
+
+            // If no business configuration exists, create a default one
+            if (!$businessConfig) {
+                $businessConfig = BusinessConfig::create([
+                    'user_id' => $user->id,
+                    'configs' => [
+                        "can_issue_visa_card" => "disabled",
+                        "can_issue_master_card" => "disabled",
+                        "can_issue_bra_virtual_account" => "disabled",
+                        "can_issue_mxn_virtual_account" => "disabled",
+                        "can_issue_arg_virtual_account" => "disabled",
+                        "can_issue_usdt_wallet" => "disabled",
+                        "can_issue_usdc_wallet" => "disabled",
+                        "charge_business_for_deposit_fees" => "disabled",
+                        "charge_business_for_payout_fees" => "disabled",
+                        "can_hold_balance" => "disabled",
+                        "can_use_wallet_module" => "disabled",
+                        "can_use_checkout_api" => "disabled"
+                    ]
+                ]);
+            }
+
+            // Update the specified key-value pair in the configs
+            $configs = $businessConfig->configs;
+            $configs[$request->key] = $request->value;
+            $businessConfig->configs = $configs;
+
+            // Save the updated business configuration
+            if ($businessConfig->save()) {
+                return get_success_response(['success' => "Preference updated successfully"]);
+            }
+
+            return get_error_response(['error' => 'Unable to update data']);
+        } catch (\Throwable $th) {
+            return get_error_response(['error' => $th->getMessage()]);
+        }
+    }
 }

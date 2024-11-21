@@ -43,7 +43,6 @@ class TransFiWebhookController extends Controller
         } elseif ($status === 'withdraw_completed') {
             $this->updateWithdrawalStatus($payload['order']['orderId'], 'completed');
         }
-
         return response()->json(['status' => 'success'], 200);
     }
 

@@ -15,13 +15,15 @@ class KycStatusMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if(auth()->check()) {
+        if (auth()->check()) {
             $user = auth()->user();
-            if($user->kyc_status == 'pending' && ($user->is_kyc_submitted == false || $user->is_kyc_submitted == true)) {
+
+            if (($user->kyc_status != 'approved' or $user->is_kyc_submitted == false)) {
                 return get_error_response(['error' => 'KYC is pending, please complete the KYC process to access this feature'], 403);
             }
             return $next($request);
         }
+
         return $next($request);
     }
 }

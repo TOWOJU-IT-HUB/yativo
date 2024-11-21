@@ -19,14 +19,41 @@ class CustomerController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
             $where = [
                 'user_id' => active_user(),
-                // 'customer_status' => 'active',
             ];
-            $customers = Customer::where($where)->paginate(per_page(request()->per_page ?? 20));
+
+            $query = Customer::where($where);
+
+            // Filter by KYC status
+            if ($request->has('kyc_status')) {
+                $query->where('customer_kyc_status', $request->customer_kyc_status);
+            }
+
+            // Filter by country
+            if ($request->has('country')) {
+                $query->where('customer_country', $request->country);
+            }
+
+            // Search by email
+            if ($request->has('email')) {
+                $query->where('customer_email', 'LIKE', '%' . $request->email . '%');
+            }
+
+            // // Filter by last transaction range
+            // if ($request->has('transaction_from') && $request->has('transaction_to')) {
+            //     $query->whereHas('transactions', function($q) use ($request) {
+            //         $q->whereBetween('created_at', [
+            //             $request->transaction_from,
+            //             $request->transaction_to
+            //         ]);
+            //     });
+            // }
+
+            $customers = $query->paginate(per_page($request->per_page ?? 20));
             return paginate_yativo($customers);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);

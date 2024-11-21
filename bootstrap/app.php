@@ -1,14 +1,17 @@
 <?php
 
+use App\Http\Middleware\Admin\Require2FA;
 use App\Http\Middleware\ChargeWalletMiddleware;
 use App\Http\Middleware\CustomerVirtualAccountMiddleware;
 use App\Http\Middleware\CustomerVirtualCardCharges;
 use App\Http\Middleware\CustomerVirtualCardMiddleware;
 use App\Http\Middleware\EnterprisePlanMiddleware;
 use App\Http\Middleware\Google2faMiddleware;
+use App\Http\Middleware\KycStatusMiddleware;
 use App\Http\Middleware\LogRequestResponse;
 use App\Http\Middleware\ScalePlanMiddleware;
 use App\Http\Middleware\WhitelistIPMiddleware;
+use Aws\TrustedAdvisor\TrustedAdvisorClient;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -29,20 +32,24 @@ return Application::configure(basePath: dirname(__DIR__))
             prepend: [
                 \App\Http\Middleware\JsonRequestMiddleware::class,
                 // WhitelistIPMiddleware::class,
-                // LogRequestResponse::class,
+                LogRequestResponse::class,
                 \App\Http\Middleware\SanitizeHeadersMiddleware::class,
             ]
         );
+        $middleware->trustHosts(fn () => [
+            '*.yativo.com',
+        ]);
+        $middleware->trustProxies(['192.168.1.1']);
         $middleware->alias([
             'google2fa' => Google2faMiddleware::class,
-            'kyc_check' => \App\Http\Middleware\KycStatusMiddleware::class,
+            'kyc_check' => KycStatusMiddleware::class,
             'can_create_vc' => CustomerVirtualCardMiddleware::class,
             'can_create_va' => CustomerVirtualAccountMiddleware::class,
             'vc_charge' => CustomerVirtualCardCharges::class,
             'chargeWallet' => ChargeWalletMiddleware::class,
             'scale' => ScalePlanMiddleware::class,
             'enterprise' => EnterprisePlanMiddleware::class,
-            'admin.2fa' => \App\Http\Middleware\Admin\Require2FA::class,
+            'admin.2fa' => Require2FA::class,
         ]);
         $middleware->statefulApi();
     })->withExceptions(function (Exceptions $exceptions) {

@@ -15,12 +15,32 @@ class TransactionRecordController extends Controller
     public function index()
     {
         try {
-            $records = TransactionRecord::with(['beneficiary', 'user'])->whereUserId(auth()->id())->latest()->paginate(per_page());
+            $status = request('status');
+            $startDate = request('start_date');
+            $endDate = request('end_date');
+            $amount = request('amount');
+
+            $records = TransactionRecord::with(['beneficiary', 'user'])
+                ->whereUserId(auth()->id())
+                ->when($status, function($query) use ($status) {
+                    return $query->where('transaction_status', $status);
+                })
+                ->when($startDate, function($query) use ($startDate) {
+                    return $query->whereDate('created_at', '>=', $startDate);
+                })
+                ->when($endDate, function($query) use ($endDate) {
+                    return $query->whereDate('created_at', '<=', $endDate);
+                })
+                ->when($amount, function($query) use ($amount) {
+                    return $query->where('transaction_amount', $amount);
+                })
+                ->latest()
+                ->paginate(per_page());
+                
             return paginate_yativo($records);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
-        }
-    }
+        }    }
 
     /**
      * Display a listing of the resource.

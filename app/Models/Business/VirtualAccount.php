@@ -20,6 +20,7 @@ class VirtualAccount extends Model
         "account_number",
         'provider_name',
         'extra_data',
+        'status',
     ];
 
     protected $hidden = [

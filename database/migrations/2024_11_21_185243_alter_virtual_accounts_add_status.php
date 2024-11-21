@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('trans_fi', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('virtual_accounts', function (Blueprint $table) {
+            $table->string('status')->default('pending')->nullable();
         });
     }
 
@@ -22,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('trans_fi_controllers');
+        Schema::table('virtual_accounts', function (Blueprint $table) {
+            //
+        });
     }
 };

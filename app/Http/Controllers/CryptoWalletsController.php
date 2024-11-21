@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BusinessConfig;
 use App\Models\CryptoDeposit;
 use App\Models\CryptoWallets;
 use App\Models\User;
@@ -22,7 +23,7 @@ class CryptoWalletsController extends Controller
         $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
         $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
         // check if business can issue virtual account or return error
-        $this->businessConfig = request()->user()->businessConfig?->configs;
+        $this->businessConfig = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
     }
     public function createWallet(Request $request)
     {

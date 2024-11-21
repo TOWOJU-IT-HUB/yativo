@@ -8,45 +8,92 @@
     <title>Payment Checkout</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script> <!-- QRCode.js -->
+    <style>
+        /* Loader Styles */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
 
     <div class="container mx-auto p-6">
-        <div class="bg-white shadow-lg rounded-lg p-6">
+        <div class="bg-white shadow-lg rounded-lg p-6 relative">
             <h1 class="text-2xl font-bold mb-4">Payment Checkout</h1>
 
             @if ($checkout->checkout_mode == 'redirect')
                 <div>
-                    <p class="text-lg mb-4">You are being redirected for payment...</p>
-                    <p class="text-sm text-gray-600">If you are not redirected automatically, click the button below:
-                    </p>
-                    <a href="{{ is_string($checkout->provider_checkout_response) ? $checkout->provider_checkout_response : $checkout->provider_checkout_response['url'] }}"
-                        class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        Redirect to Payment
-                    </a>
+                    <div id="loader-container" class="text-center">
+                        <p class="text-lg mb-4">You are being redirected for payment...</p>
+                        <div class="loader"></div>
+                        <p class="text-sm text-gray-600 mt-4">
+                            If the page doesn't redirect automatically, a manual redirect option will appear in 1
+                            minute.
+                        </p>
+                    </div>
+
+                    <div id="manual-redirect" class="hidden text-center mt-6">
+                        <p class="text-lg text-red-600">The page did not redirect automatically.</p>
+                        <p class="text-sm text-gray-600 mb-4">Click the button below to continue manually:</p>
+                        <a href="{!! is_string($checkout->provider_checkout_response)
+                            ? str_replace('&amp;', '&', $checkout->provider_checkout_response)
+                            : str_replace('&amp;', '&', $checkout->provider_checkout_response['url']) !!}"
+                            class="inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Continue to Payment
+                        </a>
+                    </div>
+
                     <script>
-                        // Automatically redirect after 300 milliseconds
-                        setTimeout(function() {
-                            window.location.href =
-                                "{{ is_string($checkout->provider_checkout_response) ? $checkout->provider_checkout_response : $checkout->provider_checkout_response['url'] }}";
-                        }, 300);
+                        document.addEventListener("DOMContentLoaded", function() {
+                            // Redirect after 300 milliseconds
+                            setTimeout(function() {
+                                window.location.href =
+                                    "{!! is_string($checkout->provider_checkout_response)
+                                        ? str_replace('&amp;', '&', $checkout->provider_checkout_response)
+                                        : str_replace('&amp;', '&', $checkout->provider_checkout_response['url']) !!}";
+                            }, 300);
+
+                            // Show manual redirect option after 1 minute (60 seconds)
+                            setTimeout(function() {
+                                document.getElementById("loader-container").classList.add("hidden");
+                                document.getElementById("manual-redirect").classList.remove("hidden");
+                            }, 60000);
+                        });
                     </script>
                 </div>
             @elseif($checkout->checkout_mode == 'qr_code')
                 <div class="text-center">
                     <p class="text-lg mb-4">Scan the QR code to complete the payment:</p>
-                    <img src="{{ is_string($checkout->provider_checkout_response) ? $checkout->provider_checkout_response : $checkout->provider_checkout_response['qr_code'] }}"
+                    <img src="{{ is_string($checkout->provider_checkout_response)
+                        ? $checkout->provider_checkout_response
+                        : $checkout->provider_checkout_response['qr_code'] }}"
                         alt="QR Code" class="mx-auto h-64 w-64">
 
                     <div id="qrcode" class="mx-auto"></div>
                     <script>
                         document.addEventListener("DOMContentLoaded", function() {
-                            // Ensure provider_checkout_response is a string for QR code generation
                             const qrData =
-                                "{{ is_string($checkout->provider_checkout_response) ? $checkout->provider_checkout_response : $checkout->provider_checkout_response['brCode'] }}";
+                                "{{ is_string($checkout->provider_checkout_response)
+                                    ? $checkout->provider_checkout_response
+                                    : $checkout->provider_checkout_response['brCode'] }}";
                             if (qrData) {
-                                // Generate the QR code using QRCode.js
                                 new QRCode(document.getElementById("qrcode"), {
                                     text: qrData,
                                     width: 256,
@@ -64,11 +111,11 @@
                     <div id="qrcode" class="mx-auto"></div>
                     <script>
                         document.addEventListener("DOMContentLoaded", function() {
-                            // Ensure provider_checkout_response is a string for QR code generation
                             const qrData =
-                                "{{ is_string($checkout->provider_checkout_response) ? $checkout->provider_checkout_response : $checkout->provider_checkout_response['brCode'] }}";
+                                "{{ is_string($checkout->provider_checkout_response)
+                                    ? $checkout->provider_checkout_response
+                                    : $checkout->provider_checkout_response['brCode'] }}";
                             if (qrData) {
-                                // Generate the QR code using QRCode.js
                                 new QRCode(document.getElementById("qrcode"), {
                                     text: qrData,
                                     width: 256,

@@ -69,7 +69,7 @@ Route::group(['prefix' => 'v1/auth'], function () {
 });
 
 
-Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
+Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(function () {
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
 
     Route::prefix('crypto')->group(function () {
