@@ -63,7 +63,7 @@ class BinancePayWebhookController extends Controller
      * Handle deposit notifications
      *
      * @param array $payload
-     * @return \Illuminate\Http\JsonResponse
+     * @return 
      */
     private function handleDeposit(array $payload)
     {
@@ -95,7 +95,7 @@ class BinancePayWebhookController extends Controller
      * Handle payout notifications
      *
      * @param array $payload
-     * @return \Illuminate\Http\JsonResponse
+     * @return 
      */
     private function handlePayout(array $payload)
     {
@@ -112,7 +112,7 @@ class BinancePayWebhookController extends Controller
                 // Add your implementation here
 
                 return response()->json(['message' => 'Payout processed successfully']);
-            } elseif ($status === 'FAILED') {
+            } elseif ($status === 'FAILED' OR $status === 'EXPIRED') {
                 // Handle failed payout
                 // Add your implementation here
 

@@ -3,7 +3,11 @@
 namespace Modules\Webhook\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\CryptoWallets;
+use App\Models\Deposit;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Str;
 
 class CoinpaymentsWebhookController extends Controller
 {
@@ -24,7 +28,7 @@ class CoinpaymentsWebhookController extends Controller
             $status = $request->input('status');
 
             // Check if wallet address exists in cryptowallets
-            $wallet = \App\Models\CryptoWallet::where('address', $address)
+            $wallet = CryptoWallets::where('address', $address)
                 ->where('currency', strtoupper($currency))
                 ->first();
 
@@ -34,7 +38,7 @@ class CoinpaymentsWebhookController extends Controller
             }
 
             // Check deposit table for pending transaction
-            $deposit = \App\Models\Deposit::where('transaction_id', $txnId)
+            $deposit = Deposit::where('transaction_id', $txnId)
                 ->orWhere('address', $address)
                 ->first();
 
@@ -44,11 +48,11 @@ class CoinpaymentsWebhookController extends Controller
             }
 
             // Create user if doesn't exist
-            $user = \App\Models\User::firstOrCreate(
+            $user = User::firstOrCreate(
                 ['email' => $deposit->email],
                 [
                     'name' => $deposit->name ?? 'User_' . time(),
-                    'password' => bcrypt(str_random(12)),
+                    'password' => bcrypt(Str::random(12)),
                     'status' => 'active'
                 ]
             );
@@ -62,7 +66,7 @@ class CoinpaymentsWebhookController extends Controller
             ]);
 
             // Create wallet for user if doesn't exist
-            $wallet = \App\Models\CryptoWallet::firstOrCreate(
+            $wallet = CryptoWallets::firstOrCreate(
                 [
                     'user_id' => $user->id,
                     'currency' => strtoupper($currency),
@@ -101,7 +105,7 @@ class CoinpaymentsWebhookController extends Controller
     private function processExistingWalletDeposit($wallet, $amount, $txnId, $status)
     {
         // Create deposit record
-        \App\Models\Deposit::create([
+        Deposit::create([
             'user_id' => $wallet->user_id,
             'currency' => $wallet->currency,
             'amount' => $amount,

@@ -35,13 +35,13 @@ class BusinessController extends Controller
                 $user->update([
                     'is_kyc_submitted' => true,
                     'membership_id' => uuid(9, "B"),
-                    'kyc_status' => null,
+                    // 'kyc_status' => null,
                     'user_type' => "business",
                     'bussinessName' => $business->business_operating_name
                 ]);
             }
 
-            return get_success_response($business, 201);
+            return get_success_response(['business' => $business, 'user' => auth()->user()], 201);
             
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 500);
@@ -68,7 +68,7 @@ class BusinessController extends Controller
         try {
             $business = Business::whereUserId(auth()->id())->first();
             $business->update($request->validated());
-            return get_success_response($business, 200);
+            return get_success_response(['business' => $business, 'user' => auth()->user()], 200);
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 404);
         }
@@ -205,7 +205,7 @@ class BusinessController extends Controller
 
             if (!$businessConfig) {
                 // If not, create a new one
-                $businessConfig = new BusinessConfig([
+                $businessConfig = BusinessConfig::create([
                     'user_id' => $request->user()->id,
                     'configs' => [
                         "can_issue_visa_card" => false,
@@ -224,60 +224,9 @@ class BusinessController extends Controller
                 ]);
             }
 
-            return get_success_response($businessConfig, 200);
+            return get_success_response($businessConfig?->configs, 200);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
     }
-
-    public function updatePreference(Request $request)
-    {
-        try {
-            $validate = Validator::make($request->all(), [
-                'key' => 'required|string',
-                'value' => 'required',
-            ]);
-
-            if ($validate->fails()) {
-                return get_error_response(['error' => $validate->errors()->toArray()]);
-            }
-
-            $businessConfig = $request->user()->businessConfig;
-
-            if (!$businessConfig) {
-                // If not, create a new one
-                $businessConfig = new BusinessConfig([
-                    'user_id' => $request->user()->id,
-                    'configs' => [
-                        "can_issue_visa_card" => false,
-                        "can_issue_master_card" => false,
-                        "can_issue_bra_virtual_account" => false,
-                        "can_issue_mxn_virtual_account" => false,
-                        "can_issue_arg_virtual_account" => false,
-                        "can_issue_usdt_wallet" => false,
-                        "can_issue_usdc_wallet" => false,
-                        "charge_business_for_deposit_fees" => false,
-                        "charge_business_for_payout_fees" => false,
-                        "can_hold_balance" => false,
-                        "can_use_wallet_module" => false,
-                        "can_use_checkout_api" => false
-                    ]
-                ]);
-            }
-
-            $configs = $businessConfig->configs;
-            $configs[$request->key] = $request->value;
-            $businessConfig->configs = $configs;
-
-            if ($businessConfig->save()) {
-                return get_success_response(['success' => "Preference updated successfully"]);
-            }
-
-            return get_error_response(['error' => 'Unable to update data']);
-        } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
-        }
-
-    }
-
 }

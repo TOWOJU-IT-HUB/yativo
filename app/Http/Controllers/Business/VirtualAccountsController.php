@@ -9,6 +9,7 @@ use App\Models\Business\VirtualAccount;
 use App\Models\Country;
 use App\Models\localPaymentTransactions;
 use App\Models\User;
+use App\Models\BusinessConfig;
 use Http;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
@@ -22,12 +23,15 @@ use Towoju5\Localpayments\Localpayments;
 
 class VirtualAccountsController extends Controller
 {
-    public $baseUrl, $api_key;
+    public $baseUrl, $api_key, $businessConfig;
 
     public function __construct()
     {
         $this->baseUrl = env('FINCRA_BASE_URL', 'https://api.fincra.com/');
         $this->api_key = env('FINCRA_API_SECRET', '8G5hwaiw7oy9q8tCBJ6X1ltp5C20QDwJ');
+
+        // check if business can issue virtual account or return error
+        $this->businessConfig = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
     }
 
     public function index()
@@ -123,6 +127,9 @@ class VirtualAccountsController extends Controller
             }
 
             if ($request->currency === "BRL") {
+                if ($this->businessConfig->can_issue_bra_virtual_account == false) {
+                    return get_error_response(['error' => 'Business not approved for service']);
+                }
                 return get_error_response(["error" => "Thanks for requesting a Virtual Account in Brazil. Your request will be manually reviewed and you will be notified once it is approved."]);
             }
 
@@ -133,6 +140,12 @@ class VirtualAccountsController extends Controller
 
             $accountNumber = null;
             if (in_array($request->currency, ['MXN', 'ARS'])) {
+                if ($request->currency == "MXN" && $this->businessConfig->can_issue_mxn_virtual_account == false) {
+                    return get_error_response(['error' => 'Business not approved for service']);
+                }
+                if ($request->currency == "ARS" && $this->businessConfig->can_issue_arg_virtual_account == false) {
+                    return get_error_response(['error' => 'Business not approved for service']);
+                }
                 $accountNumber = LocalPaymentsController::getPayinAccountNumber($request->country, $request->currency, 'BankTransfer');
                 if (is_array($accountNumber) && isset($accountNumber['error'])) {
                     return $accountNumber;
@@ -496,7 +509,7 @@ class VirtualAccountsController extends Controller
         } else if ($accountData['currency'] == "MXN") {
             return $this->handleVirtualAccountCreationForMXN($accountData, $isApi);
         }
-        
+
         return http_response_code(200);
     }
 

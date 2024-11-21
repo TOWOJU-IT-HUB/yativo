@@ -88,10 +88,10 @@ class DepositController extends Controller
 
             $deposit->currency = $payin->currency;
             if ($deposit->save()) {
-                $total_amount_due = $request->amount + $transaction_fee;
+                $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
                 $arr['payment_info'] = [
-                    "send_amount" => "$request->amount $payin->currency",
-                    "receive_amount" => ($request->amount * $exchange_rate) . " {$deposit->deposit_currency}",
+                    "send_amount" => round($request->amount / $exchange_rate, 4)." $payin->currency",
+                    "receive_amount" => ($request->amount * $exchange_rate) .explode(".", $deposit->deposit_currency)[0],
                     "exchange_rate" => "1" . strtoupper($payin->currency) . " ~ $exchange_rate" . strtoupper($request->credit_wallet ?? $request->currency),
                     "transaction_fee" => "$transaction_fee $payin->currency",
                     "payment_method" => $payin->method_name,

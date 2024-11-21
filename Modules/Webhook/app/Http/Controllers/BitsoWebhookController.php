@@ -4,6 +4,7 @@ namespace Modules\Webhook\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Log;
 
 class BitsoWebhookController extends Controller
 {

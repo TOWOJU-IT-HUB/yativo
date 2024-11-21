@@ -14,66 +14,85 @@ use Spatie\WebhookServer\WebhookCall;
 
 class CryptoWalletsController extends Controller
 {
-    public $coinpayment;
+    public $coinpayment, $businessConfig;
 
     public function __construct()
     {
         $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
         $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
         $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
+        // check if business can issue virtual account or return error
+        $this->businessConfig = request()->user()->businessConfig?->configs;
     }
-
     public function createWallet(Request $request)
     {
         Log::info('Incoming request data:', $request->all());
-
-        $validate = Validator::make($request->all(), [
+    
+        // Validate the request
+        $validator = Validator::make($request->all(), [
             'currency' => 'required|in:USDT.BEP20,USDC.BEP20',
-            'customer_id' => 'required_if:is_customer,true'
+            'customer_id' => 'required_if:is_customer,true',
         ]);
-
-        if ($validate->fails()) {
-            return get_error_response($validate->errors()->toArray());
+    
+        if ($validator->fails()) {
+            return get_error_response($validator->errors()->toArray());
         }
-
-        // Send request to generate wallet address to Coinpayment
+    
+        // Check business approval for issuing wallet
+        $currency = $request->currency;
+        $canIssueWalletKey = 'can_issue_' . strtolower(explode('.', $currency)[0]) . '_wallet';
+        if (!$this->businessConfig->$canIssueWalletKey) {
+            return get_error_response(['error' => 'Business not approved for service']);
+        }
+    
         $userId = auth()->id();
-        $callbackUrl = route('crypto.wallet.address.callback', ['userId' => $userId, 'currency' => $request->currency]);
-        $curl = $this->coinpayment->GetCallbackAddress(currency: $request->currency, ipn_url: $callbackUrl);
-
-        if (isset($curl['address'])) {
-            $record = CryptoWallets::create([
-                "user_id" => $userId,
-                "is_customer" => filter_var($request->is_customer, FILTER_VALIDATE_BOOLEAN),
-                "customer_id" => $request->is_customer ? $request->customer_id : null,
-                "wallet_address" => $curl['address'],
-                "wallet_currency" => $request->currency,
-                "wallet_network" => explode('.', $request->currency)[1] ?? $request->currency,
-                "wallet_provider" => 'coinpayment',
-                "coin_name" => $request->currency,
-                "wallet_balance" => 0,
-            ]);
-
-            $webhook_url = Webhook::whereUserId($userId)->first();
-
-            if ($webhook_url) {
-                WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
-                    "event.type" => "wallet_generated",
-                    "payload" => $record
-                ])->dispatchSync();
-            }
-
-            if ($request->is_customer == true) {
-                $record = CryptoWallets::whereId($record->id)->with('customer')->first();
-            } else {
-                $record = CryptoWallets::whereId($record->id)->with('user')->first();
-            }
-
-            return get_success_response($record); // Return the created record directly
+        $isCustomer = filter_var($request->is_customer, FILTER_VALIDATE_BOOLEAN);
+    
+        // Generate wallet address
+        $callbackUrl = route('crypto.wallet.address.callback', ['userId' => $userId, 'currency' => $currency]);
+        $curl = $this->coinpayment->GetCallbackAddress(currency: $currency, ipn_url: $callbackUrl);
+    
+        if (!isset($curl['address'])) {
+            return get_error_response(['error' => "We're currently unable to process your request at the moment."]);
         }
-
-        return get_error_response(['error' => "We're currently unable to process your request at the moment."]);
+    
+        // Create wallet record in the database
+        $walletData = [
+            "user_id" => $userId,
+            "is_customer" => $isCustomer,
+            "customer_id" => $isCustomer ? $request->customer_id : null,
+            "wallet_address" => $curl['address'],
+            "wallet_currency" => $currency,
+            "wallet_network" => explode('.', $currency)[1] ?? $currency,
+            "wallet_provider" => 'coinpayment',
+            "coin_name" => $currency,
+            "wallet_balance" => 0,
+        ];
+    
+        $record = CryptoWallets::create($walletData);
+    
+        // Queue webhook notification
+        dispatch(function () use ($userId, $record) {
+            $webhook = Webhook::whereUserId($userId)->first();
+            if ($webhook) {
+                WebhookCall::create()
+                    ->meta(['_uid' => $webhook->user_id])
+                    ->url($webhook->url)
+                    ->useSecret($webhook->secret)
+                    ->payload([
+                        "event.type" => "wallet_generated",
+                        "payload" => $record,
+                    ])
+                    ->dispatchSync();
+            }
+        })->afterResponse();
+    
+        // Load relationships for the response
+        $record = $record->load($isCustomer ? 'customer' : 'user');
+    
+        return get_success_response($record);
     }
+    
 
 
     public function wallet_webhook(Request $request)

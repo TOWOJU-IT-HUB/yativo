@@ -196,7 +196,7 @@ class CustomerVirtualCardsController extends Controller
                 'business_id' => get_business_id(auth()->id())
             ])->count();
 
-            if ($cardCount >= 3) {
+            if ($cardCount >= 2) {
                 return get_error_response(['error' => "Customer can create at most 3 cards"]);
             }
 

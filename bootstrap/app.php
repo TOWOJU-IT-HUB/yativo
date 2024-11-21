@@ -28,8 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(
             prepend: [
                 \App\Http\Middleware\JsonRequestMiddleware::class,
-                    // WhitelistIPMiddleware::class,
-                LogRequestResponse::class,
+                // WhitelistIPMiddleware::class,
+                // LogRequestResponse::class,
                 \App\Http\Middleware\SanitizeHeadersMiddleware::class,
             ]
         );

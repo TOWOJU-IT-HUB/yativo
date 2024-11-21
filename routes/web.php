@@ -52,9 +52,16 @@ use App\Http\Controllers\ManageDBController;
 */
 
 Route::get('/', function () {
-    $user = User::whereEmail('towojuads@gmail.com')->first();
-    // $user->
     
+    // $user = User::whereEmail('sotonyemcleod@gmail.com')->first();
+    // $wallet = $user->getWallet('usd');
+    // if($wallet->deposit(100000)) {
+    //     return response()->json(['message' => "User approved successfully"]);
+    // }
+
+    // $configs = App\Models\BusinessConfig::all();
+    // return response()->json($configs);
+
     // $floid = new FlowController();
     // $result = $floid->makePayment('1234567890', 100, 'PEN');
     // dd($result);
@@ -136,7 +143,7 @@ Route::get('/', function () {
     //             ]
     //         ]
     //     ];
-        
+
     //     $forms[] = BeneficiaryFoems::firstOrCreate($formStructure);
     // }
     // return response()->json($forms);

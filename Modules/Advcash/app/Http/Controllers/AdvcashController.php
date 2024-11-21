@@ -62,11 +62,11 @@ class AdvcashController extends Controller
 
     public function withdrawal($quoteId, $currency, $payoutObject)
     {
-        $gateway = (object)[];
+        $gateway = (object) [];
         $amount = $payoutObject->amount;
         $description = "Payout from Yativo";
         $curl = $this->initiatePayment($amount, $currency);
-        if($gateway->payment_mode == "advcash_card") {
+        if ($gateway->payment_mode == "advcash_card") {
             $this->sendMoneyToBankCard($amount, $currency, $payoutObject);
         }
         if (is_string($curl)) {
@@ -79,25 +79,49 @@ class AdvcashController extends Controller
 
     public function handleCallback(Request $request)
     {
-        $payload = file_get_contents("php://input");
-        Log::info("Processing AdvCash payin:", ['info' => $payload]);
-        $amount = $payload['ac_amount'] ?? 0;
-        $quoteId = $payload['ac_order_id'];
+        // Extract query parameters from the URL
+        $queryParams = $request->query();
+        Log::info("Processing AdvCash payin with query parameters:", ['query_params' => $queryParams]);
+
+        // Extract specific parameters from query
+        $amount = $queryParams['ac_amount'] ?? 0;
+        $quoteId = $queryParams['ac_order_id'] ?? null;
+
+        if (!$quoteId) {
+            http_response_code(200);
+            return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+        }
 
         // Process the PayIn transaction
-        $order = TransactionRecord::where("transaction_id", $quoteId)->latest()->first();
+        $order = TransactionRecord::where("transaction_id", $quoteId)->where('transaction_status', '!=', 'success')->latest()->first();
 
-        switch ($order->transaction_type) {
-            case "deposit":
-                Log::channel("deposit_log")->info("Processing Local payment webhook", $order->toArray());
-                $this->processDeposit($order->id, 'deposit');
-                break;
-            default:
-                SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
-                CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
-                break;
+        if (!$order) {
+            Log::error("Transaction record not found for quote ID: {$quoteId}");
+            return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
         }
+
+        if (strtoupper($queryParams['ac_transaction_status']) == "COMPLETED") {
+            switch ($order->transaction_type) {
+                case "deposit":
+                    Log::channel("deposit_log")->info("Processing Local payment webhook", $order->toArray());
+                    $this->processDeposit($order->id, 'deposit');
+                    break;
+                default:
+                    $sendMoney = SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
+                    if ($sendMoney) {
+                        CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
+                        Log::info("Dispatched job for quote ID: {$quoteId}");
+                    } else {
+                        Log::error("Pending send money record not found for quote ID: {$quoteId}");
+                    }
+                    break;
+            }
+        }
+
         http_response_code(200);
+        return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+
+        // return response()->json(['message' => 'Callback processed successfully'], 200);
     }
 
     public function sendMoneyToBankCard($amount, $currency, $payoutObject)
@@ -114,24 +138,24 @@ class AdvcashController extends Controller
                 "TRY" => "Turkish Lira",
                 "VND" => "Vietnamese Dong"
             ];
-            
+
             if (!array_key_exists($currency, $currencies)) {
                 return ['error' => 'Invalid currency'];
-            }            
-            
+            }
+
             $action = "sendMoneyToBankCard";
 
             $payload = [
-                'note'          => $payoutObject->note,
-                'amount'        => $amount,
-                'currency'      => $currency,
-                'cardNumber'    => $payoutObject->cardNumber,
-                'expiryMonth'   => $payoutObject->expiryMonth,
-                'expiryYear'    => $payoutObject->expiryYear,
-                'cardHolder'    => $payoutObject->cardHolder,
-                'cardHolderCity'=> $payoutObject->cardHolderCity,
+                'note' => $payoutObject->note,
+                'amount' => $amount,
+                'currency' => $currency,
+                'cardNumber' => $payoutObject->cardNumber,
+                'expiryMonth' => $payoutObject->expiryMonth,
+                'expiryYear' => $payoutObject->expiryYear,
+                'cardHolder' => $payoutObject->cardHolder,
+                'cardHolderCity' => $payoutObject->cardHolderCity,
                 'cardHolderDOB' => $payoutObject->cardHolderDOB,
-                'cardHolderCountry'   => $payoutObject->cardHolderCountry,
+                'cardHolderCountry' => $payoutObject->cardHolderCountry,
                 'savePaymentTemplate' => false,
                 'cardHolderMobilePhoneNumber' => $payoutObject->cardHolderMobilePhoneNumber
             ];

@@ -38,8 +38,7 @@ class CoinPaymentsController extends Controller
         $buyer_email = $request->user()->email;
 
         $callback_url = route('coinpayments.callback.deposit', ['quoteId' => $quoteId, "currency" => $currency1, "user" => auth()->id()]);
-
-        $response = $this->coinpayments->CreateTransactionSimple($amount, $currency1, $currency2, $buyer_email, null, $callback_url);
+        $response = $this->coinpayments->CreateTransactionSimple(floatval($amount), $currency1, $currency2, $buyer_email, null, $callback_url);
         if (!is_array($response)) {
             $response = json_encode($response, true);
         }

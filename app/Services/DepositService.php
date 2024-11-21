@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\TransFiController;
 use App\Models\Deposit;
 use App\Models\Gateways;
 use App\Models\PayinMethods;
@@ -281,6 +282,13 @@ class DepositService
     {
         $flow = new FlowController();
         $checkout = $flow->makePayment($deposit_id, $amount, $currency);
+        return $checkout;
+    }
+
+    public function transFi($deposit_id, $amount, $currency, $txn_type, $gateway)
+    {
+        $transFi = new TransFiController();
+        $checkout = $transFi->payin($deposit_id, $amount, $currency);
         return $checkout;
     }
 

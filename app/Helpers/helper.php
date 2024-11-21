@@ -190,6 +190,9 @@ if (!function_exists('exchange_rates')) {
         // Initialize price to 0
         $price = 0;
 
+        $from = explode('.', $from)[0];
+        $to = explode('.', $to)[0];
+
         try {
             // Use Guzzle to make a reliable API request
             $client = new Client();

@@ -86,7 +86,6 @@ class PayoutService
             }
 
             return ['error' => 'Unable to process transaction at the moment'];
-            // var_dump($methods->slug, $gateway); exit;//[self::ACTIVE => false];
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()];
         }

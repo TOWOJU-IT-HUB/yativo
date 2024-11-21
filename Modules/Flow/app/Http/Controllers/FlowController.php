@@ -33,7 +33,7 @@ class FlowController extends Controller
                 'amount' => $amount,
                 'redirect_url' => route('floid.callback.redirect'),
                 'webhook_url' => route('floid.callback.success'),
-                'sandbox' => env("FLOID_SANDBOX", false),
+                // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
 
             $response = Http::withToken($authToken)->withHeaders([
@@ -41,8 +41,6 @@ class FlowController extends Controller
             ])->post($url, $requestData);
 
             $result = $response->json();
-
-            // Log::info("Floid request and response data", ['request' => $requestData, "response" => $result, "url" => $url, "currency" => $currency]);
 
             if (isset($result['payment_url']) && isset($result['payment_token'])) {
                 update_deposit_gateway_id($quoteId, $result['payment_token']);
@@ -56,6 +54,9 @@ class FlowController extends Controller
 
     public function getChlPaymentStatus(Request $request)
     {
+
+        Log::info("Floid request and response data", ['request' => $request->getContent()]);
+
         $url = "https://api.floid.app/cl/payments/check";
 
         $authToken = env("FLOID_AUTH_TOKEN");
@@ -76,6 +77,9 @@ class FlowController extends Controller
 
     public function getPenPaymentStatus(Request $request)
     {
+
+        Log::info("Floid request and response data", ['request' => $request->getContent()]);
+
         $url = "https://api.floid.app/cl/payments/check";
 
         $result = $this->getPaymentStatus($url, $request->payment_token ?? "d99512d1-9187-44c7-b2e6-e2ff75e5cc60");
@@ -88,6 +92,9 @@ class FlowController extends Controller
 
     private function getPaymentStatus($url, $payment_token)
     {
+
+        Log::info("Floid request and response data", ['request' => $request->getContent()]);
+
         $authToken = env("FLOID_AUTH_TOKEN");
 
         $response = Http::withToken($authToken)->withHeaders([
@@ -102,6 +109,16 @@ class FlowController extends Controller
 
     public function callback(Request $request)
     {
+        $rawInput = file_get_contents('php://input');
+        Log::info('Raw request input:', ['data' => $rawInput]);
+
+
+        Log::info("Floid request and response data", ['request' => $request->getContent()]);
+
+        $requestBody = $request->all();
+        Log::info('Floid callback request body:', $requestBody);
+
+
         //
     }
 }
