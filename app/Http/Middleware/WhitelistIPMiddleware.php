@@ -20,8 +20,7 @@ class WhitelistIPMiddleware
 
         $allowedDomains = [
             parse_url(getenv('APP_URL'), PHP_URL_HOST),
-            'api.yativo.com',
-            'zeenah.azurewebsites.net', '50.7.115.5', '51.255.40.139'
+            'app.yativo.com', '50.7.115.5', '51.255.40.139'
         ];
 
         // Check if the request is coming from allowed domains
@@ -38,7 +37,7 @@ class WhitelistIPMiddleware
             $ip = $request->ip();
 
             // Check if the user's IP is whitelisted
-            $whitelistedIPs = WhitelistedIP::where('user_id', $user->id)->pluck('ip_address')->toArray();
+            $whitelistedIPs = WhitelistedIP::whereUserId($user->id)->pluck('ip_address')->toArray();
 
             if (in_array($ip, $whitelistedIPs)) {
                 return $next($request);

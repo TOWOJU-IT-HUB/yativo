@@ -2,13 +2,16 @@
 
 use App\Http\Middleware\Admin\Require2FA;
 use App\Http\Middleware\ChargeWalletMiddleware;
+use App\Http\Middleware\CustomerKycMiddleware;
 use App\Http\Middleware\CustomerVirtualAccountMiddleware;
 use App\Http\Middleware\CustomerVirtualCardCharges;
 use App\Http\Middleware\CustomerVirtualCardMiddleware;
 use App\Http\Middleware\EnterprisePlanMiddleware;
 use App\Http\Middleware\Google2faMiddleware;
+use App\Http\Middleware\JsonRequestMiddleware;
 use App\Http\Middleware\KycStatusMiddleware;
 use App\Http\Middleware\LogRequestResponse;
+use App\Http\Middleware\SanitizeHeadersMiddleware;
 use App\Http\Middleware\ScalePlanMiddleware;
 use App\Http\Middleware\WhitelistIPMiddleware;
 use Aws\TrustedAdvisor\TrustedAdvisorClient;
@@ -30,16 +33,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(
             prepend: [
-                \App\Http\Middleware\JsonRequestMiddleware::class,
-                // WhitelistIPMiddleware::class,
+                JsonRequestMiddleware::class,
+                WhitelistIPMiddleware::class,
+                CustomerKycMiddleware::class,
                 LogRequestResponse::class,
-                \App\Http\Middleware\SanitizeHeadersMiddleware::class,
+                SanitizeHeadersMiddleware::class,
             ]
         );
-        $middleware->trustHosts(fn () => [
-            '*.yativo.com',
-        ]);
-        $middleware->trustProxies(['192.168.1.1']);
+
         $middleware->alias([
             'google2fa' => Google2faMiddleware::class,
             'kyc_check' => KycStatusMiddleware::class,
