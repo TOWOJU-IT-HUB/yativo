@@ -72,9 +72,10 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         try {
-            $validate = Validator::make($request->all(), [
+            // Validation rules
+            $rules = [
                 'customer_name' => 'required',
-                'customer_email' => 'required',
+                'customer_email' => 'required|email',
                 'customer_phone' => 'required',
                 'customer_country' => 'required',
                 'customer_address' => 'required|array',
@@ -82,50 +83,28 @@ class CustomerController extends Controller
                 'customer_idNumber' => 'required',
                 'customer_idCountry' => 'required',
                 'customer_idExpiration' => 'required',
-                'customer_idFront' => 'required',
-                'customer_idBack' => 'required',
-            ]);
-
-            if ($validate->fails()) {
-                return get_error_response(['error' => $validate->errors()->toArray()]);
-            }
-
-            $validate->customer_id = generate_uuid();
-
-            // encrypt data before inserting into DB
-
-            $validatedData = Validator::make($request->all(), [
-                'customer_name' => 'required',
-                'customer_email' => 'required|email',
-                'customer_phone' => 'required',
-                'customer_country' => 'required',
-                'customer_address' => 'sometimes|array',
-                'customer_idType' => 'sometimes',
-                'customer_idNumber' => 'sometimes',
-                'customer_idCountry' => 'sometimes',
-                'customer_idExpiration' => 'sometimes',
-                'customer_idFront' => 'sometimes', // only accept base64 Image
-                'customer_idBack' => 'sometimes', // only accept base64 Image
-            ]);
-
-            if ($validatedData->fails()) {
-                return get_error_response(['error' => $validatedData->errors()]);
-            }
-
-            $where = [
-                'customer_email' => $request->customer_email,
-                'user_id' => auth()->id()
+                'customer_idFront' => 'required', // Base64 image
+                'customer_idBack' => 'required',  // Base64 image
             ];
 
-            $cust = Customer::where($where)->count();
+            // Validate request
+            $validator = Validator::make($request->all(), $rules);
 
-            if ($cust > 0) {
-                $validator = Validator::make([], []); // Create an empty validator instance
-                $validator->errors()->add('customer_email', 'Customer email already exists.');
-
-                return get_error_response($validator->errors(), 422);
+            if ($validator->fails()) {
+                return get_error_response(['error' => $validator->errors()->toArray()]);
             }
 
+            // Check if the customer email already exists for the authenticated user
+            $emailExists = Customer::where([
+                'customer_email' => $request->customer_email,
+                'user_id' => auth()->id(),
+            ])->exists();
+
+            if ($emailExists) {
+                return get_error_response(['error' => ['customer_email' => 'Customer email already exists.']], 422);
+            }
+
+            // Prepare customer data and encrypt sensitive fields
             $customerData = [
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
@@ -136,11 +115,13 @@ class CustomerController extends Controller
                 'customer_idNumber' => $request->customer_idNumber,
                 'customer_idCountry' => $request->customer_idCountry,
                 'customer_idExpiration' => $request->customer_idExpiration,
+                'customer_idFront' => $request->customer_idFront,
+                'customer_idBack' => $request->customer_idBack,
             ];
 
+            $encryptedData = encryptCustomerData(json_encode($customerData));
 
-            $json_data = encryptCustomerData(json_encode($customerData));
-
+            // Create and save the customer
             $customer = new Customer();
             $customer->user_id = auth()->id();
             $customer->customer_id = generate_uuid();
@@ -149,20 +130,19 @@ class CustomerController extends Controller
             $customer->customer_phone = $request->customer_phone;
             $customer->customer_country = $request->customer_country;
             $customer->customer_address = $request->customer_address;
-            $customer->customer_idType = encryptCustomerData($request->customer_idType) ?? null;
-            $customer->customer_idNumber = encryptCustomerData($request->customer_idNumber) ?? null;
-            $customer->customer_idCountry = encryptCustomerData($request->customer_idCountry) ?? null;
-            $customer->customer_idExpiration = encryptCustomerData($request->customer_idExpiration) ?? null;
-            $customer->customer_idFront = encryptCustomerData($request->customer_idFront) ?? null;
-            $customer->customer_idBack = encryptCustomerData($request->customer_idBack) ?? null;
-            // $customer->customer_status = 'active';
-            $customer->json_data = $json_data;
+            $customer->customer_idType = encryptCustomerData($request->customer_idType);
+            $customer->customer_idNumber = encryptCustomerData($request->customer_idNumber);
+            $customer->customer_idCountry = encryptCustomerData($request->customer_idCountry);
+            $customer->customer_idExpiration = encryptCustomerData($request->customer_idExpiration);
+            $customer->customer_idFront = encryptCustomerData($request->customer_idFront);
+            $customer->customer_idBack = encryptCustomerData($request->customer_idBack);
+            $customer->json_data = $encryptedData;
 
             if ($customer->save()) {
                 return get_success_response($customer, 201);
-            } else {
-                return get_error_response(['error' => 'Failed to store customer information']);
             }
+
+            return get_error_response(['error' => 'Failed to store customer information']);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
@@ -198,7 +178,7 @@ class CustomerController extends Controller
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
-    
+
 
     /**
      * Update the specified resource in storage.

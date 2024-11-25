@@ -108,22 +108,22 @@ class DepositService
         try {
             $request = request();
             $paymentMethod = null;
-            
+
             // Determine account file path based on environment
             $accountFilePath = public_path('pay-methods/' . (strtolower(getenv('LOCALPAYMENT_MODE')) === 'test' ? 'localpayment-account-test.json' : 'localpayment-account.json'));
-            
+
             // Load and decode account data
             if (!file_exists($accountFilePath)) {
                 throw new \Exception("File not found at path: " . $accountFilePath);
             }
             $accountData = json_decode(file_get_contents($accountFilePath), true);
-    
+
             // Determine payment mode and method
             $payment_mode = strtolower($gateway->payment_mode) === 'apm' ? 'BankTransfer' : $gateway->payment_mode;
             if ($payment_mode === 'BankTransfer' && preg_match('/\((.*?)\)/', $gateway->method_name, $matches)) {
                 $paymentMethod = strtolower($matches[1]);
             }
-    
+
             // Find matching account details
             $payObj = collect($accountData)->first(function ($acc) use ($payment_mode, $gateway, $currency, $paymentMethod, $amount) {
                 return strtolower($acc['country_iso3']) === strtolower($gateway->country)
@@ -133,18 +133,18 @@ class DepositService
                     && (!isset($acc['minAmount']) || $amount >= $acc['minAmount'])
                     && (!isset($acc['maxAmount']) || $amount <= $acc['maxAmount']);
             });
-    
+
             if (!$payObj) {
                 return ['error' => 'Payment method is currently unavailable, please contact support'];
             }
-    
+
             $customer = auth()->user();
             $accountNumber = $payObj['number'] ?? null;
-    
+
             if (is_array($accountNumber) && isset($accountNumber['error'])) {
                 return $accountNumber;
             }
-    
+
             // Prepare payload based on payment mode
             $basePayload = [
                 "paymentMethod" => [
@@ -165,7 +165,7 @@ class DepositService
                     "email" => "michael@yativo.com",
                 ],
             ];
-    
+
             $payerDetails = [
                 "type" => "INDIVIDUAL",
                 "name" => $customer->firstName,
@@ -176,7 +176,7 @@ class DepositService
                 ],
                 "email" => $customer->email,
             ];
-    
+
             if (strtolower($gateway->payment_mode) === 'cash') {
                 $payerDetails['bank'] = [
                     "name" => $request->bank_name,
@@ -187,45 +187,45 @@ class DepositService
                     ],
                 ];
             }
-    
+
             $payload = array_merge($basePayload, ["payer" => $payerDetails]);
-    
+
             // Initiate local payment
             $local = new Localpayments();
             $payin = $local->payin()->init($payload);
-    
+
             // Handle responses
             if (!is_array($payin)) {
                 return ['result' => $payin];
             }
-    
+
             if (isset($payin['error']) && !is_array($payin['error'])) {
                 $errors = json_decode($payin['error'], true);
                 return ['error' => $errors['errors'] ?? $payin['error']];
             }
-    
+
             if (isset($payin["qr"])) {
                 return ['qr' => array_merge($payin["qr"], $payin['payment'])];
             }
-    
+
             if (isset($payin['redirectUrl'])) {
                 return $payin['redirectUrl'];
             }
-    
+
             if (isset($payin['wireInstructions'], $payin['payment'])) {
                 return array_merge($payin['payment'], $payin['wireInstructions']);
             }
-    
+
             if (isset($payin['ticket'], $payin['payment'])) {
                 return array_merge($payin['payment'], $payin['ticket']);
             }
-    
-            return (array)$payin;
+
+            return (array) $payin;
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
         }
     }
-    
+
 
     public function binance_pay($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
@@ -311,9 +311,9 @@ class DepositService
         session()->put("checkout_id", $checkout_id);
         $payload['amount'] = $amount;
         $payload['referenceLabel'] = $checkout_id;
-        if($request->has('customer_id')){
-            $customer  = Customer::where('customer_id', $request->customer_id)->first();
-            if(!$customer->brla_subaccount_id) {
+        if ($request->has('customer_id')) {
+            $customer = Customer::where('customer_id', $request->customer_id)->first();
+            if (!$customer->brla_subaccount_id) {
                 // create and retrieve the brla_subaccount_id
             }
             //retrieve the customer sub_account_id
@@ -334,7 +334,7 @@ class DepositService
 
     /**
      * @param mixed $tranxRecord  of deposit
-     * @return void
+     * @return void DepositService.php
      */
     public function process_deposit($tranxRecord)
     {
@@ -342,7 +342,14 @@ class DepositService
             Log::channel('deposit_error')->info("initiating deposit for: $tranxRecord");
             $order = TransactionRecord::whereId($tranxRecord)->first();
             if (!$order) {
+                $where = [
+                    "transaction_memo" => "payin",
+                    "transaction_id" => $tranxRecord
+                ];
+                $order = TransactionRecord::where($where)->first();
+            } else {
                 Log::channel('deposit_error')->info("Error processing transactions", [$order, $tranxRecord]);
+                die();
             }
 
             $quoteId = $order['transaction_id'];
@@ -359,24 +366,13 @@ class DepositService
                     $user = User::findOrFail($order['user_id']);
                     $order->update(['transaction_status' => SendMoneyController::SUCCESS]);
 
-                    switch (strtolower($order->transaction_type)) {
-                        case "deposit":
-                            $deposit = Deposit::whereId($order['transaction_id'])->where('status', 'pending')->first();
-                            if ($deposit) {
-                                $deposit->status = SendMoneyController::SUCCESS;
-                                if ($deposit->save()) {
-                                    $this->complete_deposit($deposit, $user, $order, $payin);
-                                }
-                            }
-                            break;
-                        case "send_money":
-                            $send_money = SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
-                            if ($send_money) {
-                                CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
-                            }
-                            break;
+                    $deposit = Deposit::whereId($order['transaction_id'])->where('status', 'pending')->first();
+                    if ($deposit) {
+                        $deposit->status = SendMoneyController::SUCCESS;
+                        if ($deposit->save()) {
+                            $this->complete_deposit($deposit, $user, $order, $payin);
+                        }
                     }
-                    break;
                 default:
                     Log::channel('deposit_error')->info('Transaction status is ' . $order['transaction_status']);
                     break;
