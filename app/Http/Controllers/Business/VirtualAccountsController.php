@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\BusinessConfig;
 use App\Services\BrlaDigitalService;
 use Http;
+use Modules\Bitso\app\Services\BitsoServices;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Http\Request;
@@ -89,20 +90,20 @@ class VirtualAccountsController extends Controller
             }
 
             if (empty($account->account_number)) {
-                $endpoint = "/api/virtual-account/$account_id";
-                $local = new Localpayments;
-                $request = $local->curl($endpoint, "GET");
+                // $endpoint = "/api/virtual-account/$account_id";
+                // $local = new Localpayments;
+                // $request = $local->curl($endpoint, "GET");
 
-                // sample account ID: 0a148340-4bec-4ccf-8cdc-49ab565159e7
-                if (isset($request['error'])) {
-                    return get_error_response(['error' => $request['message']]);
-                }
+                // // sample account ID: 0a148340-4bec-4ccf-8cdc-49ab565159e7
+                // if (isset($request['error'])) {
+                //     return get_error_response(['error' => $request['message']]);
+                // }
 
-                if (!isset($request['currency'])) {
-                    return get_error_response(['error' => "Please try again in 5minutes"]);
-                }
+                // if (!isset($request['currency'])) {
+                //     return get_error_response(['error' => "Please try again in 5minutes"]);
+                // }
 
-                $accounts = $this->handleVirtualAccountCreation($request, false);
+                // $accounts = $this->handleVirtualAccountCreation($request, false);
             }
 
             return get_success_response($accounts);
@@ -144,6 +145,7 @@ class VirtualAccountsController extends Controller
                 return get_error_response(['error' => $validator->errors()->toArray()], 400);
             }
 
+            $_ref = Str::random(19);
             if ($request->currency === "BRL") {
                 if (config_can_peform('can_issue_bra_virtual_account') != 'enabled') {
                     return get_error_response(['error' => 'Business not approved for this service']);
@@ -158,9 +160,9 @@ class VirtualAccountsController extends Controller
                     $customer = Customer::where('customer_id', $request->customer_id)->first();
                     $payload['subaccountId'] = $customer->brla_subaccount_id;
                 }
-                $payload['referenceLabel'] = Str::random(19);
+                $payload['referenceLabel'] = $_ref;
 
-                $checkout = $brla->generatePayInBRCode($payload);                
+                $checkout = $brla->generatePayInBRCode($payload);
                 $record = VirtualAccount::create([
                     "account_id" => $payload['referenceLabel'],
                     "user_id" => active_user(),
@@ -169,8 +171,8 @@ class VirtualAccountsController extends Controller
                     "customer_id" => $request->customer_id ?? null,
                     "account_number" => $checkout["brCode"],
                     "account_info" => [
-                        "country" => "BRA",
-                        "currency" => "MXN",
+                        "country" => $request->country,
+                        "currency" => $request->currency,
                         "account_number" => $checkout["brCode"],
                         "bank_code" => "PIX",
                         "bank_name" => "Pix Qr Code",
@@ -178,8 +180,53 @@ class VirtualAccountsController extends Controller
                     ]
                 ]);
 
-                if($record) {
+                if ($record) {
                     return get_success_response($record, 201, "BRL Virtual account generated successfully");
+                }
+            }
+
+            if ($request->currency === "MXN") {
+                if (config_can_peform('can_issue_mxn_virtual_account') != 'enabled') {
+                    return get_error_response(['error' => 'Business not approved for this service']);
+                }
+
+                $bitso = new BitsoServices("/spei/v1/clabes");
+                $payload = [
+                    "amount" => floatval(0)
+                ];
+                $user = auth()->user();
+                if ($request->has('customer_id')) {
+                    $customer = Customer::where('customer_id', $request->customer_id)->first();
+                }
+
+                // generate Bitso clabe
+                $result = $bitso->sendRequest('', 'POST');
+
+                if (isset($result['clabe'])) {
+                    $record = VirtualAccount::create([
+                        "account_id" => $_ref,
+                        "user_id" => active_user(),
+                        "currency" => $request->currency,
+                        "request_object" => $validator->validated(),
+                        "customer_id" => $request->customer_id ?? null,
+                        "account_number" => $result['clabe'],
+                        "account_info" => [
+                            "country" => $request->country,
+                            "currency" => $request->currency,
+                            "account_number" => $result['clabe'],
+                            "bank_code" => "710",
+                            "bank_name" => "NVIO",
+                            "account_name" => $customer->first_name . " " . $customer->last_name ?? $user->name,
+                        ],
+                        "extra_data" => $result
+                    ]);
+
+                    if ($record) {
+                        return get_success_response($record, 201, "BRL Virtual account generated successfully");
+                    }
+                
+                } else {
+                    return get_error_response(['error' => 'Error generating clabe']);
                 }
             }
 
@@ -189,11 +236,7 @@ class VirtualAccountsController extends Controller
             }
 
             $accountNumber = null;
-            if (in_array($request->currency, ['MXN', 'ARS'])) {                
-                if (config_can_peform('can_issue_mxn_virtual_account') != 'enabled') {
-                    return get_error_response(['error' => 'Business not approved for this service']);
-                }
-                
+            if (in_array($request->currency, ['MXN', 'ARS'])) {
                 if (config_can_peform('can_issue_arg_virtual_account') != 'enabled') {
                     return get_error_response(['error' => 'Business not approved for this service']);
                 }
@@ -281,27 +324,6 @@ class VirtualAccountsController extends Controller
                     'content-type' => 'application/json',
                     "api-key" => $this->api_key,
                 ])->post("{$this->baseUrl}profile/virtual-accounts/requests", $data)->json();
-            }
-
-            if (!is_array($curl)) {
-                $curl = json_decode($curl, true);
-            }
-
-            if (isset($curl['status']) && (int) $curl['status']['code'] != 100) {
-                $errors = $curl['error'] ?? ['Unknown error occurred'];
-                return get_error_response(["error" => $errors]);
-            }
-
-            $record = VirtualAccount::create([
-                "account_id" => $account_id,
-                "user_id" => active_user(),
-                "currency" => $request->currency,
-                "request_object" => $validator->validated(),
-                "customer_id" => $request->customer_id
-            ]);
-
-            if (isset($curl['success']) && ($curl['success'] == false)) {
-                return get_error_response(['error' => $curl['errors']]);
             }
 
             return get_success_response(['record' => $record, 'result' => $curl]);

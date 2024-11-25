@@ -70,6 +70,11 @@ class BitsoServices
                 if (isset($responseBody['error'])) {
                     return ['error' => $responseBody['error']['message']];
                 }
+
+                // check for mxn account
+                if(isset($responseBody['success']) && $responseBody['success'] == true && isset($responseBody['payload'])) {
+                    return $responseBody['payload'];
+                }
                 return ['error' => $responseBody];
             }
 
@@ -105,9 +110,8 @@ class BitsoServices
         return $result;
     }
 
-    public function getData()
+    public function getMexAccount()
     {
-        $endpoint = "/spei/v1/clabes";
         $result = $this->sendRequest('', 'POST');
         return $result;
     }

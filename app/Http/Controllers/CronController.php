@@ -105,7 +105,7 @@ class CronController extends Controller
                             $deposit_services->process_deposit($order->transaction_id);
                         }
                     }
-                    return redirect()->to(env('WEB_URL'));
+                    // return redirect()->to(env('WEB_URL'));
                 }
             }
         }
