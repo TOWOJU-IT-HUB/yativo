@@ -55,23 +55,21 @@ class CoinPaymentsController extends Controller
             $userObject = User::find($user);
             if ($userObject) {
                 $where = [
-                    'user_id' => $user->id,
                     "transaction_id" => $quoteId,
-                    "transaction_status" => "In Progress",
-                    // "transaction_type" => "deposit"
+                    "transaction_memo" => "payin"
                 ];
 
-                $order = TransactionRecord::where("transaction_id", $quoteId)->first();
+                $order = TransactionRecord::where($where)->first();
                 // retrieve send money
-                $send_money = SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
+                // $send_money = SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
         
-                if ($send_money) {
-                    CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
-                }
+                // if ($send_money) {
+                //     CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
+                // }
         
                 if ($order) {
                     $deposit_services = new DepositService();
-                    $deposit_services->process_deposit($order);
+                    $deposit_services->process_deposit($order->transaction_id);
                     return http_response_code(200);
                 }
             }
@@ -87,7 +85,7 @@ class CoinPaymentsController extends Controller
 
     public function pay($quoteId, $currency, $payoutObject)
     {
-        $beneficiary = BeneficiaryPaymentMethod::with('beneficiary')->whereId(request()->payment_method_id)->first();
+        $beneficiary = BeneficiaryPaymentMethod::whereId(request()->payment_method_id)->first();
         $wallet_address = $beneficiary->payment_data->wallet_address;
         $withdrawal = $this->coinpayments->CreateWithdrawal($payoutObject->amount, $payoutObject->currency, $wallet_address);
         if(isset($withdrawal)) {

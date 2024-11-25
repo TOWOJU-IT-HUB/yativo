@@ -3,6 +3,7 @@
 use App\Http\Controllers\MiscController;
 use App\Models\Balance;
 use App\Models\Business;
+use App\Models\BusinessConfig;
 use App\Models\Country;
 use App\Models\Deposit;
 use App\Models\ExchangeRate;
@@ -1186,5 +1187,23 @@ if (!function_exists('update_deposit_gateway_id')) {
             $deposit->gateway_deposit_id = $gatewayDepositId;
             $deposit->save();
         }
+    }
+}
+
+if (!function_exists('config_can_peform')) {
+    /**
+     * update the ID of checkout gateway into the deposit DB for easy record retrieval
+     * @param mixed $depositId
+     * @param mixed $gatewayDepositId
+     * @return boolean
+     */
+    function config_can_peform($action): bool
+    {
+        $config = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
+        if ($config && isset($config[0][$action]) && strtolower($config[0][$action]) === "enabled") {
+            return true;
+        }
+
+        return true;
     }
 }

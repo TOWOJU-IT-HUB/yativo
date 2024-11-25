@@ -52,22 +52,16 @@ class FlowController extends Controller
         }
     }
 
-    public function getChlPaymentStatus(Request $request)
+    public function getChlPaymentStatus($token = null)
     {
-
+        $request = request();
         Log::info("Floid request and response data", ['request' => $request->getContent()]);
 
         $url = "https://api.floid.app/cl/payments/check";
 
-        $authToken = env("FLOID_AUTH_TOKEN");
+        $token = $token ?? $request->payment_token;
 
-        $response = Http::withToken($authToken)->withHeaders([
-            'Content-Type' => 'application/json',
-        ])->get($url, [
-                    'payment_token' => "d99512d1-9187-44c7-b2e6-e2ff75e5cc60"
-                ]);
-
-        $result = $response->json();
+        $result = $this->getPaymentStatus($url, $token);
 
         if (isset($result['payment_url'])) {
             return $result;
@@ -75,14 +69,16 @@ class FlowController extends Controller
         return ["error" => $result];
     }
 
-    public function getPenPaymentStatus(Request $request)
+    public function getPenPaymentStatus($token = null)
     {
-
+        $request = request();
         Log::info("Floid request and response data", ['request' => $request->getContent()]);
 
         $url = "https://api.floid.app/pe/payments/check";
 
-        $result = $this->getPaymentStatus($url, $request->payment_token ?? "d99512d1-9187-44c7-b2e6-e2ff75e5cc60");
+        $token = $token ?? $request->payment_token;
+
+        $result = $this->getPaymentStatus($url, $token);
 
         if (isset($result['payment_url'])) {
             return $result;
@@ -93,7 +89,7 @@ class FlowController extends Controller
     private function getPaymentStatus($url, $payment_token)
     {
         $request = request();
-        Log::info("Floid request and response data", ['request' => $request->getContent()]);
+        Log::info("Floid request and response data", ['request' => $payment_token]);
 
         $authToken = env("FLOID_AUTH_TOKEN");
 

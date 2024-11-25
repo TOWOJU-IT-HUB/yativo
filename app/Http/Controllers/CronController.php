@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Log;
 use Modules\BinancePay\app\Http\Controllers\BinancePayController;
 use Modules\BinancePay\app\Models\BinancePay;
+use Modules\Flow\app\Http\Controllers\FlowController;
 
 class CronController extends Controller
 {
@@ -82,7 +83,7 @@ class CronController extends Controller
     private function getTransFiStatus(): void
     {
         $ids = $this->getGatewayPayinMethods(method: 'transfi');
-        $deposits = Deposit::where('gateway_id', $ids)->whereStatus('pending')->get();
+        $deposits = Deposit::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
         $transFi = new TransFiController();
         foreach ($deposits as $deposit) {
             $order = $transFi->getOrderDetails($deposit->gateway_deposit_id);
@@ -91,13 +92,9 @@ class CronController extends Controller
                 /** Check if order is Deposit - Payin */
                 if ($payload['type'] == "pay" && $payload['status'] == "fund_settled") {
                     $txn = TransactionRecord::where('transaction_id', $payload['order_id'])->first();
-                    $tranxRecord = Deposit::where('gateway_deposit_id', $payload['order_id'])->first();
-                    $service = new DepositService();
-                    $service->process_deposit($tranxRecord);
-
 
                     $deposit = Deposit::where('gateway_deposit_id', $payload['order_id'])->first();
-                    if ($deposit) {
+                    if ($txn) {
                         $where = [
                             "transaction_memo" => "payin",
                             "transaction_id" => $payload['order_id']
@@ -114,11 +111,40 @@ class CronController extends Controller
         }
     }
 
-    // get status of transFi transaction
+    // get status of Floid transaction
+    private function getFloidStatus(): void
+    {
+        $ids = $this->getGatewayPayinMethods(method: 'floid');
+        $deposits = Deposit::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
+        $floid = new FlowController();
+        foreach ($deposits as $deposit) {
+            $order = match (strtolower($deposit->currency)) {
+                "clp" => $floid->getChlPaymentStatus($deposit->gateway_deposit_id),
+                'pen' => $floid->getPenPaymentStatus($deposit->gateway_deposit_id),
+            };
+
+            if ($order && strtolower($order['status']) == "success") {
+                $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+                if ($txn) {
+                    $where = [
+                        "transaction_memo" => "payin",
+                        "transaction_id" => $deposit->id
+                    ];
+                    $order = TransactionRecord::where($where)->first();
+                    if ($order) {
+                        $deposit_services = new DepositService();
+                        $deposit_services->process_deposit($txn->transaction_id);
+                    }
+                }            
+            }
+        }
+    }
+
+    // get status of BinancePay transaction
     private function getBinancePayStatus(): void
     {
         $ids = $this->getGatewayPayinMethods(method: 'binance_pay');
-        $deposits = Deposit::where('gateway_id', $ids)->whereStatus('pending')->get();
+        $deposits = Deposit::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
 
         foreach ($deposits as $deposit) {
             $order = TransactionRecord::where("transaction_id", $deposit->deposit_id)->first();

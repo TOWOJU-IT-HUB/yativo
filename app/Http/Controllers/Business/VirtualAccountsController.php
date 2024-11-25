@@ -10,6 +10,7 @@ use App\Models\Country;
 use App\Models\localPaymentTransactions;
 use App\Models\User;
 use App\Models\BusinessConfig;
+use App\Services\BrlaDigitalService;
 use Http;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
@@ -29,9 +30,6 @@ class VirtualAccountsController extends Controller
     {
         $this->baseUrl = env('FINCRA_BASE_URL', 'https://api.fincra.com/');
         $this->api_key = env('FINCRA_API_SECRET', '8G5hwaiw7oy9q8tCBJ6X1ltp5C20QDwJ');
-
-        // check if business can issue virtual account or return error
-        $this->businessConfig = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
     }
 
     public function index(Request $request)
@@ -53,9 +51,9 @@ class VirtualAccountsController extends Controller
             }
 
             if ($request->has('search')) {
-                $accounts->where(function($query) use ($request) {
+                $accounts->where(function ($query) use ($request) {
                     $query->where('account_name', 'LIKE', "%{$request->search}%")
-                          ->orWhere('account_number', 'LIKE', "%{$request->search}%");
+                        ->orWhere('account_number', 'LIKE', "%{$request->search}%");
                 });
             }
 
@@ -129,7 +127,7 @@ class VirtualAccountsController extends Controller
                 'address.street' => 'required|string',
                 'address.number' => 'required|string',
                 'address.country' => 'required|string',
-                "currency" => "required|string|in:USD,EUR,MXN,ARS,BRL",
+                "currency" => "required|string|in:MXN,BRL",
                 "country" => "required|string|min:3|max:3",
                 "utilityBill" => "required_if:currency,USD,EUR",
                 "bankStatement" => "required_if:currency,USD,EUR",
@@ -147,10 +145,42 @@ class VirtualAccountsController extends Controller
             }
 
             if ($request->currency === "BRL") {
-                if ($this->businessConfig->can_issue_bra_virtual_account == false) {
-                    return get_error_response(['error' => 'Business not approved for service']);
+                if (config_can_peform('can_issue_bra_virtual_account') != 'enabled') {
+                    return get_error_response(['error' => 'Business not approved for this service']);
                 }
-                return get_error_response(["error" => "Thanks for requesting a Virtual Account in Brazil. Your request will be manually reviewed and you will be notified once it is approved."]);
+
+                $brla = new BrlaDigitalService();
+                $payload = [
+                    "amount" => floatval(0)
+                ];
+                $user = auth()->user();
+                if ($request->has('customer_id')) {
+                    $customer = Customer::where('customer_id', $request->customer_id)->first();
+                    $payload['subaccountId'] = $customer->brla_subaccount_id;
+                }
+                $payload['referenceLabel'] = Str::random(19);
+
+                $checkout = $brla->generatePayInBRCode($payload);                
+                $record = VirtualAccount::create([
+                    "account_id" => $payload['referenceLabel'],
+                    "user_id" => active_user(),
+                    "currency" => $request->currency,
+                    "request_object" => $validator->validated(),
+                    "customer_id" => $request->customer_id ?? null,
+                    "account_number" => $checkout["brCode"],
+                    "account_info" => [
+                        "country" => "BRA",
+                        "currency" => "MXN",
+                        "account_number" => $checkout["brCode"],
+                        "bank_code" => "PIX",
+                        "bank_name" => "Pix Qr Code",
+                        "account_name" => $customer->first_name . " " . $customer->last_name ?? $user->name,
+                    ]
+                ]);
+
+                if($record) {
+                    return get_success_response($record, 201, "BRL Virtual account generated successfully");
+                }
             }
 
             $customer = Customer::where('customer_id', $request->customer_id)->first();
@@ -159,12 +189,13 @@ class VirtualAccountsController extends Controller
             }
 
             $accountNumber = null;
-            if (in_array($request->currency, ['MXN', 'ARS'])) {
-                if ($request->currency == "MXN" && $this->businessConfig->can_issue_mxn_virtual_account == false) {
-                    return get_error_response(['error' => 'Business not approved for service']);
+            if (in_array($request->currency, ['MXN', 'ARS'])) {                
+                if (config_can_peform('can_issue_mxn_virtual_account') != 'enabled') {
+                    return get_error_response(['error' => 'Business not approved for this service']);
                 }
-                if ($request->currency == "ARS" && $this->businessConfig->can_issue_arg_virtual_account == false) {
-                    return get_error_response(['error' => 'Business not approved for service']);
+                
+                if (config_can_peform('can_issue_arg_virtual_account') != 'enabled') {
+                    return get_error_response(['error' => 'Business not approved for this service']);
                 }
                 $accountNumber = LocalPaymentsController::getPayinAccountNumber($request->country, $request->currency, 'BankTransfer');
                 if (is_array($accountNumber) && isset($accountNumber['error'])) {

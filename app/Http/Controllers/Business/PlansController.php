@@ -27,7 +27,7 @@ class PlansController extends Controller
     public function plans()
     {
         try {
-            $plans = Plan::with('features')->get();
+            $plans = Plan::get();
             $plans->transform(function ($plan) {
                 if ($plan->id == 3) {
                     $plan->price = "Custom";
@@ -106,12 +106,12 @@ class PlansController extends Controller
             $user = $request->user();
             $wallet = $user->getWallet('USD');
 
-            if ((int) $newPlanId == 3) {
-                return get_error_response(['error' => 'Please contact support to activate this plan']);
-            }
-
             if (!$newPlan) {
                 return get_error_response(['error' => 'Unknown plan selected']);
+            }
+
+            if (strtolower($newPlan->price) === "custom") {
+                return get_error_response(['error' => 'Please contact support to activate this plan']);
             }
 
             if (

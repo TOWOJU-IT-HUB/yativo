@@ -47,7 +47,7 @@ class DojahVerificationController extends Controller
         $validatedData = $validate->validate();
         $validatedData['input_type'] = "base64";
         $validatedData['image'] = $request->selfieimage;
-        $validatedData['date_of_birth'] = $request->dob;
+        $validatedData['dob'] = $validatedData['date_of_birth'] = $request->dob ?? $request->date_of_birth;
 
         $dojah = new DojahServices();
         $result = (array) $dojah->verifyCustomer($validatedData);
