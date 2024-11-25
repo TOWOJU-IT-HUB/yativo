@@ -104,7 +104,7 @@ class AdvcashController extends Controller
         }
 
         if (strtoupper($queryParams['ac_transaction_status']) == "COMPLETED") {
-            Log::channel("deposit_log")->info("Processing Local payment webhook", $order->toArray());
+            Log::channel("deposit_log")->info("Processing AdvCash Deposit webhook", $order->toArray());
             $this->processDeposit($depo->id, 'deposit');
         }
 
