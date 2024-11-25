@@ -89,9 +89,13 @@ class ShuftiProServices
         return $response;
     }
 
-    public function businessVerification($businessName, $businessRegistrationNumber, $businessJurisdictionCode, $businessCountry)
+    public function businessVerification($businessName, $businessRegistrationNumber, $businessJurisdictionCode, $businessCountry = null)
     {
         try {
+            if ($businessCountry == null) {
+                $country = explode("-", $businessJurisdictionCode);
+                $businessCountry = $country[0];
+            }
             //Shufti Pro API base URL
             $url = 'https://api.shuftipro.com/';
             $client_id = getenv('SHUFTI_PRO_CLIENT_ID');
@@ -106,7 +110,7 @@ class ShuftiProServices
                 'country' => $businessCountry,
                 'language' => 'EN',
                 'email' => $user->email,
-                'callback_url' => 'https://yourdomain.com/profile/notifyCallback',
+                'callback_url' => route("shufti.business.verification.callback"),
                 'kyb' => [
                     'company_registration_number' => $businessRegistrationNumber,
                     'company_jurisdiction_code' => $businessJurisdictionCode,
@@ -122,55 +126,37 @@ class ShuftiProServices
             ];
 
             $response = Http::withHeaders($headers)->post($url, $verification_request);
-            $response_data = $response->body();
-            $response_headers = $response->headers();
+            // $response_data = $response->body();
+            // $response_headers = $response->headers();
 
-            $sp_signature = $response_headers['Signature'] ?? $response_headers['signature'] ?? null;
+            // $sp_signature = $response_headers['Signature'] ?? $response_headers['signature'] ?? null;
 
-            $calculate_signature = hash('sha256', $response_data . $secret_key);
-            $decoded_response = json_decode($response_data, true);
-            $event_name = $decoded_response['event'] ?? null;
+            // $calculate_signature = hash('sha256', $response_data . $secret_key);
+            // $decoded_response = json_decode($response_data, true);
+            // $event_name = $decoded_response['event'] ?? null;
 
-            if (in_array($event_name, ['verification.accepted', 'verification.declined', 'request.received'])) {
-                if ($sp_signature === $calculate_signature) {
-                    echo $event_name . " :" . $response_data;
-                } else {
-                    echo "Invalid signature :" . $response_data;
-                }
-            } else {
-                echo "Error :" . $response_data;
-            }
-
-
-            return get_success_response(['url' => $response]);
+            return ["verification_result" => $response->json()];
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            return ["verification_result" => $th->getMessage()];
+            // return get_error_response(['error' => $th->getMessage()]);
         }
     }
 
     public function callback(Request $request)
     {
-        // Log the incoming request for debugging
         \Log::info('ShuftiPro Webhook Initiated:- ', $request->all());
         try {
             if ($request->has('event') && $request->event == "verification.accepted") {
-                // decode event and update user status using the user email as identifier
-
-                // Log the incoming request for debugging
                 \Log::info('ShuftiPro Webhook Received: ', $request->all());
-
-                // Validate the incoming request (you can add more validation as needed)
                 $validate = Validator::make($request->all(), [
                     'event' => 'required|string',
                     'reference' => 'required|string',
                     'verification_result' => 'required|array',
-                    // add other necessary fields
                 ]);
 
                 if ($validate->fails()) {
                     return get_error_response(['error' => $validate->errors()->toArray()]);
                 }
-    
 
                 // Extract data from the request
                 $event = $request->event;
@@ -193,7 +179,6 @@ class ShuftiProServices
                         $new_status = 'pending';
                         break;
                 }
-
 
 
                 // $signature = $request->header('x-shuftipro-signature');

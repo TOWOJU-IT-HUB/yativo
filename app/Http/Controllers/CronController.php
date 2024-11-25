@@ -3,13 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deposit;
+use App\Models\PayinMethods;
+use App\Models\Track;
+use App\Models\TransactionRecord;
 use App\Models\Withdraw;
+use App\Services\DepositService;
 use Illuminate\Http\Request;
+use Log;
+use Modules\BinancePay\app\Http\Controllers\BinancePayController;
+use Modules\BinancePay\app\Models\BinancePay;
 
 class CronController extends Controller
 {
     public function index(Request $request)
     {
+        //update status for deposits
+        $this->getTransFiStatus();
+        $this->getBinancePayStatus();
+
+        // run general failed update
         $this->payout();
         $this->deposit();
     }
@@ -45,7 +57,7 @@ class CronController extends Controller
         $now = now();
 
         $failedDepositIds = Deposit::query()
-            ->with('depositGateway:id,settlement_time') // Only load necessary fields
+            ->with('depositGateway:id,settlement_time')
             ->where('status', 'pending')
             ->whereHas('depositGateway', function ($query) {
                 $query->whereNotNull('settlement_time');
@@ -64,5 +76,82 @@ class CronController extends Controller
         if ($failedDepositIds->isNotEmpty()) {
             Deposit::whereIn('id', $failedDepositIds)->update(['status' => 'failed']);
         }
+    }
+
+    // get status of transFi transaction
+    private function getTransFiStatus(): void
+    {
+        $ids = $this->getGatewayPayinMethods(method: 'transfi');
+        $deposits = Deposit::where('gateway_id', $ids)->whereStatus('pending')->get();
+        $transFi = new TransFiController();
+        foreach ($deposits as $deposit) {
+            $order = $transFi->getOrderDetails($deposit->gateway_deposit_id);
+            if ($order['status'] == "success") {
+                $payload = $order['data'];
+                /** Check if order is Deposit - Payin */
+                if ($payload['type'] == "pay" && $payload['status'] == "fund_settled") {
+                    $txn = TransactionRecord::where('transaction_id', $payload['order_id'])->first();
+                    $tranxRecord = Deposit::where('gateway_deposit_id', $payload['order_id'])->first();
+                    $service = new DepositService();
+                    $service->process_deposit($tranxRecord);
+
+
+                    $deposit = Deposit::where('gateway_deposit_id', $payload['order_id'])->first();
+                    if ($deposit) {
+                        $where = [
+                            "transaction_memo" => "payin",
+                            "transaction_id" => $payload['order_id']
+                        ];
+                        $order = TransactionRecord::where($where)->first();
+                        if ($order) {
+                            $deposit_services = new DepositService();
+                            $deposit_services->process_deposit($order->transaction_id);
+                        }
+                    }
+                    return redirect()->to(env('WEB_URL'));
+                }
+            }
+        }
+    }
+
+    // get status of transFi transaction
+    private function getBinancePayStatus(): void
+    {
+        $ids = $this->getGatewayPayinMethods(method: 'binance_pay');
+        $deposits = Deposit::where('gateway_id', $ids)->whereStatus('pending')->get();
+
+        foreach ($deposits as $deposit) {
+            $order = TransactionRecord::where("transaction_id", $deposit->deposit_id)->first();
+            $verify = BinancePayController::verifyOrder($deposit->gateway_deposit_id);
+
+            if (isset($verify['data']) && $verify['data']['status'] === "PAID") {
+                $where = [
+                    "transaction_memo" => "payin",
+                    "transaction_id" => $deposit->deposit_id
+                ];
+                $order = TransactionRecord::where($where)->first();
+                if ($order) {
+                    $deposit_services = new DepositService();
+                    $deposit_services->process_deposit($order->transaction_id);
+                    $this->updateTracking($deposit->id, $verify['data']['status'], $verify);
+                }
+            }
+        }
+    }
+
+    private function getGatewayPayinMethods(string $method)
+    {
+        return PayinMethods::where('gateway', $method)
+            ->pluck('id')
+            ->toArray();
+    }
+
+    private function updateTracking($quoteId, $trakingStatus, $response)
+    {
+        Track::create([
+            "quote_id" => $quoteId,
+            "tracking_status" => $trakingStatus,
+            "raw_data" => (array) $response
+        ]);
     }
 }

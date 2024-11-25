@@ -37,6 +37,7 @@ class AdvcashController extends Controller
             "user_id" => auth()->id()
         ];
 
+        update_deposit_gateway_id($deposit_id, $deposit_id);
         $checkoutUrl = route('advcash.checkout.url', encrypt($deposit), true);
         return $checkoutUrl;
     }
@@ -73,7 +74,7 @@ class AdvcashController extends Controller
             if (strpos($curl, 'error') !== false) {
                 return ['error' => $curl];
             }
-            return [''];
+            return ['message' => $curl];
         }
     }
 
@@ -92,8 +93,10 @@ class AdvcashController extends Controller
             return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
         }
 
+        $depo = Deposit::whereId($quoteId)->first()->toArray();
+        Log::info("deposit info to be processed", $depo);
         // Process the PayIn transaction
-        $order = TransactionRecord::where("transaction_id", $quoteId)->where('transaction_status', '!=', 'success')->latest()->first();
+        $order = TransactionRecord::where("transaction_id", $quoteId)->latest()->first();
 
         if (!$order) {
             Log::error("Transaction record not found for quote ID: {$quoteId}");
@@ -101,21 +104,8 @@ class AdvcashController extends Controller
         }
 
         if (strtoupper($queryParams['ac_transaction_status']) == "COMPLETED") {
-            switch ($order->transaction_type) {
-                case "deposit":
-                    Log::channel("deposit_log")->info("Processing Local payment webhook", $order->toArray());
-                    $this->processDeposit($order->id, 'deposit');
-                    break;
-                default:
-                    $sendMoney = SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
-                    if ($sendMoney) {
-                        CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
-                        Log::info("Dispatched job for quote ID: {$quoteId}");
-                    } else {
-                        Log::error("Pending send money record not found for quote ID: {$quoteId}");
-                    }
-                    break;
-            }
+            Log::channel("deposit_log")->info("Processing Local payment webhook", $order->toArray());
+            $this->processDeposit($order->id, 'deposit');
         }
 
         http_response_code(200);
@@ -200,13 +190,15 @@ class AdvcashController extends Controller
     private function processDeposit($quoteId, $productName)
     {
         Log::notice("AdvCash Webhook for Deposit for: {$quoteId}");
-        $order = TransactionRecord::whereId($quoteId)
-            ->where('transaction_type', $productName)
-            ->first();
+        $where = [
+            "transaction_memo" => "payin",
+            "transaction_id" => $quoteId
+        ];
 
+        $order = TransactionRecord::where($where)->first();
         if ($order) {
             $deposit_services = new DepositService();
-            $deposit_services->process_deposit($order->id);
+            $deposit_services->process_deposit($order->transaction_id);
         } else {
             Log::error("Order with the Provided ID not found!. ID: {$quoteId}");
         }

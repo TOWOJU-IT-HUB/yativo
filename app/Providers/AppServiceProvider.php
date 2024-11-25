@@ -5,11 +5,13 @@ namespace App\Providers;
 use App\Mail\Transport\AzureTransport;
 use Artisan;
 use Auth;
+use DB;
 use GuzzleHttp\Client;
 use Http;
 use Illuminate\Mail\MailManager;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
+use Log;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,5 +30,22 @@ class AppServiceProvider extends ServiceProvider
     {
         // Artisan::call('route:clear');
         Paginator::useTailwind();
+        if (!config('app.debug')) {
+            DB::listen(function ($query) {
+                $ip = request()->ip();
+                $payload = $query->bindings;
+                $sql = $query->sql;
+                $executionTime = $query->time;
+    
+                Log::channel('database')->info('Database Query Executed', [
+                    'ip' => $ip,
+                    'query' => $sql,
+                    'bindings' => $payload,
+                    'execution_time' => $executionTime . 'ms',
+                    'user_id' => Auth::id() ?? 'guest',
+                    'date_time' => now()
+                ]);
+            });
+        }
     }
 }

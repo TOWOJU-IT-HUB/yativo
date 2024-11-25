@@ -23,5 +23,9 @@ use Modules\ShuftiPro\app\Http\Controllers\ShuftiProController;
 // Route::any('api/callback/shuftipro', [ShuftiProController::class, 'callback']);
 
 
-Route::post("callback/shufti/webhook/", [ShuftiProController::class, 'webhook'])->withoutMiddleware(VerifyCsrfToken::class);
-Route::match(['get', 'post'], "redirect/shufti/callback/", [ShuftiProController::class, 'callback'])->withoutMiddleware(VerifyCsrfToken::class);
+Route::prefix('callback/webhook')->group(function () {
+    Route::any("business-verification-callback", [ShuftiProController::class, 'business_callback'])->name("shufti.business.verification.callback");
+    Route::any('shuftipro-callback', [ShuftiProController::class, 'webhook']);
+    Route::any("callback/shufti/webhook/{quoteId}/{type}", [ShuftiProController::class, 'webhook'])->withoutMiddleware(VerifyCsrfToken::class);
+    Route::any("redirect/shufti/callback/", [ShuftiProController::class, 'callback'])->withoutMiddleware(VerifyCsrfToken::class);
+})->withoutMiddleware(VerifyCsrfToken::class);

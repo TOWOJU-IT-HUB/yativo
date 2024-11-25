@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\TransFiController;
 use App\Models\Country;
 use App\Models\Gateways;
 use App\Models\payoutMethods;
@@ -198,6 +199,13 @@ class PayoutService
         }
     }
 
+    public function transFi($deposit_id, $amount, $currency, $payoutObject)
+    {
+        $transFi = new TransFiController();
+        $checkout = $transFi->payout($deposit_id, $amount, $currency, $payoutObject);
+        return $checkout;
+    }
+    
     public function vitawallet($quoteId, $currency, $payoutObject)
     {
         $request = request();

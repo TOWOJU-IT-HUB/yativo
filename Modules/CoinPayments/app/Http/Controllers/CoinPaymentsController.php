@@ -42,6 +42,8 @@ class CoinPaymentsController extends Controller
         if (!is_array($response)) {
             $response = json_encode($response, true);
         }
+        // \Log::info(json_encode($response));
+        // update_deposit_gateway_id($quoteId, $trxId);
         updateSendMoneyRawData($quoteId, $response);
         return $response ?? [];
     }

@@ -37,30 +37,30 @@ class BitsoController extends Controller
         $user = auth()->id();
         $bitso = new BitsoServices();
         $payload = '';
+        $result = [];
 
         if (strtolower($currency) == 'mxn') {
         } elseif (strtolower($currency) == 'cop') {
-        }
-        $result = $bitso->depositCop(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
-        if (!is_array($result)) {
-            $result = json_decode($result, true);
-        }
-        Log::info(json_encode(['response_cop' => $result]));
+            $result = $bitso->depositCop(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
+            if (!is_array($result)) {
+                $result = json_decode($result, true);
+            }
+            Log::info(json_encode(['response_cop' => $result]));
+            // return $result;
+            if (isset($result['success']) && $result['success'] == true) {
+                $payload = $result['payload'];
+                $account = new BitsoAccounts();
+                $account->customer_id = $customerId;
+                $account->user_id = $user;
+                $account->account_number = $payload['clabe'];
+                $account->provider_response = $payload;
 
-        // return $result;
-        if (isset($result['success']) && $result['success'] == true) {
-            $payload = $result['payload'];
-            $account = new BitsoAccounts();
-            $account->customer_id = $customerId;
-            $account->user_id = $user;
-            $account->account_number = $payload['clabe'];
-            $account->provider_response = $payload;
-
-            $account->save();
-        } else {
-            return [
-                "error" => "Error retreieveing clabe number, please contact support"
-            ];
+                $account->save();
+            } else {
+                return [
+                    "error" => "Error retreieveing clabe number, please contact support"
+                ];
+            }
         }
 
         return $result;

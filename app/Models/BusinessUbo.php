@@ -28,4 +28,29 @@ class BusinessUbo extends Model
         'updated_at',
         'deleted_at'
     ];
+
+    public function business()
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class)->where('id', $this->business->user_id);
+    }
+
+    public function getUboVerificationStatusAttribute($value)
+    {
+        return $value === 'verified' ? true : false;
+    }
+
+    public function getUboVerificationUrlAttribute($value)
+    {
+        return $value ? $value : null;
+    }
+
+    public function getUboVerificationReferenceAttribute($value)
+    {
+        return $value ? $value : null;
+    }
 }

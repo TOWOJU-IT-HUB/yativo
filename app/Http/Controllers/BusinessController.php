@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BusinessRequest;
+use App\Jobs\VerifyBusinessJob;
 use App\Models\Business;
 use App\Models\BusinessConfig;
 use App\Models\BusinessUbo;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +23,7 @@ class BusinessController extends Controller
             $validated['user_id'] = auth()->id();
             $validated['ip_address'] = $request->ip();
 
-            if($request->incorporation_country) {
+            if ($request->incorporation_country) {
                 $jurisdiction = $request->incorporation_country;
             }
 
@@ -41,8 +43,15 @@ class BusinessController extends Controller
                 ]);
             }
 
+            if (
+                !empty($business->business_legal_name) &&
+                !empty($business->business_registration_number) &&
+                !empty($business->incorporation_country)
+            ) {
+                dispatch($this->verifyBusiness($business))->afterResponse();
+            }
             return get_success_response(['business' => $business, 'user' => auth()->user()], 201);
-            
+
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 500);
         }
@@ -68,6 +77,13 @@ class BusinessController extends Controller
         try {
             $business = Business::whereUserId(auth()->id())->first();
             $business->update($request->validated());
+            if (
+                !empty($business->business_legal_name) &&
+                !empty($business->business_registration_number) &&
+                !empty($business->incorporation_country)
+            ) {
+                dispatch($this->verifyBusiness($business))->afterResponse();
+            }
             return get_success_response(['business' => $business, 'user' => auth()->user()], 200);
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 404);
@@ -86,12 +102,10 @@ class BusinessController extends Controller
         }
     }
 
-    public function verifyBusiness(Request $request)
+    public function verifyBusiness($bis)
     {
-        // try {
-        //     $validate = Validator::make($request->all(), [
-        //         'token' =>'required|string|min:32|max:32'
-        //     ]);
+        \Log::info("starting business verification for $bis->business_legal_name with ID $bis->id");
+        return new VerifyBusinessJob($bis);
     }
 
     /**
@@ -131,7 +145,7 @@ class BusinessController extends Controller
 
             if ($uboExists && $uboExists->ubo_verification_status != 'pending') {
                 return get_error_response(['error' => "UBO verification already process and the current status is: $uboExists->ubo_verification_status"]);
-            } elseif (!$uboExists) {
+            } elseif (!$uboExists || $uboExists->created_at > Carbon::now()->subHours(24)) {
                 $shufti = new ShuftiProServices();
                 $response = $curl = $shufti->getShuftiUrl(auth()->user());
 
@@ -239,7 +253,7 @@ class BusinessController extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                'key' => 'required|in:disabled,pending',
+                'key' => 'required',
                 'value' => 'required',
             ]);
 

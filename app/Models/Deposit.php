@@ -24,6 +24,7 @@ class Deposit extends Model
         'meta',
         'deposit_id',
         'deposit_currency',
+        'status',
         'credit_wallet' // wallet to be credited
     ];
 

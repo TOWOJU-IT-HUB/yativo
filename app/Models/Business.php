@@ -19,13 +19,15 @@ class Business extends Model
         "documents"     => 'array',
         "administrator" => 'array',
         "other_datas"   => 'array',
-        "terms_agreed_date" => "string"
+        "terms_agreed_date" => "string",
+        "business_verification_response" => "array",
     ];
 
     protected $hidden = [
         "created_at",
         "updated_at",
         'deleted_at',
+        // 'business_verification_response'
         // 'id'
     ];
     

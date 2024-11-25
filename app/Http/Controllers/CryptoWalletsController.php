@@ -22,8 +22,7 @@ class CryptoWalletsController extends Controller
         $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
         $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
         $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
-        // check if business can issue virtual account or return error
-        $this->businessConfig = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
+        $this->middleware('can_create_crypto')->only(['createWallet']);
     }
     public function createWallet(Request $request)
     {
@@ -41,10 +40,6 @@ class CryptoWalletsController extends Controller
     
         // Check business approval for issuing wallet
         $currency = $request->currency;
-        $canIssueWalletKey = 'can_issue_' . strtolower(explode('.', $currency)[0]) . '_wallet';
-        if (!$this->businessConfig->$canIssueWalletKey) {
-            return get_error_response(['error' => 'Business not approved for service']);
-        }
     
         $userId = auth()->id();
         $isCustomer = filter_var($request->is_customer, FILTER_VALIDATE_BOOLEAN);

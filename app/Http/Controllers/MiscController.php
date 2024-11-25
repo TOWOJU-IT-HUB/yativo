@@ -282,12 +282,8 @@ class MiscController extends Controller
                 ]
             ];
 
-            if ($user->user_type == 'individual') {
-                $loc = $user->registration_country;
-            } elseif ($user->is_business && $user->user_type == 'business' && isset($business->incorporation_country) && $business->incorporation_country !== null) {
-                if (isset($regions[$business->incorporation_country])) {
-                    $loc = $regions[$business->incorporation_country]['iso3'];
-                }
+            if (isset($regions[$business->incorporation_country])) {
+                $loc = $regions[$business->incorporation_country]['iso3'];
             } else {
                 return get_error_response(['error' => 'Please update your country/country of incorporation (for businesses)']);
             }
@@ -301,6 +297,7 @@ class MiscController extends Controller
             return get_error_response(['error' => 'An error occurred: ' . $e->getMessage()]);
         }
     }
+    
     public static function uploadBase64ImageToCloudflare($imageBase64)
     {
         $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $imageBase64));

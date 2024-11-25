@@ -3,6 +3,8 @@
 namespace Modules\Webhook\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\TransactionRecord;
+use App\Models\Withdraw;
 use Illuminate\Http\Request;
 
 class VoletWebhookController extends Controller
@@ -93,8 +95,7 @@ class VoletWebhookController extends Controller
             \Log::info('AdvCash Payin IPN', $request->all());
 
             // Update transaction status in database
-            $transaction = Transaction::where('reference', $request->input('ac_transfer'))
-                ->first();
+            $transaction = TransactionRecord::where('transaction_id', $request->input('ac_transfer'))->first();
 
             if ($transaction) {
                 $transaction->update([
@@ -125,7 +126,7 @@ class VoletWebhookController extends Controller
             \Log::info('AdvCash Payout IPN', $request->all());
 
             // Update withdrawal status in database
-            $withdrawal = Withdrawal::where('reference', $request->input('ac_transfer'))
+            $withdrawal = Withdraw::where('reference', $request->input('ac_transfer'))
                 ->first();
 
             if ($withdrawal) {

@@ -266,6 +266,7 @@ class DepositService
         // echo json_encode([$deposit_id, $amount, $currency, $txn_type, $gateway]); exit;
         $checkout = $coinpayment->makePayment($deposit_id, $amount, $currency);
         if ($checkout['error'] == 'ok') {
+            update_deposit_gateway_id($deposit_id, $checkout['result']['txn_id']);
             return $checkout['result']['checkout_url'];
         }
         return ["result" => $checkout['error']];
@@ -285,7 +286,7 @@ class DepositService
         return $checkout;
     }
 
-    public function transFi($deposit_id, $amount, $currency, $txn_type, $gateway)
+    public function transfi($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $transFi = new TransFiController();
         $checkout = $transFi->payin($deposit_id, $amount, $currency);
@@ -327,7 +328,7 @@ class DepositService
     public function vitawallet($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $vitawallet = new VitaWalletController();
-        $checkout = $vitawallet->payin($amount, $currency);
+        $checkout = $vitawallet->payin($deposit_id, $amount, $currency);
         return $checkout;
     }
 

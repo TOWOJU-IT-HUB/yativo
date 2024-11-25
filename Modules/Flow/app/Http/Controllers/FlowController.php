@@ -80,7 +80,7 @@ class FlowController extends Controller
 
         Log::info("Floid request and response data", ['request' => $request->getContent()]);
 
-        $url = "https://api.floid.app/cl/payments/check";
+        $url = "https://api.floid.app/pe/payments/check";
 
         $result = $this->getPaymentStatus($url, $request->payment_token ?? "d99512d1-9187-44c7-b2e6-e2ff75e5cc60");
 
@@ -92,7 +92,7 @@ class FlowController extends Controller
 
     private function getPaymentStatus($url, $payment_token)
     {
-
+        $request = request();
         Log::info("Floid request and response data", ['request' => $request->getContent()]);
 
         $authToken = env("FLOID_AUTH_TOKEN");

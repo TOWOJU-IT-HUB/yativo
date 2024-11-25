@@ -42,7 +42,9 @@ class PayinMethodsController extends Controller
             'Working_hours_start' => 'nullable|string|max:10',
             'Working_hours_end' => 'nullable|string|max:10',
         ]);
-
+        if($request->payment_mode == null) {
+            $validatedData['payment_mode'] = 'bankTransfer';
+        }
         PayinMethods::create($validatedData);
         return redirect()->route('admin.payin_methods.index')->with('success', 'Payment method created successfully.');
     }

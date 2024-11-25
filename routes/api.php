@@ -221,6 +221,7 @@ Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(f
         });
 
         Route::get('configs', [BusinessController::class, 'preference'])->name('business.preference');
+        Route::put('configs', [BusinessController::class, 'updatePreference'])->name('business.preference.update');
         Route::post('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo.post');
         Route::get('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo');
 
