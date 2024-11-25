@@ -57,7 +57,7 @@ use App\Http\Controllers\ManageDBController;
 */
 
 Route::get('/', function () {
-    $model = new Customer();
+    $model = new Deposit();
     // return response()->json($model->latest()->whereNotNull('gateway_deposit_id')->with('depositGateway')->get());
     $tableName = $model->getTable();
 

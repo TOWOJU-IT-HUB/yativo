@@ -83,7 +83,7 @@ class CronController extends Controller
     private function getTransFiStatus(): void
     {
         $ids = $this->getGatewayPayinMethods(method: 'transfi');
-        $deposits = Deposit::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
+        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $transFi = new TransFiController();
         foreach ($deposits as $deposit) {
             $order = $transFi->getOrderDetails($deposit->gateway_deposit_id);
@@ -115,7 +115,7 @@ class CronController extends Controller
     private function getFloidStatus(): void
     {
         $ids = $this->getGatewayPayinMethods(method: 'floid');
-        $deposits = Deposit::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
+        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $floid = new FlowController();
         foreach ($deposits as $deposit) {
             $order = match (strtolower($deposit->currency)) {
@@ -144,7 +144,7 @@ class CronController extends Controller
     private function getBinancePayStatus(): void
     {
         $ids = $this->getGatewayPayinMethods(method: 'binance_pay');
-        $deposits = Deposit::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
+        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
 
         foreach ($deposits as $deposit) {
             $order = TransactionRecord::where("transaction_id", $deposit->deposit_id)->first();
