@@ -16,7 +16,7 @@ class CustomerKycMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->has('customer_id')) {
+        if ($request->has('customer_id')) {
             $customerId = $request->customer_id;
             // Validate customer existence and KYC status
             $customer = Customer::where('customer_id', $customerId)

@@ -5,6 +5,9 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
 
+
+$date = date('dd-mm-YYYY');
+
 return [
 
     /*
@@ -96,6 +99,13 @@ return [
         'deposit_error' => [
             'driver' => 'single',
             'path' => storage_path('logs/deposit_error.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'whitelist_ip' => [
+            'driver' => 'single',
+            'path' => storage_path("logs/whitelist_ip_{$date}.log"),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ],
