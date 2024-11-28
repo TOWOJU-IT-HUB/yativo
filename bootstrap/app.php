@@ -34,7 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(
             prepend: [
                 JsonRequestMiddleware::class,
-                WhitelistIPMiddleware::class,
+                // WhitelistIPMiddleware::class,
                 CustomerKycMiddleware::class,
                 LogRequestResponse::class,
                 SanitizeHeadersMiddleware::class,
@@ -51,6 +51,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'scale' => ScalePlanMiddleware::class,
             'enterprise' => EnterprisePlanMiddleware::class,
             'admin.2fa' => Require2FA::class,
+        ]);
+        $middleware->validateCsrfTokens(except: [
+            "callback/*",
+            "webhook/*",
+            "volet/payin/success",
+            "redirect/*"
         ]);
         $middleware->statefulApi();
     })->withExceptions(function (Exceptions $exceptions) {

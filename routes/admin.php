@@ -70,7 +70,7 @@ Route::prefix('backoffice')->group(function () {
             Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
             Route::get('payouts/{id}', [PayoutController::class, 'show'])->name('payouts.show');
             Route::get('payouts/{id}/reject', [PayoutController::class, 'show'])->name('payouts.reject');
-            Route::get('payouts/{id}/accept', [PayoutController::class, 'show'])->name('payouts.accept');
+            Route::post('payouts/{id}/accept', [PayoutController::class, 'approvePayout'])->name('payouts.accept');
             Route::get('payouts/{id}/process-manual', [PayoutController::class, 'show'])->name('payouts.process-manual');
         });
 

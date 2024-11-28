@@ -48,17 +48,21 @@ class PayoutService
         try {
             if ($txn_type == 'withdrawal') {
                 $withdrawal = Withdraw::whereId($quoteId)->with('beneficiary')->first();
-            } else {
-                $withdrawal = SendQuote::whereId($quoteId)->with('beneficiary')->first();
             }
 
             if (!$withdrawal) {
                 return ['error' => "Unable to process withdrawal request, please contact support"];
             }
 
-            if ($gateway) {
+            // var_dump($withdrawal); exit;
 
+            if ($gateway) {
                 $result = self::$gateway($quoteId, $withdrawal->currency, $withdrawal);
+
+                if(isset($result['error'])) {
+                    return back()->with('error', $result['error']);
+                }
+                // var_dump($result); exit;
 
                 TransactionRecord::create([
                     "user_id" => auth()->id(),
@@ -210,7 +214,7 @@ class PayoutService
     {
         $request = request();
         try {
-            $beneficiaryId = $request->payment_method_id;
+            $beneficiaryId = $payoutObject->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
 
@@ -221,27 +225,25 @@ class PayoutService
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
+            var_dump($gateway); exit;
 
+            // $country = Country::where('currency_code', strtoupper($gateway->currency))->first();
             $country = Country::where('currency_code', $gateway->currency)->where('iso3', $gateway->country)->first();
+            
+            // var_dump($country); exit;
             if (!$country) {
                 return ['error' => 'Currency not supported'];
             }
 
             $rate = 1;
-            Log::info("Currency conversion error: " . $gateway->currency . " - " . $payoutObject->currency);
-            if (strtolower($gateway->currency) != strtolower('clp')) {
-                // convert the amount to the currency of the gateway
-                if (File::exists(storage_path('logs/laravel.log'))) {
-                    File::delete(storage_path('logs/laravel.log'));
-                }
-                $rate = getExchangeVal($gateway->currency, $payoutObject->currency);
-            }
-
+           
+            
+            $rate = getExchangeVal($gateway->currency, $payoutObject->currency);
             $formArray = (array) $beneficiary->payment_data;
             $requestBody = [
                 "wallet" => env("VITAWALLET_WALLET_ID", "76f1d08e-9981-4d69-bfc5-edc0c1bc0574"),
                 "transactions_type" => "withdrawal",
-                "url_notify" => env("APP_URL", "https://api.yativo.com"),
+                "url_notify" => route("vitawallet.callback.success"),
                 "country" => $country->iso2,
                 "currency" => "CLP",
                 "amount" => $payoutObject->amount * $rate,

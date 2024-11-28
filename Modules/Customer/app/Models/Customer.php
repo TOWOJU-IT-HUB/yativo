@@ -43,21 +43,21 @@ class Customer extends Model
 
 
     protected $hidden = [
-        'id',
-        'user_id',
-        'customer_idType',
-        'customer_idNumber',
-        'customer_idCountry',
-        'customer_idExpiration',
-        'customer_idFront',
-        'customer_idBack',
-        'json_data',
-        'card_user_id',
-        "updated_at",
-        "deleted_at",
-        "vc_customer_id",
-        "customer_kyc_status",
-        "customer_type",
+        // 'id',
+        // 'user_id',
+        // 'customer_idType',
+        // 'customer_idNumber',
+        // 'customer_idCountry',
+        // 'customer_idExpiration',
+        // 'customer_idFront',
+        // 'customer_idBack',
+        // 'json_data',
+        // 'card_user_id',
+        // "updated_at",
+        // "deleted_at",
+        // "vc_customer_id",
+        // "customer_kyc_status",
+        // "customer_type",
     ];
 
     protected $casts = [

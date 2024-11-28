@@ -345,4 +345,9 @@ class CustomerController extends Controller
             return ['error' => $th->getMessage()];
         }
     }
+
+    public function enrolCustomerForBridgeApi(Request $request)
+    {
+        
+    }
 }

@@ -36,10 +36,10 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     protected $hidden = [
-        'password', 'remember_token', 'two_factor_recovery_codes', 'two_factor_secret',
-        'created_at', 'updated_at', 'deleted_at', 'raw_data', 'google2fa_secret',
-        'transaction_pin', 'wallet_balance', 'login_token', 'idIssuedAt', 'idExpiryDate',
-        'idIssueDate', 'verificationDocument'
+        // 'password', 'remember_token', 'two_factor_recovery_codes', 'two_factor_secret',
+        // 'created_at', 'updated_at', 'deleted_at', 'raw_data', 'google2fa_secret',
+        // 'transaction_pin', 'wallet_balance', 'login_token', 'idIssuedAt', 'idExpiryDate',
+        // 'idIssueDate', 'verificationDocument'
     ];
 
     protected $casts = [

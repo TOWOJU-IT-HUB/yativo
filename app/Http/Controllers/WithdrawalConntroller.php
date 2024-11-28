@@ -143,44 +143,18 @@ class WithdrawalConntroller extends Controller
                 return get_error_response(['error' => "The choosen withdrawal method is invalid or currently unavailable", "gateway" => $payoutMethod->gateway]);
             }
 
-            unset($validate['payment_method_id']);
 
             $validate['user_id'] = auth()->id();
             $validate['raw_data'] = $request->all();
             $validate['gateway'] = $payoutMethod->gateway;
             $validate['gateway_id'] = $is_beneficiary->gateway_id;
             $validate['currency'] = $payoutMethod->currency;
+            $validate['beneficiary_id'] = $validate['payment_method_id'];
+            unset($validate['payment_method_id']);
             $create = Withdraw::create($validate);
 
             return get_success_response($create, 201, "Withdrawal request received and will be processed shortlly.");
 
-            if ($create) {
-                $payout = new PayoutService();
-                $checkout = $payout->makePayment($create->id, $payoutMethod->gateway);
-                // return response()->json($checkout);
-                // if (!is_array($checkout)) {
-                //     $checkout = (array)$checkout; 
-                // }
-
-                // if (isset($checkout['error'])) {
-                //     return get_error_response(['error' => $checkout['error']]);
-                // }
-                // $create->raw_data = $checkout;
-                // $create->save();
-                // // user()->notify(new WithdrawalNotification($create));
-                // $payout = Withdraw::whereId($create->id)->with('beneficiary')->first();
-
-
-                // $webhook_url = Webhook::whereUserId(auth()->id())->first();
-                // if ($webhook_url) {
-                //     WebhookCall::create()->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
-                //         "event.type" => "withdrawal",
-                //         "payload" => $payout
-                //     ])->dispatchSync();
-                // }
-
-                return get_success_response(['response' => $checkout, 'payload' => $payout->makeHidden('raw_data')->toArray()]);
-            }
 
             return get_error_response(['error' => 'Unable to create withdrawal, Please contact support']);
         } catch (\Throwable $th) {

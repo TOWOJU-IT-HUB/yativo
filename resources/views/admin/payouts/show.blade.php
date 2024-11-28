@@ -19,10 +19,12 @@
                         class="tab-button px-6 py-3 border-b-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                         User Info
                     </button>
+                    @if ($payout->customer)
                     <button data-tab="customer"
                         class="tab-button px-6 py-3 border-b-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                         Customer Info
                     </button>
+                    @endif
                     <button data-tab="gateway"
                         class="tab-button px-6 py-3 border-b-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                         Gateway Info
@@ -68,8 +70,28 @@
                                 </table>
                             </div>
                         @endif
+                        @if ($payout->beneficiary)
+                            <div class="bg-gray-50 dark:bg-slate-800 rounded-lg overflow-hidden">
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        @foreach ($payout->beneficiary?->payment_data as $key => $value)
+                                            <tr class="hover:bg-gray-100 dark:hover:bg-slate-700">
+                                                <td
+                                                    class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                    {{ ucwords(str_replace('_', ' ', $key)) }}
+                                                </td>
+                                                <td
+                                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                                    {{ is_array($value) ? json_encode($value) : $value }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     </div>
-
+                    
                     <div class="flex justify-center gap-4 my-3">
                         @if ($payout->status === 'pending')
                             <div x-data="{ modalOpen: false }">
@@ -230,10 +252,10 @@
                                         <p class="mb-10 font-medium">
                                             Are you sure you want to accept this payout?
                                         </p>
-                                        <form action="{{ route('admin.payouts.accept', $payout->id) }}" method="POST">
+                                        <form action="{{ route('admin.payouts.accept', ['id' => $payout->id]) }}" method="POST">
                                             @csrf
                                             <div class="flex justify-end">
-                                                <button type="button" @click="modalAcceptOpen = false"
+                                                <button type="button" @click="modalOpen = false"
                                                     class="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
                                                     Cancel
                                                 </button>
@@ -311,11 +333,11 @@
 
 
                 <div id="gateway" class="tab-content hidden space-y-4">
-                    @if ($payout->payout_gateway)
+                    @if ($payout->payoutGateway)
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg overflow-hidden">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                    @foreach ($payout->payout_gateway->toArray() as $key => $value)
+                                    @foreach ($payout->payoutGateway->toArray() as $key => $value)
                                         <tr class="hover:bg-gray-100 dark:hover:bg-slate-700">
                                             <td
                                                 class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">

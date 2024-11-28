@@ -111,225 +111,266 @@ class VirtualAccountsController extends Controller
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
-
     public function create(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                "customer_id" => "sometimes|string|exists:customers,customer_id",
-                'beneficiary.document.id' => 'required_if:currency,MXN,ARS',
-                'beneficiary.document.type' => 'required_if:currency,MXN,ARS',
-                'beneficiary.name' => 'required_if:currency,MXN,ARS',
-                'beneficiary.lastname' => 'required_if:currency,MXN,ARS',
-                'beneficiary.type' => 'required_if:currency,MXN,ARS',
-                'address.city' => 'required|string',
-                'address.state' => 'required|string',
-                'address.zipcode' => 'required|string',
-                'address.street' => 'required|string',
-                'address.number' => 'required|string',
-                'address.country' => 'required|string',
-                "currency" => "required|string|in:MXN,BRL",
-                "country" => "required|string|min:3|max:3",
-                "utilityBill" => "required_if:currency,USD,EUR",
-                "bankStatement" => "required_if:currency,USD,EUR",
-                "sourceOfIncome" => "required_if:currency,USD,EUR",
-                "occupation" => "required_if:currency,USD,EUR",
-                "employmentStatus" => "required_if:currency,USD,EUR",
-                "incomeBand" => "required_if:currency,USD,EUR",
-                "birthDate" => "required_if:currency,USD,EUR",
-                "nationality" => "required_if:currency,USD,EUR",
-                "meansOfId" => "required_if:currency,USD,EUR",
-            ]);
+            $validator = $this->validateRequest($request);
 
             if ($validator->fails()) {
                 return get_error_response(['error' => $validator->errors()->toArray()], 400);
             }
 
-            $_ref = Str::random(19);
-            if ($request->currency === "BRL") {
-                if (config_can_peform('can_issue_bra_virtual_account') != 'enabled') {
-                    return get_error_response(['error' => 'Business not approved for this service']);
-                }
-
-                $brla = new BrlaDigitalService();
-                $payload = [
-                    "amount" => floatval(0)
-                ];
-                $user = auth()->user();
-                if ($request->has('customer_id')) {
-                    $customer = Customer::where('customer_id', $request->customer_id)->first();
-                    $payload['subaccountId'] = $customer->brla_subaccount_id;
-                }
-                $payload['referenceLabel'] = $_ref;
-
-                $checkout = $brla->generatePayInBRCode($payload);
-                $record = VirtualAccount::create([
-                    "account_id" => $payload['referenceLabel'],
-                    "user_id" => active_user(),
-                    "currency" => $request->currency,
-                    "request_object" => $validator->validated(),
-                    "customer_id" => $request->customer_id ?? null,
-                    "account_number" => $checkout["brCode"],
-                    "account_info" => [
-                        "country" => $request->country,
-                        "currency" => $request->currency,
-                        "account_number" => $checkout["brCode"],
-                        "bank_code" => "PIX",
-                        "bank_name" => "Pix Qr Code",
-                        "account_name" => $customer->first_name . " " . $customer->last_name ?? $user->name,
-                    ]
-                ]);
-
-                if ($record) {
-                    return get_success_response($record, 201, "BRL Virtual account generated successfully");
-                }
+            // Check if the service for the requested currency is enabled
+            if (!$this->isServiceEnabled($request->currency)) {
+                return get_error_response(['error' => 'Business not approved for this service']);
             }
 
-            if ($request->currency === "MXN") {
-                if (config_can_peform('can_issue_mxn_virtual_account') != 'enabled') {
-                    return get_error_response(['error' => 'Business not approved for this service']);
-                }
+            $record = null;
 
-                $bitso = new BitsoServices("/spei/v1/clabes");
-                $payload = [
-                    "amount" => floatval(0)
-                ];
-                $user = auth()->user();
-                if ($request->has('customer_id')) {
-                    $customer = Customer::where('customer_id', $request->customer_id)->first();
-                }
+            switch ($request->currency) {
+                case 'BRL':
+                    $record = $this->createBRLVirtualAccount($request);
+                    break;
 
-                // generate Bitso clabe
-                $result = $bitso->sendRequest('', 'POST');
+                case 'MXN':
+                    $record = $this->createMXNVirtualAccount($request);
+                    break;
 
-                if (isset($result['clabe'])) {
-                    $record = VirtualAccount::create([
-                        "account_id" => $_ref,
-                        "user_id" => active_user(),
-                        "currency" => $request->currency,
-                        "request_object" => $validator->validated(),
-                        "customer_id" => $request->customer_id ?? null,
-                        "account_number" => $result['clabe'],
-                        "account_info" => [
-                            "country" => $request->country,
-                            "currency" => $request->currency,
-                            "account_number" => $result['clabe'],
-                            "bank_code" => "710",
-                            "bank_name" => "NVIO",
-                            "account_name" => $customer->first_name . " " . $customer->last_name ?? $user->name,
-                        ],
-                        "extra_data" => $result
-                    ]);
+                case 'USD':
+                    $record = $this->createUSDVirtualAccount($request);
+                    break;
 
-                    if ($record) {
-                        return get_success_response($record, 201, "BRL Virtual account generated successfully");
-                    }
-                
-                } else {
-                    return get_error_response(['error' => 'Error generating clabe']);
-                }
+                default:
+                    return get_error_response(['error' => 'Unsupported currency']);
             }
 
-            $customer = Customer::where('customer_id', $request->customer_id)->first();
-            if (!$customer && ($request->currency === "USD" || $request->currency === "EUR")) {
-                return get_error_response(['error' => 'Customer not found']);
-            }
-
-            $accountNumber = null;
-            if (in_array($request->currency, ['MXN', 'ARS'])) {
-                if (config_can_peform('can_issue_arg_virtual_account') != 'enabled') {
-                    return get_error_response(['error' => 'Business not approved for this service']);
-                }
-                $accountNumber = LocalPaymentsController::getPayinAccountNumber($request->country, $request->currency, 'BankTransfer');
-                if (is_array($accountNumber) && isset($accountNumber['error'])) {
-                    return $accountNumber;
-                }
-            }
-
-            $account_id = generate_uuid();
-            $country = Country::where('name', $customer->customer_country)->first();
-            $customer_name = explode(' ', $customer->customer_name);
-
-            $data = [
-                "currency" => $request->currency,
-                "accountType" => "individual",
-                "merchantReference" => $account_id,
-            ];
-
-            // Prepare data for specific currencies
-            if ($request->currency === "MXN" || $request->currency === "ARS") {
-                $data += [
-                    "externalId" => $account_id,
-                    "accountNumber" => $accountNumber,
-                    "country" => $request->country,
-                    "beneficiary" => [
-                        "document" => [
-                            "id" => $request->beneficiary['document']['id'],
-                            "type" => $request->beneficiary['document']['type']
-                        ],
-                        "name" => $request->beneficiary['name'],
-                        "lastname" => $request->beneficiary['lastname'],
-                        "type" => strtoupper($request->beneficiary['type'])
-                    ],
-                    "address" => [
-                        "city" => $request->address['city'],
-                        "state" => $request->address['state'],
-                        "zipcode" => $request->address['zipcode'],
-                        "street" => $request->address['street'],
-                        "number" => $request->address['number'],
-                        "country" => $request->address['country']
-                    ]
-                ];
-
-                $local = new Localpayments();
-                $curl = $local->bank()->createVirtualAccount($data);
-
-            } elseif (in_array($request->currency, ['USD', 'EUR'])) {
-                $data += [
-                    "utilityBill" => $request->utilityBill,
-                    "bankStatement" => $request->bankStatement,
-                    "KYCInformation" => [
-                        "address" => [
-                            "state" => $customer->json_data['address']['state'] ?? $request->address['state'],
-                            "city" => $customer->json_data['address']['city'] ?? $request->address['city'],
-                            "street" => $customer->customer_address ?? $request->address['street'],
-                            "zip" => $customer->json_data['address']['zip'] ?? $request->address['zipcode'],
-                            "countryOfResidence" => $country->iso2 ?? $request->address['country'],
-                            "number" => $customer->json_data['address']['number'] ?? $request->address['number']
-                        ],
-                        "firstName" => $customer_name[0],
-                        "lastName" => $customer_name[1] ?? $customer_name[0],
-                        "email" => $customer->customer_email,
-                        "phone" => $customer->customer_phone,
-                        "sourceOfIncome" => $request->sourceOfIncome,
-                        "occupation" => $request->occupation,
-                        "employmentStatus" => $request->employmentStatus,
-                        "incomeBand" => $request->incomeBand,
-                        "birthDate" => $request->birthDate,
-                        "nationality" => $country->iso2 ?? $request->nationality,
-                        "document" => [
-                            "type" => $customer->customer_idType,
-                            "number" => $customer->customer_idNumber,
-                            "issuedCountryCode" => $customer->customer_idCountry ?? $country->iso2,
-                            "issuedBy" => "government",
-                            "issuedDate" => $customer->json_data['document']['issuedDate'] ?? '2017-09-07',
-                            "expirationDate" => $customer->customer_idExpiration
-                        ],
-                    ],
-                    "meansOfId" => $request->meansOfId,
-                ];
-
-                $curl = Http::withHeaders([
-                    'accept' => 'application/json',
-                    'content-type' => 'application/json',
-                    "api-key" => $this->api_key,
-                ])->post("{$this->baseUrl}profile/virtual-accounts/requests", $data)->json();
-            }
-
-            return get_success_response(['record' => $record, 'result' => $curl]);
+            return get_success_response(['record' => $record], 201, "{$request->currency} Virtual account generated successfully");
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
+    }
+
+    private function validateRequest($request)
+    {
+        return Validator::make($request->all(), [
+            "customer_id" => "sometimes|string|exists:customers,customer_id",
+            'beneficiary.document.id' => 'required_if:currency,MXN,ARS',
+            'beneficiary.document.type' => 'required_if:currency,MXN,ARS',
+            'beneficiary.name' => 'required_if:currency,MXN,ARS',
+            'beneficiary.lastname' => 'required_if:currency,MXN,ARS',
+            'beneficiary.type' => 'required_if:currency,MXN,ARS',
+            'address.city' => 'required|string',
+            'address.state' => 'required|string',
+            'address.zipcode' => 'required|string',
+            'address.street' => 'required|string',
+            'address.number' => 'required|string',
+            'address.country' => 'required|string',
+            "currency" => "required|string|in:MXN,BRL,USD",
+            "country" => "required|string|min:3|max:3",
+            "utilityBill" => "required_if:currency,USD,EUR",
+            "bankStatement" => "required_if:currency,USD,EUR",
+            "sourceOfIncome" => "required_if:currency,USD,EUR",
+            "occupation" => "required_if:currency,USD,EUR",
+            "employmentStatus" => "required_if:currency,USD,EUR",
+            "incomeBand" => "required_if:currency,USD,EUR",
+            "birthDate" => "required_if:currency,USD,EUR",
+            "nationality" => "required_if:currency,USD,EUR",
+            "meansOfId" => "required_if:currency,USD,EUR",
+        ]);
+    }
+
+    private function isServiceEnabled($currency)
+    {
+        $configMap = [
+            'BRL' => 'can_issue_bra_virtual_account',
+            'MXN' => 'can_issue_mxn_virtual_account',
+            'USD' => 'can_issue_usd_virtual_account',
+        ];
+
+        return isset($configMap[$currency]) && config_can_peform($configMap[$currency]) === 'enabled';
+    }
+
+    private function createUSDVirtualAccount($request)
+    {
+        $url = env('BRIDGE_BASE_URL')."customers/{$request->customer_id}/virtual_accounts";
+        $apiKey = env('BRIDGE_API_KEY', "sk-test-bff33685a0aa22973f54bef2f8a814de");
+
+        $payload = [
+            "developer_fee_percent" => "0.1",
+            "source" => [
+                "currency" => "usd"
+            ],
+            "destination" => [
+                "currency" => "usdc",
+                "payment_rail" => "polygon",
+                "address" => $request->destination['address'] ?? "0xdeadbeef"
+            ]
+        ];
+
+        $response = Http::withHeaders([
+            "Api-Key" => $apiKey,
+            "Accept" => "application/json"
+        ])->post($url, $payload);
+
+        if ($response->failed()) {
+            throw new \Exception("Failed to create USD virtual account");
+        }
+
+        $data = $response->json();
+        return VirtualAccount::create([
+            "account_id" => $data['id'],
+            "user_id" => active_user(),
+            "currency" => "USD",
+            "request_object" => $request->all(),
+            "customer_id" => $request->customer_id ?? null,
+            "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
+            "account_info" => [
+                "country" => $request->country,
+                "currency" => "USD",
+                "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
+                "bank_name" => $data['source_deposit_instructions']['bank_name'] ?? null,
+                "routing_number" => $data['source_deposit_instructions']['bank_routing_number'] ?? null,
+                "account_name" => auth()->user()->name,
+            ],
+            "extra_data" => $data
+        ]);
+    }
+
+    private function createBRLVirtualAccount($request)
+    {
+        $brlaService = new BrlaDigitalService();
+
+        $payload = [
+            "amount" => floatval(0),
+            "referenceLabel" => Str::random(19)
+        ];
+
+        $user = auth()->user();
+        $customer = null;
+
+        if ($request->has('customer_id')) {
+            $customer = Customer::where('customer_id', $request->customer_id)->first();
+            $payload['subaccountId'] = $customer->brla_subaccount_id;
+        }
+
+        $checkout = $brlaService->generatePayInBRCode($payload);
+
+        if (!isset($checkout["brCode"])) {
+            throw new \Exception("Failed to generate BRL PayIn BR Code");
+        }
+
+        return VirtualAccount::create([
+            "account_id" => $payload['referenceLabel'],
+            "user_id" => active_user(),
+            "currency" => $request->currency,
+            "request_object" => $request->all(),
+            "customer_id" => $request->customer_id ?? null,
+            "account_number" => $checkout["brCode"],
+            "account_info" => [
+                "country" => $request->country,
+                "currency" => $request->currency,
+                "account_number" => $checkout["brCode"],
+                "bank_code" => "PIX",
+                "bank_name" => "Pix Qr Code",
+                "account_name" => $customer ? $customer->first_name . " " . $customer->last_name : $user->name,
+            ]
+        ]);
+    }
+
+    private function createMXNVirtualAccount($request)
+    {
+        $bitsoService = new BitsoServices("/spei/v1/clabes");
+
+        $user = auth()->user();
+        $customer = null;
+
+        if ($request->has('customer_id')) {
+            $customer = Customer::where('customer_id', $request->customer_id)->first();
+        }
+
+        $result = $bitsoService->sendRequest('', 'POST');
+
+        if (!isset($result['clabe'])) {
+            throw new \Exception("Error generating MXN clabe");
+        }
+
+        return VirtualAccount::create([
+            "account_id" => Str::random(19),
+            "user_id" => active_user(),
+            "currency" => $request->currency,
+            "request_object" => $request->all(),
+            "customer_id" => $request->customer_id ?? null,
+            "account_number" => $result['clabe'],
+            "account_info" => [
+                "country" => $request->country,
+                "currency" => $request->currency,
+                "account_number" => $result['clabe'],
+                "bank_code" => "710",
+                "bank_name" => "NVIO",
+                "account_name" => $customer ? $customer->first_name . " " . $customer->last_name : $user->name,
+            ],
+            "extra_data" => $result
+        ]);
+    }
+
+
+    public function handleVirtualAccountCreation($accountData, $isApi = true)
+    {
+        if ($accountData['currency'] == "USD" or $accountData['currency'] == "EUR" or $accountData['currency'] == "GBP") {
+            return $this->handleVirtualAccountCreationForUSD($accountData, $isApi);
+        } else if ($accountData['currency'] == "MXN") {
+            return $this->handleVirtualAccountCreationForMXN($accountData, $isApi);
+        }
+
+        return http_response_code(200);
+    }
+
+    private function handleVirtualAccountCreationForMXN($accountData, $isApi = true)
+    {
+        // var_dump($accountData); exit;
+        $country = Country::where('currency_code', $accountData['currency'])->first();
+        // Extract the required information
+        $extractedData = [
+            'external_id' => $accountData['externalId'],
+            'country' => $country->iso3,
+            'currency' => $accountData['currency'],
+            'account_number' => $accountData['beneficiary']['bank']['account']['number'],
+        ];
+
+        // Extract the first 3 numbers of the account number as bank code
+        $extractedData['bank_code'] = Str::substr($extractedData['account_number'], 0, 3);
+        if ($extractedData['bank_code'] == "646") {
+            $bank_name = "Sistema de Transferencias y Pagos STP";
+        } else {
+            $bank_name = $this->get_bank_name($extractedData['country'], $extractedData['bank_code']);
+        }
+
+        // Log the extracted data
+        Log::info('Virtual Account Creation:', $extractedData);
+        $virtualAccount = VirtualAccount::where('account_id', $extractedData['external_id'])->first();
+
+        if (!$virtualAccount) {
+            Log::channel('virtual_account')->error("Virtual account record not found", $accountData);
+            return http_response_code(200);
+        } else {
+            $accountInfo = [
+                'country' => $extractedData['country'],
+                'currency' => $extractedData['currency'],
+                'account_number' => $extractedData['account_number'],
+                'bank_code' => $extractedData['bank_code'],
+                'bank_name' => $bank_name,
+                'account_name' => $accountData['beneficiary']['fullName'],
+            ];
+            $virtualAccount->account_number = $extractedData['account_number'];
+            $virtualAccount->account_info = $accountInfo;
+            $virtualAccount->extra_data = $accountData;
+            $virtualAccount->save();
+            if ($isApi == false) {
+                return $virtualAccount;
+            }
+            Log::channel('virtual_account')->error("Virtual account creation completed: ", $virtualAccount->toArray());
+        }
+
     }
 
     public function get_account_details($account_id, $isApi = true)
@@ -574,117 +615,6 @@ class VirtualAccountsController extends Controller
 
         Log::channel('virtual_account')->error('PayIn processed successfully', [$user, $transactionData]);
     }
-
-    public function handleVirtualAccountCreation($accountData, $isApi = true)
-    {
-        if ($accountData['currency'] == "USD" or $accountData['currency'] == "EUR" or $accountData['currency'] == "GBP") {
-            return $this->handleVirtualAccountCreationForUSD($accountData, $isApi);
-        } else if ($accountData['currency'] == "MXN") {
-            return $this->handleVirtualAccountCreationForMXN($accountData, $isApi);
-        }
-
-        return http_response_code(200);
-    }
-
-    private function handleVirtualAccountCreationForUSD($accountData, $isApi = true)
-    {
-        // Define the endpoint and build the URL
-        $endpoint = 'profile/virtual-accounts/'; // Set your endpoint here
-        $url = $this->baseUrl . $endpoint . $accountData['external_id'];
-
-        // Make the API request using Laravel's Http facade
-        $response = Http::withHeaders([
-            'Accept' => 'application/json',
-            'Authorization' => 'Bearer ' . $this->api_key,
-        ])->get($url);
-
-        // Check if the API request was successful
-        if ($response->successful()) {
-            // Get the response data
-            $responseData = $response->json();
-
-            // Check if the API's response indicates success
-            if ($responseData['success']) {
-                // Extract the relevant data
-                $extractedData = $responseData['data'];
-
-                // Retrieve the virtual account record
-                $virtualAccount = VirtualAccount::where('account_id', $accountData['_id'])->first();
-                $country = Country::where('currency_code', $accountData['currency'])->first();
-                // Prepare account information
-                $accountInfo = [
-                    'country' => $country->iso3, // Set country as Nigeria
-                    'currency' => $extractedData['currency'],
-                    'account_number' => $extractedData['accountInformation']['accountNumber'],
-                    'bank_code' => null, // Set bank code if available
-                    'bank_name' => $extractedData['accountInformation']['bankName'],
-                    'account_name' => $extractedData['accountInformation']['accountName'],
-                ];
-
-                if ($virtualAccount) {
-                    $virtualAccount->account_number = $extractedData['accountInformation']['accountNumber'];
-                    $virtualAccount->account_info = $accountInfo;
-                    $virtualAccount->extra_data = $accountData; // Optionally store original account data
-                    $virtualAccount->save();
-                } else {
-                    return ['error' => "Virtual account not found"];
-                }
-            } else {
-                return ['error' => "Error encountered while retrieving Virtual account"];
-            }
-        } else {
-            return ['error' => "Try again in 5 minutes or contact support if error persists"];
-        }
-    }
-
-    private function handleVirtualAccountCreationForMXN($accountData, $isApi = true)
-    {
-        // var_dump($accountData); exit;
-        $country = Country::where('currency_code', $accountData['currency'])->first();
-        // Extract the required information
-        $extractedData = [
-            'external_id' => $accountData['externalId'],
-            'country' => $country->iso3,
-            'currency' => $accountData['currency'],
-            'account_number' => $accountData['beneficiary']['bank']['account']['number'],
-        ];
-
-        // Extract the first 3 numbers of the account number as bank code
-        $extractedData['bank_code'] = Str::substr($extractedData['account_number'], 0, 3);
-        if ($extractedData['bank_code'] == "646") {
-            $bank_name = "Sistema de Transferencias y Pagos STP";
-        } else {
-            $bank_name = $this->get_bank_name($extractedData['country'], $extractedData['bank_code']);
-        }
-
-        // Log the extracted data
-        Log::info('Virtual Account Creation:', $extractedData);
-        $virtualAccount = VirtualAccount::where('account_id', $extractedData['external_id'])->first();
-
-        if (!$virtualAccount) {
-            Log::channel('virtual_account')->error("Virtual account record not found", $accountData);
-            return http_response_code(200);
-        } else {
-            $accountInfo = [
-                'country' => $extractedData['country'],
-                'currency' => $extractedData['currency'],
-                'account_number' => $extractedData['account_number'],
-                'bank_code' => $extractedData['bank_code'],
-                'bank_name' => $bank_name,
-                'account_name' => $accountData['beneficiary']['fullName'],
-            ];
-            $virtualAccount->account_number = $extractedData['account_number'];
-            $virtualAccount->account_info = $accountInfo;
-            $virtualAccount->extra_data = $accountData;
-            $virtualAccount->save();
-            if ($isApi == false) {
-                return $virtualAccount;
-            }
-            Log::channel('virtual_account')->error("Virtual account creation completed: ", $virtualAccount->toArray());
-        }
-
-    }
-
 
     /**
      * Summary of get_bank_name

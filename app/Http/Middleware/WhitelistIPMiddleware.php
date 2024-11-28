@@ -5,15 +5,27 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Models\WhitelistedIP;
+use Log;
 use Symfony\Component\HttpFoundation\IpUtils;
 
 class WhitelistIPMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
+        if (
+            $request->is('callback/*') ||
+            $request->is('webhook/*') ||
+            $request->is('redirect/*') ||
+            $request->is('volet/payin/success')
+        ) {
+            Log::info('Request allowed for callback/webhook: ' . $request->url());
+            return $next($request);
+        }
+
+
         // Get client IP considering proxies
-        $remoteAddress = $request->header('X-FORWARDED-FOR') 
-            ? explode(',', $request->header('X-FORWARDED-FOR'))[0] 
+        $remoteAddress = $request->header('X-FORWARDED-FOR')
+            ? explode(',', $request->header('X-FORWARDED-FOR'))[0]
             : $request->server('REMOTE_ADDR');
 
         // Remove port if included (e.g., 102.91.4.193:4054 -> 102.91.4.193)
@@ -23,13 +35,13 @@ class WhitelistIPMiddleware
 
         // Validate if the IP is missing
         if (!$remoteAddress) {
-            \Log::channel('whitelist_ip')->warning('Missing IP address in request headers.');
+            Log::channel('whitelist_ip')->warning('Missing IP address in request headers.');
             return get_error_response(['error' => 'Missing IP address'], 400);
         }
 
         // Validate if the IP is invalid
         if (!filter_var($remoteAddress, FILTER_VALIDATE_IP)) {
-            \Log::channel('whitelist_ip')->warning("Invalid IP address $remoteAddress");
+            Log::channel('whitelist_ip')->warning("Invalid IP address $remoteAddress");
             return get_error_response(['error' => "Invalid IP address $remoteAddress"], 400);
         }
 
@@ -46,14 +58,14 @@ class WhitelistIPMiddleware
 
         // Check if the IP matches any static whitelist
         if (IpUtils::checkIp($remoteAddress, $allowedAddresses)) {
-            \Log::info('Request allowed from static whitelist IP: ' . $remoteAddress);
+            Log::info('Request allowed from static whitelist IP: ' . $remoteAddress);
             return $next($request);
         }
 
         // Check if the IP is in the WhitelistedIP database
         $isWhitelisted = WhitelistedIP::where('ip_address', $remoteAddress)->exists();
         if ($isWhitelisted) {
-            \Log::info('Request allowed from database whitelist IP: ' . $remoteAddress);
+            Log::info('Request allowed from database whitelist IP: ' . $remoteAddress);
             return $next($request);
         }
 
@@ -68,12 +80,12 @@ class WhitelistIPMiddleware
         };
 
         if (($referer && $isAllowedSubdomain($referer)) || ($origin && $isAllowedSubdomain($origin))) {
-            \Log::info('Request allowed from yativo.com subdomain: Referer=' . $referer . ', Origin=' . $origin);
+            Log::info('Request allowed from yativo.com subdomain: Referer=' . $referer . ', Origin=' . $origin);
             return $next($request);
         }
 
         // Log unauthorized access attempt
-        \Log::channel('whitelist_ip')->warning('Blocked IP: ' . $remoteAddress . ' | Referer: ' . $referer . ' | Origin: ' . $origin);
+        Log::channel('whitelist_ip')->warning('Blocked IP: ' . $remoteAddress . ' | Referer: ' . $referer . ' | Origin: ' . $origin);
 
         // Return unauthorized response
         return get_error_response(['error' => 'Unauthorized Request, IP not whitelisted'], 403);

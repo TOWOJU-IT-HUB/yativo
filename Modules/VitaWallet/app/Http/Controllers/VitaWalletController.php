@@ -152,6 +152,8 @@ class VitaWalletController extends Controller
         $this->prices();
         $array = $requestBody;
 
+        // var_dump($requestBody); exit;
+
 
         // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
@@ -186,12 +188,11 @@ class VitaWalletController extends Controller
             if (!is_array($response)) {
                 $result = json_decode($response, true);
             }
-            ;
         }
 
         curl_close($ch);
 
-        // Log::error('Response: ' . json_encode($result));
+        Log::error('Response: ' . json_encode($result));
 
         return $result;
     }
