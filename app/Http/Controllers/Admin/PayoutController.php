@@ -58,7 +58,7 @@ class PayoutController extends Controller
 
             $payout = new PayoutService();
             $checkout = $payout->makePayment($id, $payoutMethod->gateway);
-            return response()->json($checkout);
+            // return response()->json($checkout);
             // if (!is_array($checkout)) {
             //     $checkout = (array)$checkout; 
             // }

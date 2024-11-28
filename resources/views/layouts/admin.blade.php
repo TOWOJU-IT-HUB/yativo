@@ -11,6 +11,7 @@
     <link rel="icon" href="favicon.ico">
     <link href="{{ asset('assets/css/style.css') }}" rel="stylesheet">
     {{-- @vite('resources/css/app.css') --}}
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('css')
     {{-- <script src="//unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script> --}}

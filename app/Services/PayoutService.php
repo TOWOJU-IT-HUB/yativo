@@ -225,7 +225,7 @@ class PayoutService
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
-            var_dump($gateway); exit;
+            // var_dump($gateway); exit;
 
             // $country = Country::where('currency_code', strtoupper($gateway->currency))->first();
             $country = Country::where('currency_code', $gateway->currency)->where('iso3', $gateway->country)->first();
@@ -237,13 +237,14 @@ class PayoutService
 
             $rate = 1;
            
+            Log::info("VitaWallet", ['currency1' => $gateway->currency, "currency2" => $payoutObject->currency]);
             
-            $rate = getExchangeVal($gateway->currency, $payoutObject->currency);
+            $rate = getExchangeVal($gateway->currency, "CLP"); //$payoutObject->currency
             $formArray = (array) $beneficiary->payment_data;
             $requestBody = [
                 "wallet" => env("VITAWALLET_WALLET_ID", "76f1d08e-9981-4d69-bfc5-edc0c1bc0574"),
                 "transactions_type" => "withdrawal",
-                "url_notify" => route("vitawallet.callback.success"),
+                "url_notify" => "https://api.yativo.com/callback/webhook/vitawallet", //route("vitawallet.callback.success"),
                 "country" => $country->iso2,
                 "currency" => "CLP",
                 "amount" => $payoutObject->amount * $rate,
@@ -260,6 +261,10 @@ class PayoutService
 
             if (!isset($formArray['phone'])) {
                 $requestBody["city"] = $country->name;
+            }
+
+            if (!isset($formArray['purpose_comentary'])) {
+                $requestBody["purpose_comentary"] = "For your school fee payment";
             }
 
             $payload = array_merge($formArray, $requestBody);
