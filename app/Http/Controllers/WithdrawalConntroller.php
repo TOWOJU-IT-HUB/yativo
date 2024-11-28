@@ -97,7 +97,7 @@ class WithdrawalConntroller extends Controller
 
     /**
      * Store a new withdrawal request.
-     *
+     * Restoring the codebase to test vitawallet
      * @param Request $request
      * @return \Response
      */
