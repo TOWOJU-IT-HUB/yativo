@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('beneficiaries_payment_methods', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('gateway_id')->constrained('payout_methods')->cascadeOnDelete();
-            $table->foreignId('beneficiary_id')->constrained('beneficiaries')->cascadeOnDelete();
+            $table->foreignId('gateway_id')->constrained('payout_methods');
+            $table->foreignId('beneficiary_id')->constrained('beneficiaries');
             $table->string('nickname')->nullable(false);
             $table->string('currency');
             $table->longText('address')->nullable();

@@ -52,9 +52,9 @@ class VitaWalletController extends Controller
         //     'isDevelopment' => true,
         // ]);
 
-        if(strlen($currencyIso2) == 3) {
+        if (strlen($currencyIso2) == 3) {
             $country = Country::where('currency_code', $currencyIso2)->first();
-            if($country->iso2)
+            if ($country->iso2)
                 $currencyIso2 = $country->iso2;
         }
 
@@ -62,7 +62,7 @@ class VitaWalletController extends Controller
             "amount" => $amount,
             "country_iso_code" => strtoupper($currencyIso2),
             "issue" => "Yativo wallet Topup",
-            "success_redirect_url" => url('callback/webhook/vitawallet', ["depositId" => $quoteId, "txn_type" => "deposit"]),
+            "success_redirect_url" => url('callback/webhook/deposit/vitawallet', ["depositId" => $quoteId]),
         ];
 
         // var_dump($payload); exit;
@@ -107,7 +107,7 @@ class VitaWalletController extends Controller
             $result = json_decode($result, true);
         }
         // var_dump($result['data']['attributes']['public_code']); 
-        if(isset($result['data']['attributes']['public_code'])) {
+        if (isset($result['data']['attributes']['public_code'])) {
             update_deposit_gateway_id($quoteId, $result['data']['attributes']['public_code']);
             return $result['data']['attributes']['url'];
         }
@@ -149,56 +149,70 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
-        $this->prices();
-        $array = $requestBody;
-
-        // var_dump($requestBody); exit;
-
-
-        // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
-        // Prepare headers
-        // $headers = $configuration->prepareHeaders(''); // for get requests
-        $headers = $configuration->prepareHeaders($array);
-        $xheaders = [
-            "X-Date: " . $headers['headers']["X-Date"],
-            "X-Login: " . $headers['headers']["X-Login"],
-            "X-Trans-Key: " . $headers['headers']["X-Trans-Key"],
-            "Content-Type: " . $headers['headers']["Content-Type"],
-            "Authorization: " . $headers['headers']["Authorization"],
+        $erequestBody = [
+            "url_notify" => "https://webhook.site/cf0640bf-ea30-4a50-acbb-b82061426f97",
+            "beneficiary_first_name" => "John",
+            "beneficiary_last_name" => "Doe",
+            "beneficiary_email" => "john.doe@example.com",
+            "beneficiary_address" => "123 Main St",
+            "beneficiary_document_type" => "RUT",
+            "beneficiary_document_number" => "111111",
+            "account_type_bank" => "Cuenta de ahorros",
+            "account_bank" => "1234567890123456",
+            "bank_code" => "10",
+            "purpose" => "ISGDDS",
+            "purpose_comentary" => "For business purposes",
+            "country" => "CL",
+            "currency" => "CLP",
+            "amount" => 50000,  // Assuming $amount is already defined
+            "order" => rand(2314, 849584),  // Assuming $quoteId is a variable already defined
+            "city" => "smaller territories of the uk",
+            "phone" => "9203751431",
+            "beneficiary_type" => "Individual",
+            "company_name" => null,
+            "bank_branch" => null,
+            "swift_bic" => "TCCLGB",
+            "zipcode" => null,
+            "routing_number" => null,
+            "transactions_type" => "withdrawal",
+            "wallet" => "76f1d08e-9981-4d69-bfc5-edc0c1bc0574",  // Assuming $walletUUID is already defined
         ];
 
-        // return response()->json($xheaders);
+        // Prepare headers
+        $headers = $configuration->prepareHeaders($requestBody);
 
-        // Prepare cURL request
-        $ch = curl_init();
-        // curl_setopt($ch, CURLOPT_URL, Configuration::getWalletsUrl());
-        curl_setopt($ch, CURLOPT_URL, Configuration::createTransaction());
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($array));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $xheaders);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_VERBOSE, true);  // Enable verbose output for debugging
+        // Prepare HTTP request
+        $response = Http::withHeaders([
+            "X-Date" => $headers['headers']["X-Date"],
+            "X-Login" => $headers['headers']["X-Login"],
+            "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+            "Content-Type" => $headers['headers']["Content-Type"],
+            "Authorization" => $headers['headers']["Authorization"],
+        ])->post(Configuration::createTransaction(), $requestBody);
 
-        // Execute request
-        $response = curl_exec($ch);
-        if ($response === false) {
-            $result = ["error" => 'cURL Error: ' . curl_error($ch)];
-        } else {
-            if (!is_array($response)) {
-                $result = json_decode($response, true);
-            }
-        }
-
-        curl_close($ch);
+        $result = $response->json();
 
         Log::error('Response: ' . json_encode($result));
 
-        return $result;
+        return ['response' => $result];
     }
 
 
     public function callback(Request $request)
+    {
+        // Log all incoming request information
+        Log::info('Vitawallet Callback Request', [
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'payload' => $request->all(),
+            'headers' => $request->header(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+    }
+
+    public function deposit_callback(Request $request)
     {
         // Log all incoming request information
         Log::info('Vitawallet Callback Request', [

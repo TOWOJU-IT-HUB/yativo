@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Business\VirtualAccount;
 use App\Models\CryptoWallets;
 use App\Models\TransactionRecord;
+use Http;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -69,7 +70,7 @@ class CustomerController extends Controller
      * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function storeV1(Request $request)
     {
         try {
             // Validation rules
@@ -77,14 +78,14 @@ class CustomerController extends Controller
                 'customer_name' => 'required',
                 'customer_email' => 'required|email',
                 'customer_phone' => 'required',
-                'customer_country' => 'required',
-                'customer_address' => 'required|array',
-                'customer_idType' => 'required',
-                'customer_idNumber' => 'required',
-                'customer_idCountry' => 'required',
-                'customer_idExpiration' => 'required',
-                'customer_idFront' => 'required', // Base64 image
-                'customer_idBack' => 'required',  // Base64 image
+                // 'customer_country' => 'required',
+                // 'customer_address' => 'required|array',
+                // 'customer_idType' => 'required',
+                // 'customer_idNumber' => 'required',
+                // 'customer_idCountry' => 'required',
+                // 'customer_idExpiration' => 'required',
+                // 'customer_idFront' => 'required', // Base64 image
+                // 'customer_idBack' => 'required',  // Base64 image
             ];
 
             // Validate request
@@ -104,7 +105,102 @@ class CustomerController extends Controller
                 return get_error_response(['error' => ['customer_email' => 'Customer email already exists.']], 422);
             }
 
-            // Prepare customer data and encrypt sensitive fields
+            // make a request to bridge to get KYC link for customer
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Api-Key' => env('BRIDGE_API_KEY'),
+                'Idempotency-Key' => generate_uuid()
+            ])->post(env('BRIDGE_BASE_URL') . 'v0/kyc_links', [
+                        'full_name' => $request->customer_name,
+                        'email' => $request->customer_email,
+                        'type' => 'individual',
+                        'endorsements' => ['sepa'],
+                        'redirect_uri' => $request->redirect_uri ?? env('WEB_URL'),
+                    ]);
+
+            if ($response->failed()) {
+                return get_error_response(['error' => $response->json()]);
+            }
+
+            $customer = new Customer();
+            $customer->customer_name = $request->customer_name;
+            $customer->customer_email = $request->customer_email;
+            $customer->customer_phone = $request->customer_phone;
+            // if ($customer->customer_phone) {
+            //     $customer->customer_phone = $this->formatPhoneNumber($customer->customer_phone);
+            // }
+
+            if ($customer->save()) {
+                $customer->customer_kyc_status = 'pending';
+                $customer->customer_kyc_link = $response->json()['kyc_link'];
+                $customer->customer_kyc_link_id = $response->json()['id'];
+                $customer->save();
+            }
+
+            return get_success_response($response->json());
+
+        } catch (\Throwable $th) {
+            return get_error_response(['error' => $th->getMessage()]);
+        }
+    }
+
+    public function store(Request $request)
+    {
+        try {
+            $validate = Validator::make($request->all(), [
+                'customer_name' => 'required',
+                'customer_email' => 'required',
+                'customer_phone' => 'required',
+                'customer_country' => 'required',
+                'customer_address' => 'required|array',
+                'customer_idType' => 'required',
+                'customer_idNumber' => 'required',
+                'customer_idCountry' => 'required',
+                'customer_idExpiration' => 'required',
+                'customer_idFront' => 'required',
+                'customer_idBack' => 'required',
+            ]);
+
+            if ($validate->fails()) {
+                return get_error_response(['error' => $validate->errors()->toArray()]);
+            }
+
+            $validate->customer_id = generate_uuid();
+
+            // encrypt data before inserting into DB
+
+            $validatedData = Validator::make($request->all(), [
+                'customer_name' => 'required',
+                'customer_email' => 'required|email',
+                'customer_phone' => 'required',
+                'customer_country' => 'required',
+                'customer_address' => 'sometimes|array',
+                'customer_idType' => 'sometimes',
+                'customer_idNumber' => 'sometimes',
+                'customer_idCountry' => 'sometimes',
+                'customer_idExpiration' => 'sometimes',
+                'customer_idFront' => 'sometimes', // only accept base64 Image
+                'customer_idBack' => 'sometimes', // only accept base64 Image
+            ]);
+
+            if ($validatedData->fails()) {
+                return get_error_response(['error' => $validatedData->errors()]);
+            }
+
+            $where = [
+                'customer_email' => $request->customer_email,
+                'user_id' => auth()->id()
+            ];
+
+            $cust = Customer::where($where)->count();
+
+            if ($cust > 0) {
+                $validator = Validator::make([], []); // Create an empty validator instance
+                $validator->errors()->add('customer_email', 'Customer email already exists.');
+
+                return get_error_response($validator->errors(), 422);
+            }
+
             $customerData = [
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
@@ -115,13 +211,11 @@ class CustomerController extends Controller
                 'customer_idNumber' => $request->customer_idNumber,
                 'customer_idCountry' => $request->customer_idCountry,
                 'customer_idExpiration' => $request->customer_idExpiration,
-                'customer_idFront' => $request->customer_idFront,
-                'customer_idBack' => $request->customer_idBack,
             ];
 
-            $encryptedData = encryptCustomerData(json_encode($customerData));
 
-            // Create and save the customer
+            $json_data = encryptCustomerData(json_encode($customerData));
+
             $customer = new Customer();
             $customer->user_id = auth()->id();
             $customer->customer_id = generate_uuid();
@@ -130,19 +224,20 @@ class CustomerController extends Controller
             $customer->customer_phone = $request->customer_phone;
             $customer->customer_country = $request->customer_country;
             $customer->customer_address = $request->customer_address;
-            $customer->customer_idType = encryptCustomerData($request->customer_idType);
-            $customer->customer_idNumber = encryptCustomerData($request->customer_idNumber);
-            $customer->customer_idCountry = encryptCustomerData($request->customer_idCountry);
-            $customer->customer_idExpiration = encryptCustomerData($request->customer_idExpiration);
-            $customer->customer_idFront = encryptCustomerData($request->customer_idFront);
-            $customer->customer_idBack = encryptCustomerData($request->customer_idBack);
-            $customer->json_data = $encryptedData;
+            $customer->customer_idType = encryptCustomerData($request->customer_idType) ?? null;
+            $customer->customer_idNumber = encryptCustomerData($request->customer_idNumber) ?? null;
+            $customer->customer_idCountry = encryptCustomerData($request->customer_idCountry) ?? null;
+            $customer->customer_idExpiration = encryptCustomerData($request->customer_idExpiration) ?? null;
+            $customer->customer_idFront = encryptCustomerData($request->customer_idFront) ?? null;
+            $customer->customer_idBack = encryptCustomerData($request->customer_idBack) ?? null;
+            // $customer->customer_status = 'active';
+            $customer->json_data = $json_data;
 
             if ($customer->save()) {
                 return get_success_response($customer, 201);
+            } else {
+                return get_error_response(['error' => 'Failed to store customer information']);
             }
-
-            return get_error_response(['error' => 'Failed to store customer information']);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
@@ -173,7 +268,7 @@ class CustomerController extends Controller
             $customer['customer_virtual_cards'] = $this->getCustomerVirtualCards(request());
             $customer['customer_crypto_wallets'] = $this->getCustomerCryptoWallets(request());
 
-            return get_success_response($customer);
+            return get_success_response($customer, 200, "Customer retrieved successfully");
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
@@ -348,6 +443,6 @@ class CustomerController extends Controller
 
     public function enrolCustomerForBridgeApi(Request $request)
     {
-        
+        //
     }
 }

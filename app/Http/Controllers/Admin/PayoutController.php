@@ -57,7 +57,12 @@ class PayoutController extends Controller
             $payoutMethod = payoutMethods::where('id', $is_beneficiary->gateway_id)->first();
 
             $payout = new PayoutService();
-            $checkout = $payout->makePayment($id, $payoutMethod->gateway);
+            $checkout = $payout->makePayment($id, $payoutMethod);
+
+            if(isset($checkout['error'])) {
+                return redirect()->back()->with('error', $checkout['error']);
+            }
+            return back()->with('success', 'Payout approved successfully');
             // return response()->json($checkout);
             // if (!is_array($checkout)) {
             //     $checkout = (array)$checkout; 

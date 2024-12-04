@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('waa_s_wallets', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained();
             $table->bigInteger('balance')->comment('Balance in cents')->default(0);
             $table->string('currency')->default('USD');
             $table->json('metadata')->nullable();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Business;
 
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\FincraVirtualAccountController;
 use App\Models\BrlVirtualAccount;
@@ -64,6 +65,7 @@ class VirtualAccountsController extends Controller
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
+    
     public function customerVirtualAccounts($customerId)
     {
         try {
@@ -121,9 +123,9 @@ class VirtualAccountsController extends Controller
             }
 
             // Check if the service for the requested currency is enabled
-            if (!$this->isServiceEnabled($request->currency)) {
-                return get_error_response(['error' => 'Business not approved for this service']);
-            }
+            // if (!$this->isServiceEnabled($request->currency)) {
+            //     return get_error_response(['error' => 'Business not approved for this service']);
+            // }
 
             $record = null;
 
@@ -144,7 +146,11 @@ class VirtualAccountsController extends Controller
                     return get_error_response(['error' => 'Unsupported currency']);
             }
 
-            return get_success_response(['record' => $record], 201, "{$request->currency} Virtual account generated successfully");
+            if (isset($record['error'])) {
+                return get_error_response(['error' => $record['error']]);
+            }
+
+            return get_success_response($record, 201, "{$request->currency} Virtual account generated successfully");
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
@@ -153,29 +159,20 @@ class VirtualAccountsController extends Controller
     private function validateRequest($request)
     {
         return Validator::make($request->all(), [
-            "customer_id" => "sometimes|string|exists:customers,customer_id",
+            "customer_id" => "required_if:currency,USD|string|exists:customers,customer_id",
             'beneficiary.document.id' => 'required_if:currency,MXN,ARS',
             'beneficiary.document.type' => 'required_if:currency,MXN,ARS',
             'beneficiary.name' => 'required_if:currency,MXN,ARS',
             'beneficiary.lastname' => 'required_if:currency,MXN,ARS',
             'beneficiary.type' => 'required_if:currency,MXN,ARS',
-            'address.city' => 'required|string',
-            'address.state' => 'required|string',
-            'address.zipcode' => 'required|string',
-            'address.street' => 'required|string',
-            'address.number' => 'required|string',
-            'address.country' => 'required|string',
+            'address.city' => 'required_if:currency,MXN,ARS|string',
+            'address.state' => 'required_if:currency,MXN,ARS|string',
+            'address.zipcode' => 'required_if:currency,MXN,ARS|string',
+            'address.street' => 'required_if:currency,MXN,ARS|string',
+            'address.number' => 'required_if:currency,MXN,ARS|string',
+            'address.country' => 'required_if:currency,MXN,ARS|string',
             "currency" => "required|string|in:MXN,BRL,USD",
-            "country" => "required|string|min:3|max:3",
-            "utilityBill" => "required_if:currency,USD,EUR",
-            "bankStatement" => "required_if:currency,USD,EUR",
-            "sourceOfIncome" => "required_if:currency,USD,EUR",
-            "occupation" => "required_if:currency,USD,EUR",
-            "employmentStatus" => "required_if:currency,USD,EUR",
-            "incomeBand" => "required_if:currency,USD,EUR",
-            "birthDate" => "required_if:currency,USD,EUR",
-            "nationality" => "required_if:currency,USD,EUR",
-            "meansOfId" => "required_if:currency,USD,EUR",
+            "country" => "required_if:currency,MXN,ARS|string|min:3|max:3",
         ]);
     }
 
@@ -192,48 +189,8 @@ class VirtualAccountsController extends Controller
 
     private function createUSDVirtualAccount($request)
     {
-        $url = env('BRIDGE_BASE_URL')."customers/{$request->customer_id}/virtual_accounts";
-        $apiKey = env('BRIDGE_API_KEY', "sk-test-bff33685a0aa22973f54bef2f8a814de");
-
-        $payload = [
-            "developer_fee_percent" => "0.1",
-            "source" => [
-                "currency" => "usd"
-            ],
-            "destination" => [
-                "currency" => "usdc",
-                "payment_rail" => "polygon",
-                "address" => $request->destination['address'] ?? "0xdeadbeef"
-            ]
-        ];
-
-        $response = Http::withHeaders([
-            "Api-Key" => $apiKey,
-            "Accept" => "application/json"
-        ])->post($url, $payload);
-
-        if ($response->failed()) {
-            throw new \Exception("Failed to create USD virtual account");
-        }
-
-        $data = $response->json();
-        return VirtualAccount::create([
-            "account_id" => $data['id'],
-            "user_id" => active_user(),
-            "currency" => "USD",
-            "request_object" => $request->all(),
-            "customer_id" => $request->customer_id ?? null,
-            "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
-            "account_info" => [
-                "country" => $request->country,
-                "currency" => "USD",
-                "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
-                "bank_name" => $data['source_deposit_instructions']['bank_name'] ?? null,
-                "routing_number" => $data['source_deposit_instructions']['bank_routing_number'] ?? null,
-                "account_name" => auth()->user()->name,
-            ],
-            "extra_data" => $data
-        ]);
+        $bridge = new BridgeController();
+        return $bridge->createVirtualAccount($request);
     }
 
     private function createBRLVirtualAccount($request)
@@ -256,7 +213,7 @@ class VirtualAccountsController extends Controller
         $checkout = $brlaService->generatePayInBRCode($payload);
 
         if (!isset($checkout["brCode"])) {
-            throw new \Exception("Failed to generate BRL PayIn BR Code");
+            return ["error" => "Failed to generate BRL PayIn BR Code"];
         }
 
         return VirtualAccount::create([
@@ -291,7 +248,7 @@ class VirtualAccountsController extends Controller
         $result = $bitsoService->sendRequest('', 'POST');
 
         if (!isset($result['clabe'])) {
-            throw new \Exception("Error generating MXN clabe");
+            return ["error" => "Error generating MXN clabe"];
         }
 
         return VirtualAccount::create([

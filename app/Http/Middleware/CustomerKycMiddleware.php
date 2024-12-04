@@ -20,7 +20,8 @@ class CustomerKycMiddleware
             $customerId = $request->customer_id;
             // Validate customer existence and KYC status
             $customer = Customer::where('customer_id', $customerId)
-                ->where('customer_status', 'approved')
+                ->where('customer_status', 'active')
+                ->where('customer_kyc_status', 'approved')
                 ->first();
 
             if (!$customer) {

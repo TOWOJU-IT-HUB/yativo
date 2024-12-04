@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\TransFiController;
+use App\Models\Bridge;
 use App\Models\Country;
 use App\Models\Gateways;
 use App\Models\payoutMethods;
@@ -43,7 +45,7 @@ class PayoutService
      * then make request to gateway and 
      * return payment url or charge status for wallet
      */
-    public function makePayment($quoteId, $gateway, $txn_type = 'withdrawal')
+    public function makePayment($quoteId, $c_gateway, $txn_type = 'withdrawal')
     {
         try {
             if ($txn_type == 'withdrawal') {
@@ -55,7 +57,7 @@ class PayoutService
             }
 
             // var_dump($withdrawal); exit;
-
+            $gateway = $c_gateway->gateway;
             if ($gateway) {
                 $result = self::$gateway($quoteId, $withdrawal->currency, $withdrawal);
 
@@ -65,20 +67,20 @@ class PayoutService
                 // var_dump($result); exit;
 
                 TransactionRecord::create([
-                    "user_id" => auth()->id(),
-                    "transaction_beneficiary_id" => auth()->id(),
+                    "user_id" => $withdrawal->user_id,
+                    "transaction_beneficiary_id" => $withdrawal->user_id,
                     "transaction_id" => $quoteId,
                     "transaction_amount" => $withdrawal->amount,
                     "gateway_id" => $gateway,
                     "transaction_status" => "In Progress",
                     "transaction_type" => $txn_type ?? 'payout',
                     "transaction_memo" => "payout",
-                    "transaction_currency" => $withdrawal->currency,
-                    "base_currency" => $withdrawal->currency,
-                    "secondary_currency" => $gateway->currency,
+                    "transaction_currency" => $withdrawal->currency ?? "N/A",
+                    "base_currency" => $withdrawal->currency ?? "N/A",
+                    "secondary_currency" => $c_gateway->currency ?? "N/A",
                     "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
-                    "transaction_payin_details" => $withdrawal->beneficiary->payment_object,
-                    "transaction_payout_details" => $withdrawal,
+                    "transaction_payin_details" => null,
+                    "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => $result],
                 ]);
 
                 Track::create([
@@ -87,12 +89,16 @@ class PayoutService
                     "transaction_type" => $txn_type ?? 'payout',
                 ]);
 
+                $withdrawal->update([
+                    "status" => "In Progress"
+                ]);
                 return $result;
+                // return back()->with('success', "Transaction initiated successfully");
             }
 
             return ['error' => 'Unable to process transaction at the moment'];
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()];
+            return ['error' => $th->getMessage()];
         }
     }
 
@@ -203,10 +209,17 @@ class PayoutService
         }
     }
 
-    public function transFi($deposit_id, $amount, $currency, $payoutObject)
+    public function transfi($deposit_id, $amount, $currency, $payoutObject)
     {
         $transFi = new TransFiController();
         $checkout = $transFi->payout($deposit_id, $amount, $currency, $payoutObject);
+        return $checkout;
+    }
+
+    public function bridge($deposit_id)
+    {
+        $bridge = new BridgeController();
+        $checkout = $bridge->makePayout($deposit_id);
         return $checkout;
     }
     
@@ -249,11 +262,16 @@ class PayoutService
                 "currency" => "CLP",
                 "amount" => $payoutObject->amount * $rate,
                 "order" => $quoteId,
+                "type" => "business_transaction",
             ];
 
             if (isset($formArray['email'])) {
                 $requestBody['beneficiary_email'] = $formArray['email'];
             }
+
+            // if (isset($formArray['beneficiary_type'])) {
+            //     $formArray['beneficiary_type'] = strtolower($formArray['beneficiary_type']);
+            // }
 
             if (!isset($formArray['phone'])) {
                 $requestBody['phone'] = auth()->user()?->phone ?? "9203751431";
@@ -269,7 +287,10 @@ class PayoutService
 
             $payload = array_merge($formArray, $requestBody);
 
+            // echo json_encode($payload, JSON_PRETTY_PRINT); exit;
+
             $vitawallet = new VitaWalletController();
+            $vitawallet->prices();
             $process = $vitawallet->create_withdrawal($payload);
 
             if (!is_array($process)) {
@@ -352,6 +373,42 @@ class PayoutService
             Log::error('VitaWallet payout error: ' . $th->getMessage());
             return ['error' => $th->getMessage()];
         }
+    }
+
+    public function completePayout($transactionId, $status)
+    {
+        // Prepare the condition to find the TransactionRecord
+        $where = [
+            'transaction_memo' => 'payout',
+            'transaction_id' => $transactionId,
+        ];
+
+        // Retrieve the transaction record
+        $transactionRecord = TransactionRecord::where($where)->first();
+
+        if (!$transactionRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction record not found.',
+            ], 404);
+        }
+
+        // Update the transaction record status
+        $transactionRecord->transacction_status = $status;
+        $transactionRecord->save();
+
+        // Check if the Withdraw model needs updating
+        $withdraw = Withdraw::whereId($transactionId)->first();
+
+        if ($withdraw) {
+            $withdraw->status = $status;
+            $withdraw->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction status updated successfully.',
+        ]);
     }
 }
 

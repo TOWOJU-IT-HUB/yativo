@@ -2,6 +2,7 @@
 
 namespace Modules\Beneficiary\app\Http\Controllers;
 
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Controller;
 use App\Models\Gateways;
 use App\Models\payoutMethods;
@@ -43,7 +44,7 @@ class BeneficiaryPaymentMethodController extends Controller
             ]);
 
             if ($validator->fails()) {
-                return get_error_response((array)$validator->errors());
+                return get_error_response((array) $validator->errors());
             }
 
             $user = auth()->user();
@@ -54,9 +55,51 @@ class BeneficiaryPaymentMethodController extends Controller
 
             if ($gateway->gateway == 'bitso' && strtoupper($gateway->currency) == "USD") {
                 // Code for bitso USD gateway handling
+            } else if ($gateway->gateway == 'bridge') {
+                // Code for bridge gateway handling
+                $validator = Validator::make($request->all(), [
+                    'customer_id' => 'required|exists:customers,customer_id',
+                    'payment_data.account_number' => 'required|string',
+                    'payment_data.account_name' => 'required|string|max:100',
+                    'payment_data.routing_number' => 'required|string',
+                    'payment_data.account_type' => 'required|in:us,iban',
+                    'payment_data.address.line1' => 'required|string|max:255',
+                    'payment_data.address.line2' => 'nullable|string|max:255',
+                    'payment_data.address.city' => 'required|string|max:100',
+                    'payment_data.address.state' => 'required|string|max:100',
+                    'payment_data.address.postal_code' => 'required|string|max:20',
+                    'payment_data.address.country' => 'required|string|size:2',
+                    // US-specific validations
+                    'payment_data.bank_account_number' => 'required_if:account_type,us|string|max:20',
+                    'payment_data.bank_routing_number' => 'required_if:account_type,us|string|max:9',
+                    'payment_data.checking_or_savings' => 'required_if:account_type,us|in:checking,savings',
+                    // IBAN-specific validations
+                    'payment_data.iban_account_number' => 'required_if:account_type,iban|string|max:34',
+                    'payment_data.iban_bic' => 'required_if:account_type,iban|string|max:11',
+                    'payment_data.iban_country' => 'required_if:account_type,iban|string|size:2',
+                    'payment_data.account_owner_type' => 'nullable|in:individual,business',
+                    'payment_data.first_name' => 'required_if:account_owner_type,individual|string|max:100',
+                    'payment_data.last_name' => 'required_if:account_owner_type,individual|string|max:100',
+                    'payment_data.business_name' => 'required_if:account_owner_type,business|string|max:255',
+                ]);
+                if ($validator->fails()) {
+                    return get_error_response((array) $validator->errors()->toArray());
+                }
+                $bridge = new BridgeController();
+                $result = $bridge->externalAccounts($validator->validated(), $gateway);
+
+                if(isset($result['error'])) {
+                    return get_error_response($result['error']);
+                }
+
+                if ($result) {
+                    return get_success_response(['message' => "Payment data processed successfully", "data" => $result]);
+                }
+
             } else if ($gateway->gateway == 'local_payment') {
                 $result = $this->localPayments($request);
                 return get_success_response($result);
+
             } elseif ($gateway->gateway == 'monnet') {
                 if (!in_array($currency, ['PEN', 'MXN'])) {
                     return get_error_response(['error' => 'Invalid or unsupported Currency type']);
@@ -117,7 +160,6 @@ class BeneficiaryPaymentMethodController extends Controller
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
-
 
     public function localPayments(Request $request)
     {

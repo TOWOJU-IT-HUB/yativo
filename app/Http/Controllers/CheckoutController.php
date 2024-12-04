@@ -15,22 +15,41 @@ class CheckoutController extends Controller
         \Log::info('Incoming ID for checkout:', ['id' => $id]);
 
         try {
-            // Attempt to decrypt the ID and retrieve the checkout record
-            $decryptedId = Crypt::decrypt($id);
-            $checkout = CheckoutModel::findOrFail($decryptedId);
-            if($checkout->checkout_status == 'used'){
-                abort(403, 'This checkout has already been used.');
+            $checkout = null;
+            
+            // First try to decrypt the ID
+            try {
+                $decryptedId = Crypt::decrypt($id);
+                $checkout = CheckoutModel::findOrFail($decryptedId);
+            } catch (DecryptException $e) {
+                // If decryption fails, try direct matches
+                $checkout = CheckoutModel::where('deposit_id', $id)
+                    ->orWhere('checkouturl', $id)
+                    ->first();
             }
-            $checkout->checkout_status = 'used';
-            $checkout->save();
-        } catch (DecryptException | ModelNotFoundException $e) {
-            // If decryption or finding fails, attempt direct match with checkouturl or abort
-            $checkout = CheckoutModel::where('checkouturl', $id)->first();
+
             if (!$checkout) {
                 abort(404, 'Invalid checkout ID provided or checkout record not found.');
             }
-        }
 
-        return view('checkout.index', compact('checkout'));
+            // Check expiration
+            if ($checkout->created_at->diffInHours(now()) >= 24) {
+                $checkout->update(['checkout_status' => 'expired']);
+                abort(403, 'This checkout link has expired.');
+            }
+
+            // Check if already used
+            if ($checkout->checkout_status === 'used') {
+                abort(403, 'This checkout has already been used.');
+            }
+
+            // Mark as used
+            $checkout->update(['checkout_status' => 'used']);
+
+            return view('checkout.index', compact('checkout'));
+
+        } catch (ModelNotFoundException $e) {
+            abort(404, 'Invalid checkout ID provided or checkout record not found.');
+        }
     }
 }

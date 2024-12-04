@@ -47,18 +47,18 @@ class BeneficiaryFoemsController extends Controller
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
             
+            $record = BeneficiaryFoems::updateOrCreate(
+                ['gateway_id' => $request->gateway_id],
+                $validate->validated()
+            );
 
-            $record = BeneficiaryFoems::firstOrUpdate([
-                'gateway_id' => $request->gateway_id,
-            ],$validate->validated());
             if(!$record) {
                 return get_error_response(['error' => 'Unable to create record']);
             }
             return get_success_response($record);
         } catch (\Throwable $th) {
             return get_error_response(['error'=> $th->getMessage()]);
-        }
-    }
+        }    }
 }
 
 

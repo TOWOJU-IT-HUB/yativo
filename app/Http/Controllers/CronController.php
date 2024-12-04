@@ -31,6 +31,27 @@ class CronController extends Controller
     {
         $now = now();
 
+        // $failedPayoutIds = Withdraw::query()
+        //     ->with('payoutGateway:id,estimated_delivery') // Only load necessary fields
+        //     ->where('status', 'pending')
+        //     ->whereHas('payoutGateway', function ($query) {
+        //         $query->whereNotNull('estimated_delivery');
+        //     })
+        //     ->get()
+        //     ->filter(function ($payout) use ($now) {
+        //         $estimatedDeliveryHours = $payout->payoutGateway->estimated_delivery;
+        //         $deliveryThreshold = $payout->created_at->addHours(floor($estimatedDeliveryHours))
+        //             ->addMinutes(($estimatedDeliveryHours - floor($estimatedDeliveryHours)) * 60);
+
+        //         return $now->greaterThan($deliveryThreshold);
+        //     })
+        //     ->pluck('id'); // Collect IDs of failed payouts
+
+        // // Bulk update failed payouts
+        // if ($failedPayoutIds->isNotEmpty()) {
+        //     Withdraw::whereIn('id', $failedPayoutIds)->update(['status' => 'failed']);
+        // }
+
         $failedPayoutIds = Withdraw::query()
             ->with('payoutGateway:id,estimated_delivery') // Only load necessary fields
             ->where('status', 'pending')
@@ -45,13 +66,22 @@ class CronController extends Controller
 
                 return $now->greaterThan($deliveryThreshold);
             })
-            ->pluck('id'); // Collect IDs of failed payouts
+            ->pluck('id');
 
-        // Bulk update failed payouts
+        $cancelledPayoutIds = Withdraw::query()
+            ->doesntHave('payoutGateway')
+            ->where('status', 'pending')
+            ->pluck('id');
+
         if ($failedPayoutIds->isNotEmpty()) {
             Withdraw::whereIn('id', $failedPayoutIds)->update(['status' => 'failed']);
         }
+
+        if ($cancelledPayoutIds->isNotEmpty()) {
+            Withdraw::whereIn('id', $cancelledPayoutIds)->update(['status' => 'cancelled']);
+        }
     }
+
     private function deposit()
     {
 
@@ -135,7 +165,7 @@ class CronController extends Controller
                         $deposit_services = new DepositService();
                         $deposit_services->process_deposit($txn->transaction_id);
                     }
-                }            
+                }
             }
         }
     }
@@ -165,6 +195,33 @@ class CronController extends Controller
         }
     }
 
+    // get status of Bridge transaction
+    private function getBridgeStatus(): void
+    {
+        $ids = $this->getGatewayPayinMethods(method: 'bridge');
+        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
+
+        foreach ($deposits as $deposit) {
+            $order = TransactionRecord::where("transaction_id", $deposit->deposit_id)->first();
+            $verify = BinancePayController::verifyOrder($deposit->gateway_deposit_id);
+
+            if (isset($verify['data']) && $verify['data']['status'] === "PAID") {
+                $where = [
+                    "transaction_memo" => "payin",
+                    "transaction_id" => $deposit->deposit_id
+                ];
+                $order = TransactionRecord::where($where)->first();
+                if ($order) {
+                    $deposit_services = new DepositService();
+                    $deposit_services->process_deposit($order->transaction_id);
+                } else {
+                    // update the status withoutout completing the deposit
+                }
+                $this->updateTracking($deposit->id, $verify['data']['status'], $verify);
+            }
+        }
+    }
+
     private function getGatewayPayinMethods(string $method)
     {
         return PayinMethods::where('gateway', $method)
@@ -176,8 +233,10 @@ class CronController extends Controller
     {
         Track::create([
             "quote_id" => $quoteId,
+            "transaction_type" => "deposit",
             "tracking_status" => $trakingStatus,
-            "raw_data" => (array) $response
+            "raw_data" => (array) $response,
+            "tracking_updated_by" => "cron"
         ]);
     }
 }

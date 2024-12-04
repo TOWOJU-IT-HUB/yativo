@@ -2,6 +2,7 @@
 
 namespace Modules\Beneficiary\app\Models;
 
+use App\Casts\PaymentDataAddressCast;
 use App\Models\payoutMethods;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -25,29 +26,50 @@ class BeneficiaryPaymentMethod extends Model
         "beneficiary_id",
         "currency",
         "payment_data",
+        "bridge_id",
+        "bridge_customer_id",
+        "bridge_response"
     ];
 
     protected $casts = [
-        'payment_data' => 'object',
-        'address' => 'object'
+        'payment_data' => 'array',
+        'bridge_response' => 'array',
+        'payment_data.address' => PaymentDataAddressCast::class,
     ];
+    
 
 
     protected $hidden = [
-        'deleted_at', 
-        // 'created_at',
+        'deleted_at',
+        // 'bridge_id',
+        // 'bridge_response',
+        // 'bridge_customer_id',
         'updated_at',
     ];
 
-    public function beneficiary() {
+
+    // Accessor for payment_data's address
+    public function getPaymentDataAttribute($value)
+    {
+        $data = json_decode($value, true); // Ensure it's an array
+        if (isset($data['address']) && is_array($data['address'])) {
+            $data['address'] = (array) $data['address']; // Cast address explicitly if necessary
+        }
+        return $data;
+    }
+
+    public function beneficiary()
+    {
         return $this->belongsTo(Beneficiary::class);
     }
 
-    public function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function gateway() {
+    public function gateway()
+    {
         return $this->belongsTo(payoutMethods::class);
     }
 
@@ -55,7 +77,7 @@ class BeneficiaryPaymentMethod extends Model
     {
         return self::find($id);
     }
-    
+
     protected static function newFactory(): BeneficiaryPaymentMethodFactory
     {
         //return BeneficiaryPaymentMethodFactory::new();

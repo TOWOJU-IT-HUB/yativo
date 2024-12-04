@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BitsoController;
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CronController;
@@ -20,6 +21,7 @@ use App\Models\ExchangeRate;
 use App\Models\localPaymentTransactions;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
+use App\Models\Track;
 use App\Models\User;
 use App\Models\WebhookLog;
 use App\Services\Configuration;
@@ -59,105 +61,30 @@ use Illuminate\Support\Str;
 |
 */
 
+
 Route::get('/', function () {
-    $model = new User();
-    return response()->json($model->where('email', 'towojuads@gmail.com')->first());
-    // $tableName = $model->getTable();
-
-    // Get all columns in the table
-    // $columns = Schema::getColumnListing($tableName);
-
+    $bridge = new BridgeController();
+    $bridgeCustomerId = "7d5b9315-796e-4d4d-b771-1ee5997e4abf";
+    $createWallet = $bridge->getCustomerBridgeWallet();
+    dd($createWallet);
+    // return response()->json(['message' => CheckoutModel::all()]);
+    // $table = 'tracks'; // Replace with your table name
+    // $columns = DB::getSchemaBuilder()->getColumnListing($table);
     // dd($columns);
-    // return redirect()->to('https://yativo.com');
-
-    // $response = Http::withHeaders([
-    //     'Api-Key' => 'sk-test-bff33685a0aa22973f54bef2f8a814de',
-    //     'accept' => 'application/json'
-    // ])->get('https://api.sandbox.bridge.xyz/v0/customers');
-
-    // if ($response->successful()) {
-    //     return $response->json();
-    // } else {
-    //     return response()->json(['error' => $response->body()], $response->status());
-    // }
-
-
-    // $customerId = request()->customer_id;
-    // $curl = curl_init();
-
-    // curl_setopt_array($curl, [
-    //     CURLOPT_URL => "https://api.sandbox.bridge.xyz/v0/customers/$customerId/virtual_accounts",
-    //     CURLOPT_RETURNTRANSFER => true,
-    //     CURLOPT_ENCODING => "",
-    //     CURLOPT_MAXREDIRS => 10,
-    //     CURLOPT_TIMEOUT => 30,
-    //     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    //     CURLOPT_CUSTOMREQUEST => "POST",
-    //     CURLOPT_POSTFIELDS => json_encode([
-    //         'developer_fee_percent' => '0.1',
-    //         'source' => [
-    //             'currency' => 'usd'
-    //         ],
-    //         'destination' => [
-    //             'currency' => 'usdc',
-    //             'payment_rail' => 'polygon',
-    //             'address' => '0xdeadbeef'
-    //         ]
-    //     ]),
-    //     CURLOPT_HTTPHEADER => [
-    //         "Api-Key: sk-test-bff33685a0aa22973f54bef2f8a814de",
-    //         "accept: application/json",
-    //         "content-type: application/json",
-    //         "Idempotency-Key: ".generate_uuid(),
-    //     ],
-    // ]);
-
-    // $response = curl_exec($curl);
-    // $err = curl_error($curl);
-
-    // curl_close($curl);
-
-    // if ($err) {
-    //     echo "cURL Error #:" . $err;
-    // } else {
-    //     echo $response;
-    // }
-
-    // return response()->json($data);
-
 
     // $response = Http::withHeaders([
     //     'Content-Type' => 'application/json',
     //     'Api-Key' => env('BRIDGE_API_KEY'),
-    //     'Idempotency-Key' => generate_uuid(),
-    // ])->post(env('BRIDGE_BASE_URL') . 'v0/kyc_links', [
-    //             'full_name' => 'Emmanuel Adedayo Towoju',
-    //             'email' => 'towojudas@gmail.com',
-    //             'type' => 'individual', // or 'business'
-    //             'endorsements' => ['sepa'],
-    //             'redirect_uri' => 'https://api.yativo.com/kyc-callback',
-    //         ]);
+    //     // 'Idempotency-Key' => generate_uuid()
+    // ])->get(env('BRIDGE_BASE_URL') . 'v0/kyc_links/5a825002-d42b-494a-b1de-b954e42d630b');
 
-    // if ($response->successful()) {
-    //     // Handle the response
-    //     $data = $response->json();
-    //     Log::info('Response:', $data);
-    //     return response()->json($data);
-    // } else {
-    //     // Handle the error
-    //     $error = $response->json();
-    //     Log::error('Error:', $error);
+    // if ($response->failed()) {
+    //     return get_error_response(['error' => $response->json()]);
     // }
 
+    // return get_success_response($response->json());
+
 });
-
-
-// Route::prefix('db')->group(function () {
-//     Route::post('backup', [ManageDBController::class, 'backup'])->name('db.backup');
-//     Route::post('restore', [ManageDBController::class, 'restore'])->name('db.restore');
-//     Route::post('drop-tables', [ManageDBController::class, 'dropAllTables'])->name('db.dropTables');
-// });
-
 
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
@@ -204,6 +131,7 @@ Route::group([], function () {
     Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposit_webhook'])->name('bitso.cop.deposit');
 
     Route::any('callback/webhook/vitawallet', [VitaWalletController::class, 'callback'])->name('vitawallet.callback.success');
+    Route::any('callback/webhook/deposit/vitawallet/{quoteId}', [VitaWalletController::class, 'deposit_callback'])->name('vitawallet.callback.success');
 
     Route::any('callback/webhook/floid', [FlowController::class, 'callback'])->name('floid.callback.success');
     Route::any('callback/webhook/floid-redirect', [FlowController::class, 'getPaymentStatus'])->name('floid.callback.redirect');

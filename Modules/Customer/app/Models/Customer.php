@@ -2,6 +2,7 @@
 
 namespace Modules\Customer\app\Models;
 
+use Crypt;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -43,21 +44,25 @@ class Customer extends Model
 
 
     protected $hidden = [
-        // 'id',
-        // 'user_id',
-        // 'customer_idType',
-        // 'customer_idNumber',
-        // 'customer_idCountry',
-        // 'customer_idExpiration',
-        // 'customer_idFront',
-        // 'customer_idBack',
-        // 'json_data',
-        // 'card_user_id',
-        // "updated_at",
-        // "deleted_at",
-        // "vc_customer_id",
-        // "customer_kyc_status",
-        // "customer_type",
+        'id',
+        'user_id',
+        'customer_idType',
+        'customer_idNumber',
+        'customer_idCountry',
+        'customer_idExpiration',
+        'customer_idFront',
+        'customer_idBack',
+        'json_data',
+        'card_user_id',
+        "updated_at",
+        "deleted_at",
+        "vc_customer_id",
+        "customer_kyc_status",
+        "customer_type",
+        "admin_kyc_reject_reason",
+        "customer_kyc_link_id",
+        "customer_kyc_link",
+        "bridge_customer_id"
     ];
 
     protected $casts = [
@@ -66,6 +71,34 @@ class Customer extends Model
         "can_create_vc" => "boolean",
         // "can_create_va" => "boolean",
     ];
+
+
+    protected $encryptable = [
+        'customer_address',
+        'customer_idType',
+        'customer_idNumber',
+        'customer_idCountry',
+        'customer_idExpiration',
+        'customer_idFront',
+        'customer_idBack'
+    ];
+
+    public function setAttribute($key, $value)
+    {
+        if (in_array($key, $this->encryptable) && !empty($value)) {
+            $value = Crypt::encryptString($value);
+        }
+        return parent::setAttribute($key, $value);
+    }
+
+    public function getAttribute($key)
+    {
+        $value = parent::getAttribute($key);
+        if (in_array($key, $this->encryptable) && !empty($value)) {
+            return Crypt::decryptString($value);
+        }
+        return $value;
+    }
 
     protected $keyType = 'string';
 
@@ -78,7 +111,10 @@ class Customer extends Model
 
         static::creating(function ($model) {
             if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = (string) \Str::uuid();
+                $model->{$model->getKeyName()} = generate_uuid();
+            }
+            if (empty($model->customer_id)) {
+                $model->customer_id = generate_uuid();
             }
         });
     }
@@ -87,9 +123,21 @@ class Customer extends Model
     {
         return $this->hasMany(VirtualCards::class, 'customer_id', 'customer_id');
     }
-    
+
     protected static function newFactory(): CustomerFactory
     {
         //return CustomerFactory::new();
+    }
+
+    public function newQuery()
+    {
+        if (request()->has('customer_status')) {
+
+            $query = parent::newQuery()->where('customer_status', request()->get('customer_status'));
+        } else {
+            $query = parent::newQuery()->where('customer_status', 'active');
+        }
+
+        return $query;
     }
 }

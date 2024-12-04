@@ -19,7 +19,7 @@ class EventsController extends Controller
                 ->when(request('method'), function($query) {
                     return $query->where('method', request('method'));
                 })
-                ->latest()
+                ->latest()->limit(300)
                 ->paginate(per_page());
             return paginate_yativo($activity);
         } catch (\Throwable $th) {

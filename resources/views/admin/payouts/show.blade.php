@@ -144,7 +144,7 @@
                                                     class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input"></textarea>
                                             </div>
                                             <div class="flex justify-between gap-3">
-                                                <button @click="modalOpen = false"
+                                                <button @click="modalOpen = false" type="button"
                                                     class="block w-full rounded border border-stroke bg-gray p-3 text-center font-medium text-black transition hover:border-meta-1 hover:bg-meta-1 hover:text-white dark:border-strokedark dark:bg-meta-4 dark:text-white dark:hover:border-meta-1 dark:hover:bg-meta-1">
                                                     Cancel
                                                 </button>
@@ -209,7 +209,7 @@
                                                     class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input"></textarea>
                                             </div>
                                             <div class="flex justify-between gap-3">
-                                                <button @click="modalOpen = false"
+                                                <button @click="modalOpen = false" type="button"
                                                     class="block w-full rounded border border-stroke bg-gray p-3 text-center font-medium text-black transition hover:border-meta-1 hover:bg-meta-1 hover:text-white dark:border-strokedark dark:bg-meta-4 dark:text-white dark:hover:border-meta-1 dark:hover:bg-meta-1">
                                                     Cancel
                                                 </button>
