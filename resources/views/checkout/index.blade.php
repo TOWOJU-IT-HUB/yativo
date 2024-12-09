@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Payment Checkout</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script> <!-- QRCode.js -->
+    <link href="//cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="//cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script> <!-- QRCode.js -->
     <style>
         /* Loader Styles */
         .loader {
@@ -30,6 +30,12 @@
             }
         }
     </style>
+    <script type="module">
+        import {
+            OnrampWebSDK
+        } from '//cdn.skypack.dev/@onramp.money/onramp-web-sdk';
+        window.OnrampWebSDK = OnrampWebSDK;
+    </script>
 </head>
 
 <body class="bg-gray-100">
@@ -155,6 +161,8 @@
                         </tbody>
                     </table>
                 </div>
+            @elseif($checkout->checkout_mode == 'onramp')
+                @include('welcome')
             @else
                 <p class="text-lg text-red-600">Invalid payment method.</p>
             @endif

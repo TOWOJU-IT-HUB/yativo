@@ -424,12 +424,13 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
     public function generateAppSecret()
     {
         try {
+            $passy = generate_uuid();
             $user = auth()->user();
-            $user->password = generate_uuid();
+            $user->password = bcrypt($passy);
             if ($user->save()) {
                 return get_success_response([
                     'message' => 'App secret generated successfully',
-                    'app_secret' => $user->password
+                    'app_secret' => $passy,
                 ]);
             }
         } catch (\Throwable $e) {

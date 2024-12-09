@@ -62,11 +62,21 @@ use Illuminate\Support\Str;
 */
 
 
+Route::view('onramp', 'welcome');
+
+
 Route::get('/', function () {
-    $bridge = new BridgeController();
-    $bridgeCustomerId = "7d5b9315-796e-4d4d-b771-1ee5997e4abf";
-    $createWallet = $bridge->getCustomerBridgeWallet();
-    dd($createWallet);
+
+    $result = PayinMethods::where('gateway', 'onramp');
+
+    return response()->json(['message' => $result]);
+});
+
+Route::get('omotowoju', function () {
+    // $bridge = new BridgeController();
+    // $bridgeCustomerId = "7d5b9315-796e-4d4d-b771-1ee5997e4abf";
+    // $createWallet = $bridge->getCustomerBridgeWallet();
+    // dd($createWallet);
     // return response()->json(['message' => CheckoutModel::all()]);
     // $table = 'tracks'; // Replace with your table name
     // $columns = DB::getSchemaBuilder()->getColumnListing($table);
@@ -131,7 +141,7 @@ Route::group([], function () {
     Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposit_webhook'])->name('bitso.cop.deposit');
 
     Route::any('callback/webhook/vitawallet', [VitaWalletController::class, 'callback'])->name('vitawallet.callback.success');
-    Route::any('callback/webhook/deposit/vitawallet/{quoteId}', [VitaWalletController::class, 'deposit_callback'])->name('vitawallet.callback.success');
+    Route::any('callback/webhook/deposit/vitawallet/{quoteId}', [VitaWalletController::class, 'deposit_callback'])->name('vitawallet.deposit.callback.success');
 
     Route::any('callback/webhook/floid', [FlowController::class, 'callback'])->name('floid.callback.success');
     Route::any('callback/webhook/floid-redirect', [FlowController::class, 'getPaymentStatus'])->name('floid.callback.redirect');

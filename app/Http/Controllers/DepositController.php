@@ -133,6 +133,8 @@ class DepositController extends Controller
             $payment = new DepositService();
             $callback = $payment->makeDeposit($gateway, $currency, $amount, $deposit, $txn_type);
 
+            Log::info("Deposit callback: " . json_encode($callback));
+
             if (is_string($callback)) {
                 $callback = ['url' => $callback];  // Treat string responses as redirect URLs
             } elseif (is_object($callback)) {
@@ -162,6 +164,9 @@ class DepositController extends Controller
             } elseif (isset($callback['ticket'])) {
                 $mode = 'wire_details';
                 $pay_data = $callback['ticket'];
+            } elseif (isset($callback['onramp'])) {
+                $mode = 'onramp';
+                $pay_data = $callback['onramp'];
             } elseif (isset($callback['wireInstructions'])) {
                 $mode = 'wire_details';
                 $pay_data = $callback['wireInstructions'];
@@ -203,7 +208,7 @@ class DepositController extends Controller
             ];
 
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), "trace" => $th->getTrace()];
+            return ['error' => $th->getMessage()];
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\OnrampController;
 use App\Http\Controllers\TransFiController;
 use App\Models\Deposit;
 use App\Models\Gateways;
@@ -64,14 +65,17 @@ class DepositService
                 $result = self::$model($send['id'], $amount, $currency, $txn_type, $paymentMethods);
             }
 
-            if ($txn_type == "deposit") {
-                $txn_amount = $send['amount'];
-            } else {
-                $quote = SendQuote::find($send['quote_id']);
+            switch ($txn_type) {
+                case "deposit":
+                    $txn_amount = $send['amount'];
+                    break;
+                default:
+                    $quote = SendQuote::find($send['quote_id']);
                 if (!$quote) {
                     return ['error' => 'Invalid quote.'];
                 }
                 $txn_amount = $quote['send_amount'];
+                    break;
             }
 
             TransactionRecord::create([
@@ -290,6 +294,13 @@ class DepositService
     {
         $transFi = new TransFiController();
         $checkout = $transFi->payin($deposit_id, $amount, $currency);
+        return $checkout;
+    }
+
+    public function onramp($deposit_id, $amount, $currency, $txn_type, $gateway)
+    {
+        $transFi = new OnrampController();
+        $checkout = $transFi->payin(request());
         return $checkout;
     }
 

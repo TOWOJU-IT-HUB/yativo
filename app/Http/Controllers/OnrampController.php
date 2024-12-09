@@ -9,9 +9,9 @@ class OnrampController extends Controller
 {
     protected $onrampService;
 
-    public function __construct(OnrampService $onrampService)
+    public function __construct()
     {
-        $this->onrampService = $onrampService;
+        $this->onrampService = new OnrampService;
     }
 
     public function getQuotes(Request $request)
@@ -28,7 +28,7 @@ class OnrampController extends Controller
     {
         $data = $request->all();
         $response = $this->onrampService->payIn($data);
-        return response()->json($response);
+        return $response;
     }
 
     /**

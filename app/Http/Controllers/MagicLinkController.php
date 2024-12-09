@@ -102,20 +102,33 @@ class MagicLinkController extends Controller
             // check if user has been registered for over 24 hours
             if ($user->has_crypto_login == false) {
                 $payload = [
-                    'username' => 'johndoe',
-                    'email' => 'emmyhost94@gmail.com',
-                    'user_password' => 'adedayo201'
+                    'username' => explode('@', $user->email)[0],
+                    'email' => $user->email,
+                    'user_password' => $user->email,
                 ];
 
                 $response = Http::post("{$this->crypto_base_url}/registration", $payload);
-                if ($response->json()['status'] === true) {
+                $result = $response->json();
+                if (isset($result['success']) && $result['success'] === true) {
+                    $user->has_crypto_login = true;
+                    $user->save();
+                }
+            } else {
+                // check if user has been registered for over 24 hours
+                $payload = [
+                    'email' => $user->email,
+                    'user_password' => $user->email,
+                ];
+                $response = Http::post("{$this->crypto_base_url}/login", $payload);
+                $result = $response->json();
+                if (isset($result['success']) && $result['success'] === true) {
                     $user->has_crypto_login = true;
                     $user->save();
                 }
             }
 
             // $success = json_decode($success, true);
-            $result = array_merge($user->toArray(), $success);
+            $result = array_merge($user->toArray(), $success, ['crypto_api' => $result]);
 
             return get_success_response($result);
         } catch (\Throwable $th) {

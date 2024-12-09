@@ -4,7 +4,10 @@ namespace Modules\VitaWallet\app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
+use App\Models\Track;
+use App\Models\TransactionRecord;
 use App\Services\Configuration;
+use App\Services\DepositService;
 use App\Services\VitaBusinessAPI;
 use Config;
 use Http;
@@ -59,10 +62,10 @@ class VitaWalletController extends Controller
         }
 
         $payload = [
-            "amount" => $amount,
+            "amount" => round($amount),
             "country_iso_code" => strtoupper($currencyIso2),
             "issue" => "Yativo wallet Topup",
-            "success_redirect_url" => url('callback/webhook/deposit/vitawallet', ["depositId" => $quoteId]),
+            "success_redirect_url" => route('vitawallet.deposit.callback.success', ["depositId" => $quoteId]),
         ];
 
         // var_dump($payload); exit;
@@ -212,16 +215,43 @@ class VitaWalletController extends Controller
         ]);
     }
 
-    public function deposit_callback(Request $request)
+    public function deposit_callback(Request $request, $deposit_id)
     {
+        $order = TransactionRecord::where("transaction_id", $deposit_id)->first();
+        if (isset($request->status) && $request->status === true && isset($request->order)) {
+            $where = [
+                "transaction_memo" => "payin",
+                "transaction_id" => $deposit_id
+            ];
+            $order = TransactionRecord::where($where)->first();
+            if ($order) {
+                $deposit_services = new DepositService();
+                $deposit_services->process_deposit($order->transaction_id);
+                $this->updateTracking($deposit_id, $request->status, $request->toArray());
+            }
+        }
+
         // Log all incoming request information
-        Log::info('Vitawallet Callback Request', [
+        Log::info("Vitawallet Callback for deposit ID: {$deposit_id}", [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
             'payload' => $request->all(),
             'headers' => $request->header(),
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
+        ]);
+
+        return http_response_code(200);
+    }
+
+    private function updateTracking($quoteId, $trakingStatus, $response)
+    {
+        Track::create([
+            "quote_id" => $quoteId,
+            "transaction_type" => "deposit",
+            "tracking_status" => $trakingStatus,
+            "raw_data" => (array) $response,
+            "tracking_updated_by" => "webhook"
         ]);
     }
 }

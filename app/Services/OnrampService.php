@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\PayinMethods;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -65,18 +66,32 @@ class OnrampService
      */
     public function payIn($data)
     {
+        $result = PayinMethods::whereId(request()->gateway)->first();
+
+        $countryId = [
+            "INR" => 1,
+            "TRY" => 2,
+            "AED" => 3,
+            "LKR" => 32,
+            "THB" => 27,
+            "IDR" => 14,
+            "PHP" => 11,
+            "VND" => 5,
+        ];
+
         $queries = [
             'redirectUrl' => route('onramp.payIn.callback'),
             'appId' => $this->apiId,
-            'paymentMethod' => 1 ?? 2, // Type of method the user would choose to pay in. 1 -> Instant transfer (e.g. UPI) 2 -> Bank transfer (e.g. IMPS/FAST)
-            'walletAddress' => $data['wallet_address'],
+            'paymentMethod' => $result->payment_mode, // 1 -> Instant transfer (e.g. UPI) 2 -> Bank transfer (e.g. IMPS/FAST)
+            'walletAddress' => env('wallet_address', '0x495f519017eF0368e82Af52b4B64461542a5430B'),
             'network' => 'bep20',
             'coinCode' => 'USDT' ?? 'USDC',
-            'fiatType' => $data['fiat_type'],
+            'fiatType' => $data['fiat_type'] ?? $countryId[$result->currency],
             'fiatAmount' => $data['amount']
 
         ];
-        $queriedUrl = 'https://onramp.money/main/checkout?' . http_build_query($queries);
+        $queriedUrl['onramp'] = $queries;
+        Log::info("onramp", $queriedUrl);
         return $queriedUrl;
     }
 
