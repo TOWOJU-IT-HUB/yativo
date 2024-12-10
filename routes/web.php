@@ -67,7 +67,7 @@ Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
 
-    $result = PayinMethods::where('gateway', 'onramp');
+    $result = CheckoutModel::latest()->limit(10)->get();
 
     return response()->json(['message' => $result]);
 });

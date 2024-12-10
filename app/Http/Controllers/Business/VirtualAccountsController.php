@@ -159,20 +159,20 @@ class VirtualAccountsController extends Controller
     private function validateRequest($request)
     {
         return Validator::make($request->all(), [
-            "customer_id" => "required_if:currency,USD|string|exists:customers,customer_id",
-            'beneficiary.document.id' => 'required_if:currency,MXN,ARS',
-            'beneficiary.document.type' => 'required_if:currency,MXN,ARS',
-            'beneficiary.name' => 'required_if:currency,MXN,ARS',
-            'beneficiary.lastname' => 'required_if:currency,MXN,ARS',
-            'beneficiary.type' => 'required_if:currency,MXN,ARS',
-            'address.city' => 'required_if:currency,MXN,ARS|string',
-            'address.state' => 'required_if:currency,MXN,ARS|string',
-            'address.zipcode' => 'required_if:currency,MXN,ARS|string',
-            'address.street' => 'required_if:currency,MXN,ARS|string',
-            'address.number' => 'required_if:currency,MXN,ARS|string',
-            'address.country' => 'required_if:currency,MXN,ARS|string',
             "currency" => "required|string|in:MXN,BRL,USD",
-            "country" => "required_if:currency,MXN,ARS|string|min:3|max:3",
+            "customer_id" => "required_if:currency,USD|string|exists:customers,customer_id",
+            // 'beneficiary.document.id' => 'required_if:currency,MXN,ARS',
+            // 'beneficiary.document.type' => 'required_if:currency,MXN,ARS',
+            // 'beneficiary.name' => 'required_if:currency,MXN,ARS',
+            // 'beneficiary.lastname' => 'required_if:currency,MXN,ARS',
+            // 'beneficiary.type' => 'required_if:currency,MXN,ARS',
+            // 'address.city' => 'required_if:currency,MXN,ARS|string',
+            // 'address.state' => 'required_if:currency,MXN,ARS|string',
+            // 'address.zipcode' => 'required_if:currency,MXN,ARS|string',
+            // 'address.street' => 'required_if:currency,MXN,ARS|string',
+            // 'address.number' => 'required_if:currency,MXN,ARS|string',
+            // 'address.country' => 'required_if:currency,MXN,ARS|string',
+            // "country" => "required_if:currency,MXN,ARS|string|min:3|max:3",
         ]);
     }
 
