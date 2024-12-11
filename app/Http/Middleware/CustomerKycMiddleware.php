@@ -16,18 +16,18 @@ class CustomerKycMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->has('customer_id')) {
-            $customerId = $request->customer_id;
-            // Validate customer existence and KYC status
-            $customer = Customer::where('customer_id', $customerId)
-                ->where('customer_status', 'active')
-                ->where('customer_kyc_status', 'approved')
-                ->first();
+        // if ($request->has('customer_id')) {
+        //     $customerId = $request->customer_id;
+        //     // Validate customer existence and KYC status
+        //     $customer = Customer::where('customer_id', $customerId)
+        //         ->where('customer_status', 'active')
+        //         ->where('customer_kyc_status', 'approved')
+        //         ->first();
 
-            if (!$customer) {
-                return response()->json(['error' => 'Invalid or unapproved customer'], 403);
-            }
-        }
+        //     if (!$customer) {
+        //         return response()->json(['error' => 'Invalid or unapproved customer'], 403);
+        //     }
+        // }
         return $next($request);
     }
 }

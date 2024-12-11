@@ -6,6 +6,7 @@ use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CronController;
 use App\Http\Controllers\CryptoWalletsController;
+use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\TransactionRecordController;
 use App\Models\Admin;
@@ -96,8 +97,13 @@ Route::get('omotowoju', function () {
 
 });
 
+
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
+});
+
+Route::domain(env('KYC_DOMAIN'))->group(function () {
+    Route::get('process-payin/{id}/paynow', [KycServiceController::class, 'init'])->name('checkout.url');
 });
 
 
