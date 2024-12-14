@@ -97,6 +97,7 @@ class DepositService
 
             Track::create([
                 "quote_id" => $send['id'],
+                "transaction_type" => $txn_type ?? 'deposit',
                 "tracking_status" => "Deposit initiated successfully",
                 "raw_data" => (array) $result
             ]);
@@ -230,7 +231,6 @@ class DepositService
         }
     }
 
-
     public function binance_pay($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         try {
@@ -302,6 +302,27 @@ class DepositService
         $transFi = new OnrampController();
         $checkout = $transFi->payin(request());
         return $checkout;
+    }
+
+    public function transak($deposit_id, $amount, $currency, $txn_type, $gateway)
+    {
+        if (!empty($amount) && !empty($currency)) {
+            $baseUrl = getenv('TRANSAK_BASE_URL');
+
+            $queryParams = [
+                'network' => "ethereum",
+                'cryptoCurrencyCode' => "USDC",
+                'apiKey' => getenv('TRANSAK_API_KEY'),
+                'fiatCurrency' => $currency,
+                'fiatAmount' => $amount,
+                'hideExchangeScreen' => true
+            ];
+
+            $queryString = http_build_query($queryParams);
+
+            $url = $baseUrl . '?' . $queryString;
+            return $url;
+        }
     }
 
     /**

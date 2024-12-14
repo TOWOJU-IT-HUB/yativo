@@ -127,6 +127,15 @@ class VirtualAccountsController extends Controller
             //     return get_error_response(['error' => 'Business not approved for this service']);
             // }
 
+            $where = [
+                "customer_id" => $request->customer_id,
+                "currency" => $request->currency
+            ];
+
+            if(VirtualAccount::where($where)->exists()) {
+                return get_error_response(["error" => "Account already exists"], 400, "Account already exists");
+            }
+
             $record = null;
 
             switch ($request->currency) {
@@ -199,7 +208,7 @@ class VirtualAccountsController extends Controller
 
         $payload = [
             "amount" => floatval(0),
-            "referenceLabel" => Str::random(19)
+            "referenceLabel" => $request->customer_id
         ];
 
         $user = auth()->user();

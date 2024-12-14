@@ -9,9 +9,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
-use Log;
+use Log, DB;
 use Modules\Customer\app\Models\DojahVerification;
 use Modules\Customer\App\Services\DojahServices;
+use Towoju5\Bitnob\Bitnob;
 
 class DojahVerificationController extends Controller
 {
@@ -94,7 +95,7 @@ class DojahVerificationController extends Controller
     public function customerVerification(Request $request)
     {
         $validate = Validator::make($request->all(), [
-            'customer_id' => 'required|string',
+            'customer_id' => 'required|string|exists:customers,customer_id',
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'middle_name' => 'required|string',
@@ -115,6 +116,16 @@ class DojahVerificationController extends Controller
             'imageFrontSide' => 'required|url',
             'imageBackSide' => 'sometimes|url',
             'proof_of_address_document' => 'sometimes|url',
+            'employment_status' => 'required|string',
+            'expected_monthly_payments' => 'required|string',
+            'most_recent_occupation' => 'required|string',
+            'primary_purpose' => 'required|string',
+            'primary_purpose_other' => 'required|string',
+            'source_of_funds' => 'required|string',
+            'gov_id_country' => 'required|string',
+            'postal_code' => 'required',
+            'idNumber' => 'required',
+            'tax_identification_number' => 'required'
         ]);
 
         if ($validate->fails()) {
@@ -127,41 +138,40 @@ class DojahVerificationController extends Controller
             $validatedData['image'] = $request->selfieimage;
             $validatedData['dob'] = $validatedData['date_of_birth'] = $request->dob ?? $request->date_of_birth;
 
-            // Call the Bridge API
-            $bridgePayload = [
-                "type" => "individual",
-                "first_name" => $request->first_name,
-                "middle_name" => $request->middle_name,
-                "last_name" => $request->last_name,
-                "email" => $request->email,
-                "phone" => $request->phone,
-                "birth_date" => $request->dob,
-                "address" => [
-                    "street_line_1" => $request->street,
-                    "street_line_2" => $request->landmark,
-                    "city" => $request->lga,
-                    "state" => $request->state,
-                    "postal_code" => $request->input('postal_code', ''),
-                    "country" => $request->input('country', ''),
-                ],
-                "gov_id_image_front" => $this->formatBase64Image($request->imageFrontSide, 'jpeg'),
-                "gov_id_image_back" => $this->formatBase64Image($request->imageBackSide, 'jpeg'),
-                "proof_of_address_document" => $this->formatBase64Image($request->proof_of_address_document, 'jpeg'),
-                "tax_identification_number" => $request->tax_identification_number,
-                "endorsements" => ["sepa"]
-            ];
-
-
             $bridge = new BridgeController();
-            $bridgeData = $bridge->sendRequest("/v0/customers", 'POST', $bridgePayload);
+            $bridgeData = $bridge->addCustomerV1($validatedData);
+
+            Log::info("Bridge Data: ", $bridgeData);
+
+            /**
+             * @method Register the customer Bitnob
+             */
+            $bitnob = new Bitnob();
+            $bitnobPayload = [
+                'customerEmail' => $validatedData['email'],
+                'idNumber' => $validatedData['idNumber'],
+                'idType' => $validatedData['idType'],
+                'firstName' => $validatedData['first_name'],
+                'lastName' => $validatedData['last_name'],
+                'phoneNumber' => $validatedData['phone'],
+                'city' => $validatedData['city'],
+                'state' => $validatedData['state'],
+                'country' => $validatedData['gov_id_country'],
+                'zipCode' => $validatedData['zipCode'],
+                'line1' => $validatedData['line1'],
+                'houseNumber' => $validatedData['houseNumber'],
+                'idImage' => $validatedData['idImage'],
+                'dateOfBirth' => $validatedData['dob'],
+            ];
+            
+            $bitnob_card_register_user = $bitnob->cards()->regUser($bitnobPayload);
+
+            Log::info("Bitnob Data: ", $bitnob_card_register_user);
 
             if (isset($bridgeData['code']) && $bridgeData['code'] == 'invalid_parameters') {
                 return get_error_response($bridgeData);
             }
-
-            Log::info("Bridge Data: ", $bridgeData);
-
-            return get_success_response($bridgeData);
+            return get_success_response(["customer_verification" => $bridgeData, "virtual_card_activation" => $bitnob_card_register_user]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
@@ -207,21 +217,6 @@ class DojahVerificationController extends Controller
         } catch (\Throwable $th) {
             //throw $th;
         }
-    }
-
-    private function formatBase64Image($imageUrl, $format = 'jpeg')
-    {
-        // Ensure the URL is valid
-        if (empty($imageUrl)) {
-            return null;
-        }
-
-        // Extract the base64 content (assumes the input URL is already base64 encoded)
-        $base64Data = file_get_contents($imageUrl); // Fetch the image content from the URL
-        $encodedData = base64_encode($base64Data); // Encode the binary data into base64
-
-        // Format as a proper data URI
-        return "data:image/{$format};base64,{$encodedData}";
     }
 
 }

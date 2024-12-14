@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Business\VirtualAccount;
 use App\Models\Country;
 use App\Models\Withdraw;
-use DB;
+use DB, Log;
 use Http;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
-use Log;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
 
@@ -24,47 +23,52 @@ class BridgeController extends Controller
         // Log::info("Customer Info: ", (array) $this->customer);
         $this->customerId = $this->customer->customer_id ?? null;
     }
+
     /**
      * GEt KYC link to add a customer
      * @return 
      */
-    public function addCustomerV1(array $customer = [])
+    public function addCustomerV1(array|object $customer = [])
     {
-        $payload = [
-            'type' => 'individual',
-            'first_name' => 'string',
-            'middle_name' => 'string',
-            'last_name' => 'string',
-            'transliterated_first_name' => 'string',
-            'transliterated_middle_name' => 'string',
-            'transliterated_last_name' => 'string',
-            'email' => 'string',
-            'phone' => 'string',
-            'address' => [
-                'street_line_1' => 'string',
-                'street_line_2' => 'string',
-                'city' => 'string',
-                'state' => 'string',
-                'postal_code' => 'string',
-                'country' => 'string'
+        $customer = (object) $customer;
+        $bridgePayload = [
+            "type" => "individual",
+            "first_name" => $customer->first_name ?? null,
+            "middle_name" => $customer->middle_name ?? null,
+            "last_name" => $customer->last_name ?? null,
+            'transliterated_first_name' => $customer->first_name ?? null,
+            'transliterated_middle_name' => $customer->middle_name ?? null,
+            'transliterated_last_name' => $customer->last_name ?? null,
+            "email" => $customer->email ?? null,
+            "phone" => $customer->phone ?? null,
+            "birth_date" => $customer->dob ?? null,
+            "address" => [
+                "street_line_1" => $customer->street ?? null,
+                "street_line_2" => $customer->landmark ?? null,
+                "city" => $customer->lga ?? null,
+                "state" => $customer->state ?? null,
+                "postal_code" => $customer->postal_code ?? null,
+                "country" => $customer->country ?? null,
             ],
-            'birth_date' => 'string',
-            'tax_identification_number' => 'string',
+            "gov_id_image_front" => $this->formatBase64Image($customer->imageFrontSide, 'jpeg'),
+            "gov_id_image_back" => $this->formatBase64Image($customer->imageBackSide, 'jpeg'),
+            "proof_of_address_document" => $this->formatBase64Image($customer->proof_of_address_document, 'jpeg'),
+            "tax_identification_number" => $customer->tax_identification_number,
+            "endorsements" => ["sepa"],
             'signed_agreement_id' => 'string',
-            'gov_id_country' => 'string',
-            'gov_id_image_front' => 'string',
-            'gov_id_image_back' => 'string',
-            'proof_of_address_document' => 'string',
+            'gov_id_country' => $customer->gov_id_country,
             'sof_eu_questionnaire' => [
                 'acting_as_intermediary' => 'yes',
-                'employment_status' => 'employed',
-                'expected_monthly_payments' => '0_4999',
-                'most_recent_occupation' => 'string',
-                'primary_purpose' => 'business_transactions',
-                'primary_purpose_other' => 'string',
-                'source_of_funds' => 'business_income'
+                'employment_status' => $customer->employment_status ?? 'employed',
+                'expected_monthly_payments' => $customer->expected_monthly_payments ?? '0_4999',
+                'most_recent_occupation' => $customer->most_recent_occupation ?? 'string',
+                'primary_purpose' => $customer->primary_purpose ?? 'business_transactions',
+                'primary_purpose_other' => $customer->primary_purpose_other ?? 'string',
+                'source_of_funds' => $customer->source_of_funds ?? 'business_income'
             ]
         ];
+        $bridgeData = $this->sendRequest("/v0/customers", 'POST', $bridgePayload);
+        return $bridgeData;
     }
 
     public function addCustomer(array $customer = [])
@@ -158,6 +162,9 @@ class BridgeController extends Controller
     public function createVirtualAccount($customerId)
     {
         $request = request();
+        if(!auth()->user()->bridge_customer_id) {
+            return ['error' => 'Customer not enrolled for service'];
+        }
         $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
 
         $payload = [
@@ -166,9 +173,9 @@ class BridgeController extends Controller
                 "currency" => "usd"
             ],
             "destination" => [
-                "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdc"),
+                "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
                 "payment_rail" => env('BRIDGE_PAYMENT_RAIL', "polygon"),
-                "address" => env('BRIDGE_DESINATION_ADDRESS', "0x2791bca1f2de4661ed88a30c99a7a9449aa84174")
+                "address" => env('BRIDGE_DESINATION_ADDRESS', "0x59a8f26552CaF6ea7F669872bf39443d8d0eFB96")
             ]
         ];
 
@@ -412,5 +419,21 @@ class BridgeController extends Controller
             $data = json_decode($data, true);
         }
 
-        return $data;    }
+        return $data;
+    }
+
+    private function formatBase64Image($imageUrl, $format = 'jpeg')
+    {
+        // Ensure the URL is valid
+        if (empty($imageUrl)) {
+            return null;
+        }
+
+        // Extract the base64 content (assumes the input URL is already base64 encoded)
+        $base64Data = file_get_contents($imageUrl); // Fetch the image content from the URL
+        $encodedData = base64_encode($base64Data); // Encode the binary data into base64
+
+        // Format as a proper data URI
+        return "data:image/{$format};base64,{$encodedData}";
+    }
 }

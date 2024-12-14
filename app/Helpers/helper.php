@@ -341,7 +341,7 @@ if (!function_exists('get_success_response')) {
 }
 
 if (!function_exists('get_error_response')) {
-    function get_error_response($data, $status_code = 400)
+    function get_error_response($data, $status_code = 400, $message = "Request failed.")
     {
         if (isset($data['error'])) {
             if (isset($data['error']['error'])) {
@@ -357,7 +357,7 @@ if (!function_exists('get_error_response')) {
         $response = [
             'status' => 'failed',
             'status_code' => $status_code,
-            'message' => 'Request failed',
+            'message' => $message,
             'data' => $data
         ];
         return response()->json($response, $status_code);

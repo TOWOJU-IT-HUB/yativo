@@ -153,7 +153,7 @@ class CustomerController extends Controller
                 'customer_phone' => 'required',
                 'customer_type' => 'required',
                 "send_kyc_mail" => 'sometimes|boolean|in:true, false, 0, 1',
-                // 'customer_country' => 'required',
+                'customer_country' => 'required',
                 // 'customer_address' => 'required|array',
                 // 'customer_idType' => 'required',
                 // 'customer_idNumber' => 'required',
@@ -205,7 +205,7 @@ class CustomerController extends Controller
             $customer->customer_email = $request->customer_email;
             $customer->customer_phone = $request->customer_phone;
             $customer->customer_status = 'active';
-            // $customer->customer_country = $request->customer_country;
+            $customer->customer_country = $request->customer_country;
             // $customer->customer_address = $request->customer_address;
             // $customer->customer_idType = encryptCustomerData($request->customer_idType) ?? null;
             // $customer->customer_idNumber = encryptCustomerData($request->customer_idNumber) ?? null;
