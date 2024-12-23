@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\CoinbaseOnrampController;
 use App\Http\Controllers\OnrampController;
 use App\Http\Controllers\TransFiController;
 use App\Models\Deposit;
@@ -71,10 +72,10 @@ class DepositService
                     break;
                 default:
                     $quote = SendQuote::find($send['quote_id']);
-                if (!$quote) {
-                    return ['error' => 'Invalid quote.'];
-                }
-                $txn_amount = $quote['send_amount'];
+                    if (!$quote) {
+                        return ['error' => 'Invalid quote.'];
+                    }
+                    $txn_amount = $quote['send_amount'];
                     break;
             }
 
@@ -306,16 +307,33 @@ class DepositService
 
     public function transak($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
+        $user = auth()->user();
         if (!empty($amount) && !empty($currency)) {
             $baseUrl = getenv('TRANSAK_BASE_URL');
-
             $queryParams = [
+                'walletAddress' => "0x316363Fd9B3e7E9e1ea4cC8503681a15A0cc5ECb",
+                'disableWalletAddressForm' => true,
                 'network' => "ethereum",
-                'cryptoCurrencyCode' => "USDC",
+                'cryptoCurrencyCode' => "USDT",
                 'apiKey' => getenv('TRANSAK_API_KEY'),
                 'fiatCurrency' => $currency,
                 'fiatAmount' => $amount,
-                'hideExchangeScreen' => true
+                'hideExchangeScreen' => true,
+                'userData' => [
+                    "firstName" => $user->firstName,
+                    "lastName" => $user->lastName,
+                    "email" => $user->email,
+                    "mobileNumber" => $user->phoneNumber,
+                    "dob" => $user->phone,
+                    "address" => [
+                        "addressLine1" => $user->street,
+                        "addressLine2" => "San Francisco",
+                        "city" => $user->city,
+                        "state" => $user->state,
+                        "postCode" => $user->zipCode,
+                        "countryCode" => $user->country
+                    ]
+                ]
             ];
 
             $queryString = http_build_query($queryParams);
@@ -333,6 +351,20 @@ class DepositService
         // return [];
         $bitso = new BitsoController();
         $checkout = $bitso->deposit($amount, $currency);
+        return $checkout;
+    }
+
+    /**
+     * Retrive user clabe info
+     */
+    private function coinbase($deposit_id, $amount, $currency, $txn_type, $gateway)
+    {
+        // return [];
+        $bitso = new CoinbaseOnrampController();
+        request()->merge([
+            'amount' => request()->amount
+        ]);
+        $checkout = $bitso->generateOnrampUrl($amount, $currency);
         return $checkout;
     }
 

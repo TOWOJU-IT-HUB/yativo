@@ -35,7 +35,7 @@ class Google2faController extends Controller
      * Enable 2FA for a user.
      *
      * @param Request $request
-     * @return Response
+     * @return
      */
     public function enable2fa(Request $request)
     {
@@ -66,7 +66,7 @@ class Google2faController extends Controller
      * Verify a 2FA code.
      *
      * @param Request $request
-     * @return Response
+     * @return 
      */
     public function verify2fa(Request $request)
     {
@@ -93,7 +93,7 @@ class Google2faController extends Controller
      * Disable 2FA for a user.
      *
      * @param Request $request
-     * @return Response
+     * @return 
      */
     public function disable2fa(Request $request)
     {

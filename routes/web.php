@@ -50,6 +50,7 @@ use App\Http\Controllers\ManageDBController;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use App\Http\Controllers\CoinbaseOnrampController;
 
 /*
 |--------------------------------------------------------------------------
@@ -96,6 +97,14 @@ Route::get('omotowoju', function () {
     // return get_success_response($response->json());
 
 });
+
+
+
+
+Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
+Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOnrampUrl']);
+
+
 
 
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {

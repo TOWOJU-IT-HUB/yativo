@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\BusinessConfig;
 use App\Services\BrlaDigitalService;
 use Http;
+use Illuminate\Support\Str;
 use Modules\Bitso\app\Services\BitsoServices;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
@@ -21,7 +22,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Modules\LocalPayments\app\Http\Controllers\LocalPaymentsController;
 use Modules\Webhook\app\Models\Webhook;
-use Str;
 use Towoju5\Localpayments\Localpayments;
 
 class VirtualAccountsController extends Controller

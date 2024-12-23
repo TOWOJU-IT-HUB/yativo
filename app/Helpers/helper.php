@@ -160,7 +160,6 @@ if (!function_exists('get_transaction_rate')) {
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
 
         if ($rates) {
-
             if ($baseRate > 0) {
                 // Calculate floated amount if float percentage is set
                 $rate_floated_amount = ($rates->float_percentage ?? 0) / 100 * $baseRate;

@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Deposit;
 use App\Models\TransactionRecord;
 use App\Services\DepositService;
-use Http;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Modules\Customer\app\Models\Customer;
 
 class TransFiController extends Controller

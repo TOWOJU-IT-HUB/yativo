@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Business\VirtualAccount;
 use App\Models\Country;
 use App\Models\Withdraw;
-use DB, Log;
-use Http;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
 

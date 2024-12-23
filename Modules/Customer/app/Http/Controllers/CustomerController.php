@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Business\VirtualAccount;
 use App\Models\CryptoWallets;
 use App\Models\TransactionRecord;
-use Http;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use Modules\Customer\app\Models\Customer;
 use Illuminate\Support\Facades\Crypt;
@@ -216,13 +216,6 @@ class CustomerController extends Controller
             // $customer->json_data = $json_data;
 
             if ($customer->save()) {
-                // send mail to customer to complete KYC
-                if (!$request->has('send_kyc_mail')) {
-                    $customer->customer_kyc_status = 'pending';
-                    $customer->customer_kyc_link = $response->json()['kyc_link'];
-                    $customer->customer_kyc_link_id = $response->json()['id'];
-                    $customer->save();
-                }
                 return get_success_response($customer, 201);
             } else {
                 return get_error_response(['error' => 'Failed to create customer.']);

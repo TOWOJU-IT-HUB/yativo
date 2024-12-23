@@ -38,7 +38,11 @@ class TrackController extends Controller
         ];
 
         try {
-            $datas = Track::where($where)->whereUserId(active_user())->latest()->first();
+            $datas = Track::where($where)->latest()->first();
+
+            if (!$datas) {
+                return get_error_response(['error' => "Transaction not found!"], 404, "Transaction not found!");
+            }
             return get_success_response($datas);
         } catch (\Throwable $th) {
             return get_error_response($th->getMessage());

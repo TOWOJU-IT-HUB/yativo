@@ -15,6 +15,7 @@ use App\Http\Controllers\MagicLinkController;
 use App\Http\Controllers\MiscController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\PinVerificationController;
+use App\Http\Controllers\TrackController;
 use App\Http\Controllers\TransactionRecordController;
 use App\Http\Controllers\UserMetaController;
 use App\Http\Controllers\WalletController;
@@ -100,6 +101,8 @@ Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(f
     Route::delete('account/delete', [AuthController::class, 'deleteAccount']);
     Route::get('is-pin-set', [MiscController::class, 'isPinSet'])->name('isPinSet');
     Route::get("my-payin-methods", [MiscController::class, "getPayinMethods"]);
+
+    Route::get("transaction/track", [TrackController::class, "track"]);
 
 
     Route::group([], function () {
