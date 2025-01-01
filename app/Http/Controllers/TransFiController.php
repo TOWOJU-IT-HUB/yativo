@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Country;
 use App\Models\Deposit;
 use App\Models\TransactionRecord;
 use App\Services\DepositService;
@@ -18,7 +19,7 @@ class TransFiController extends Controller
         $this->middleware('auth');
         $this->apiKey = env("TRANSFI_USERNAME");
         $this->apiSecret = env("TRANSFI_PASSWORD");
-        $this->apiUrl = env("IS_TRANSFI_TEST") ? "https://sandbox-api.transfi.com/v2" : "https://sandbox-api.transfi.com/v2";
+        $this->apiUrl = env("IS_TRANSFI_TEST") ? "https://sandbox-api.transfi.com/v2" : "https://api.transfi.com/v2";
         $this->supported_countries = [
             ["country" => "Austria", "iso2" => "AT", "currency" => "EUR"],
             ["country" => "Belgium", "iso2" => "BE", "currency" => "EUR"],
@@ -42,13 +43,14 @@ class TransFiController extends Controller
         ];
     }
 
-    public function payin($deposit_id, $amount, $currency)
+    public function payin($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $customer = $this->getCustomerInfo();
+        $get_country = Country::where('iso3', $gateway->country)->first();
 
         try {
-            $country = collect($this->supported_countries)->first(function ($country) use ($currency) {
-                return $country['currency'] === strtoupper($currency);
+            $country = collect($this->supported_countries)->first(function ($country) use ($currency, $get_country) {
+                return $country['iso2'] === strtoupper($get_country->iso2);
             });
 
             if (!$country) {
@@ -77,7 +79,7 @@ class TransFiController extends Controller
                         ],
                         "partnerId" => $deposit_id,
                         "withdrawDetails" => [
-                            "cryptoTicker" => env('TRANSFI_WALLET_ADDRESS', "USDT"),
+                            "cryptoTicker" => env('TRANSFI_WALLET_TICKER', "USDT"),
                             "walletAddress" => env('TRANSFI_WALLET_ADDRESS'),
                         ]
                     ]);

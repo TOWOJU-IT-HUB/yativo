@@ -294,7 +294,7 @@ class DepositService
     public function transfi($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $transFi = new TransFiController();
-        $checkout = $transFi->payin($deposit_id, $amount, $currency);
+        $checkout = $transFi->payin($deposit_id, $amount, $currency, $txn_type, $gateway);
         return $checkout;
     }
 

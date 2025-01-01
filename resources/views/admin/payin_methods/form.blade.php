@@ -36,9 +36,9 @@
         <label for="country" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Country</label>
         <select id="country" name="country" value="{{ old('country', $method->country) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+            <option value="global" @if ($method->country == 'global') selected @endif> Global </option>
             @foreach ($countries as $country)
-                <option value="{{ $country->iso3 }}" @if ($method->country == $country->iso3) selected @endif>
-                    {{ ucfirst($country->name) }}</option>
+                <option value="{{ $country->iso3 }}" @if ($method->country == $country->iso3) selected @endif> {{ ucfirst($country->name) }}</option>
             @endforeach
         </select>
         @error('country')

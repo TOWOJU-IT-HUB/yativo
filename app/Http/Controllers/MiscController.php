@@ -288,7 +288,7 @@ class MiscController extends Controller
                 return get_error_response(['error' => 'Please update your country/country of incorporation (for businesses)']);
             }
 
-            $payinMethods = PayinMethods::whereCountry($loc)->get();
+            $payinMethods = PayinMethods::whereCountry($loc)->orWhere('country', 'global')->get();
             $country = Country::where('iso3', $loc)->first();
             $iso2 = strtolower($country->iso2);
             $country['flag_svg'] = "https://cdn.yativo.com/{$iso2}.svg";

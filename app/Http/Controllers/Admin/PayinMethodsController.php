@@ -8,11 +8,28 @@ use Illuminate\Http\Request;
 
 class PayinMethodsController extends Controller
 {
-    public function index()
+    /**
+     * Retrieve all payin methods and filter if query exists
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index(Request $request)
     {
-        $payinMethods = PayinMethods::paginate(15);
+        $query = PayinMethods::query();
+
+        // Apply filters if query parameters exist
+        if ($request->query()) {
+            foreach ($request->query() as $key => $value) {
+                $query->where($key, 'like', '%' . $value . '%');
+            }
+        }
+
+        $payinMethods = $query->paginate(15);
+
+        // Return the view with the paginated results
         return view('admin.payin_methods.index', compact('payinMethods'));
     }
+
 
     public function create()
     {
@@ -24,7 +41,7 @@ class PayinMethodsController extends Controller
         $validatedData = $request->validate([
             'method_name' => 'required|string|max:255',
             'gateway' => 'required|string|max:255',
-            'country' => 'required|string|max:255',
+            'country' => 'sometimes|string|max:255',
             'currency' => 'required|string|max:10',
             'payment_mode' => 'nullable|string|max:50',
             'charges_type' => 'required|string|in:fixed,percentage,combined',
@@ -42,9 +59,14 @@ class PayinMethodsController extends Controller
             'Working_hours_start' => 'nullable|string|max:10',
             'Working_hours_end' => 'nullable|string|max:10',
         ]);
-        if($request->payment_mode == null) {
+        if ($request->payment_mode == null) {
             $validatedData['payment_mode'] = 'bankTransfer';
         }
+
+        if(empty($request->country)) {
+            $validatedData['country'] = 'global';
+        }
+        
         PayinMethods::create($validatedData);
         return redirect()->route('admin.payin_methods.index')->with('success', 'Payment method created successfully.');
     }
@@ -84,7 +106,7 @@ class PayinMethodsController extends Controller
             'Working_hours_start' => 'nullable|string|max:10',
             'Working_hours_end' => 'nullable|string|max:10',
         ]);
-        if($request->payment_mode == null) {
+        if ($request->payment_mode == null) {
             $validatedData['payment_mode'] = 'bankTransfer';
         }
 

@@ -51,10 +51,10 @@ class PayoutMethodsController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'method_name' => 'required|string|max:255',
             'gateway' => 'required|string|max:255',
-            'country' => 'required|string|max:255',
+            'country' => 'sometimes|string|max:255',
             'currency' => 'required|string|max:3',
             'payment_mode' => 'required|string|max:255',
             'charges_type' => 'required|string|in:fixed,percentage,combined',
@@ -71,6 +71,9 @@ class PayoutMethodsController extends Controller
             'cutoff_hrs_end' => 'nullable'
         ]);
 
+        if(empty($request->country)) {
+            $validatedData['country'] = 'global';
+        }
         PayoutMethods::create($request->all());
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method created successfully.');
     }

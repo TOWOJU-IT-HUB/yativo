@@ -438,7 +438,6 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
         }
     }
 
-
     /**
      * Handles social login for the application.
      *
