@@ -1,0 +1,14 @@
+name: Cleanup Artifacts
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Runs daily at midnight
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old artifacts
+        uses: actions/delete-artifact@v3
+        with:
+          retention-days: 0 # Deletes all artifacts immediately
