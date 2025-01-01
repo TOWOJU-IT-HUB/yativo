@@ -3,6 +3,7 @@ name: Cleanup Artifacts
 on:
   schedule:
     - cron: "0 0 * * *" # Runs daily at midnight
+  workflow_dispatch: # Allows manual trigger of the workflow
 
 jobs:
   cleanup:
