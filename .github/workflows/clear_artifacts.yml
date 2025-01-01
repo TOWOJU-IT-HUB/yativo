@@ -9,7 +9,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete old artifacts
-        uses: actions/delete-artifact@v3
-        with:
-          retention-days: 0 # Deletes all artifacts immediately
+    - uses: geekyeggo/delete-artifact@v5
+      with:
+          name: |
+              release.zip
