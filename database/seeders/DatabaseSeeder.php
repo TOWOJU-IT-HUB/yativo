@@ -14,9 +14,14 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            TempSeeder::class,
+            // THBSeeder::class,
+            // VNDSeeder::class,
+            // MYRSeeder::class,
+            // IDRSeeder::class,
             // CountryStateCityTableSeeder::class,
             // CurrencyListSeeder::class,
-            PayinMethodsSeeder::class,
+            // PayinMethodsSeeder::class,
             // PayoutMethodsSeeder::class,
             // PlanSeeder::class,
             // CurrencySeeder::class,

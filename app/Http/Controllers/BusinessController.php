@@ -104,7 +104,7 @@ class BusinessController extends Controller
 
     public function verifyBusiness($bis)
     {
-        \Log::info("starting business verification for $bis->business_legal_name with ID $bis->id");
+        \Log::info("starting business verification for $bis->business_legal_name with ID $bis->id", ["ip_address" => request()->ip()]);
         return new VerifyBusinessJob($bis);
     }
 

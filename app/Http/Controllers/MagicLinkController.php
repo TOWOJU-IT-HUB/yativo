@@ -34,7 +34,7 @@ class MagicLinkController extends Controller
         try {
             $this->validate($request, [
                 'email' => 'required|email',
-                'base_url' => 'required',
+                'base_url' => 'sometimes|url',
             ]);
 
             $success = [];

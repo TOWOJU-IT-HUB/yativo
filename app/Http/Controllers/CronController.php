@@ -117,7 +117,7 @@ class CronController extends Controller
         $transFi = new TransFiController();
         foreach ($deposits as $deposit) {
             $order = $transFi->getOrderDetails($deposit->gateway_deposit_id);
-            if ($order['status'] == "success") {
+            if (isset($order['status']) && $order['status'] == "success") {
                 $payload = $order['data'];
                 /** Check if order is Deposit - Payin */
                 if ($payload['type'] == "pay" && $payload['status'] == "fund_settled") {

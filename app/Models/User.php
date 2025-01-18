@@ -35,6 +35,12 @@ class User extends Authenticatable implements JWTSubject
         'membership_id', 'kyc_status', 'is_kyc_submitted', 'last_login_at', 'is_pnd'
     ];
 
+    protected $with = [
+        'balances',
+        'businessConfig',
+        'subscriptions',
+    ];
+
     protected $hidden = [
         // 'password', 'remember_token', 'two_factor_recovery_codes', 'two_factor_secret',
         // 'created_at', 'updated_at', 'deleted_at', 'raw_data', 'google2fa_secret',

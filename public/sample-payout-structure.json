@@ -1,0 +1,223 @@
+{
+    "payment_data": [
+        {
+            "key": "beneficiary_type",
+            "name": "Tipo",
+            "type": "select",
+            "options": [
+                {
+                    "label": "Corporativo",
+                    "value": "Corporate"
+                },
+                {
+                    "label": "Individual",
+                    "value": "Individual"
+                }
+            ]
+        },
+        {
+            "key": "beneficiary_first_name",
+            "max": 50,
+            "min": 3,
+            "name": "Nombres",
+            "type": "text",
+            "when": {
+                "key": "beneficiary_type",
+                "value": "Individual"
+            }
+        },
+        {
+            "key": "beneficiary_last_name",
+            "max": 50,
+            "min": 3,
+            "name": "Apellidos",
+            "type": "text",
+            "when": {
+                "key": "beneficiary_type",
+                "value": "Individual"
+            }
+        },
+        {
+            "key": "company_name",
+            "max": 50,
+            "min": 4,
+            "name": "Nombre de empresa",
+            "type": "text",
+            "when": {
+                "key": "beneficiary_type",
+                "value": "Corporate"
+            }
+        },
+        {
+            "key": "beneficiary_email",
+            "max": 80,
+            "name": "Correo",
+            "type": "email"
+        },
+        {
+            "key": "state",
+            "max": 50,
+            "min": 3,
+            "name": "Estado",
+            "type": "text"
+        },
+        {
+            "key": "city",
+            "max": 50,
+            "min": 3,
+            "name": "Ciudad",
+            "type": "text"
+        },
+        {
+            "key": "beneficiary_address",
+            "max": 200,
+            "min": 3,
+            "name": "Direcci\u00f3n",
+            "type": "text"
+        },
+        {
+            "key": "zipcode",
+            "max": 15,
+            "min": 3,
+            "name": "C\u00f3digo postal",
+            "type": "text"
+        },
+        {
+            "key": "beneficiary_document_type",
+            "name": "Tipo de documento",
+            "type": "select",
+            "when": {
+                "key": "beneficiary_type",
+                "value": "Individual"
+            },
+            "options": [
+                {
+                    "label": "Documento nacional de identidad",
+                    "value": "DNI"
+                },
+                {
+                    "label": "Pasaporte",
+                    "value": "PASS"
+                }
+            ]
+        },
+        {
+            "key": "beneficiary_document_number",
+            "name": "Nro de documento",
+            "type": "text",
+            "when": {
+                "key": "beneficiary_type",
+                "value": "Individual"
+            }
+        },
+        {
+            "key": "beneficiary_document_number",
+            "min": 2,
+            "name": "EIN \/ TIN",
+            "type": "text",
+            "when": {
+                "key": "beneficiary_type",
+                "value": "Corporate"
+            }
+        },
+        {
+            "key": "account_type_bank",
+            "name": "Tipo",
+            "type": "select",
+            "options": [
+                {
+                    "label": "Cuenta corriente",
+                    "value": "Checking"
+                },
+                {
+                    "label": "Cuenta de ahorros",
+                    "value": "Savings"
+                }
+            ]
+        },
+        {
+            "key": "account_bank",
+            "max": 18,
+            "min": 5,
+            "name": "Nro de cuenta",
+            "type": "text"
+        },
+        {
+            "key": "routing_number",
+            "max": 9,
+            "min": 9,
+            "name": "Routing Number (Electronic ACH)",
+            "type": "text"
+        },
+        {
+            "key": "purpose",
+            "name": "Prop\u00f3sito",
+            "type": "select",
+            "options": [
+                {
+                    "label": "Ahorro \/ jubilaci\u00f3n",
+                    "value": "ISSAVG"
+                },
+                {
+                    "label": "Compra venta de bienes",
+                    "value": "ISGDDS"
+                },
+                {
+                    "label": "Compra venta de servicios",
+                    "value": "ISSCVE"
+                },
+                {
+                    "label": "Disponibilidades",
+                    "value": "EPDISP"
+                },
+                {
+                    "label": "Educaci\u00f3n",
+                    "value": "ISSTDY"
+                },
+                {
+                    "label": "Inmuebles",
+                    "value": "EPPROP"
+                },
+                {
+                    "label": "Mantenimiento familiar",
+                    "value": "EPFAMT"
+                },
+                {
+                    "label": "Otros",
+                    "value": "EPREMT"
+                },
+                {
+                    "label": "Pago de impuestos",
+                    "value": "ISTAXS"
+                },
+                {
+                    "label": "Pago de inversi\u00f3n",
+                    "value": "EPIVST"
+                },
+                {
+                    "label": "Pago de n\u00f3mina",
+                    "value": "ISPAYR"
+                },
+                {
+                    "label": "Pago de proveedor",
+                    "value": "ISSUPP"
+                },
+                {
+                    "label": "Salud",
+                    "value": "ISMDCS"
+                },
+                {
+                    "label": "Turismo",
+                    "value": "EPTOUR"
+                }
+            ]
+        },
+        {
+            "key": "purpose_comentary",
+            "max": 50,
+            "min": 5,
+            "name": "Comentario",
+            "type": "text"
+        }
+    ]
+}

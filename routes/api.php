@@ -70,7 +70,7 @@ Route::group(['prefix' => 'v1/auth'], function () {
 });
 
 
-Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(function () {
+Route::middleware(['auth:api', 'kyc_check'])->prefix('v1')->name('api.')->group(function () {
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
 
     Route::prefix('crypto')->group(function () {
@@ -113,7 +113,7 @@ Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(f
         Route::post('user-meta', [UserMetaController::class, 'store']);
         Route::put('user-meta/{id}', [UserMetaController::class, 'update']);
         Route::delete('user-meta/{id}', [UserMetaController::class, 'destroy']);
-        Route::post('storage/upload', [UserMetaController::class, 'upload'])->name('misc.upload');
+        Route::post('storage/upload', [UserMetaController::class, 'upload'])->name('misc.upload')->withoutMiddleware('kyc_check');
         Route::get('storage/get/{doc}', [UserMetaController::class, 'retriveUpload'])->name('misc.get');
     })->middleware('kyc_check');
 
@@ -173,14 +173,23 @@ Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(f
     });
 
     Route::prefix('business')->group(function () {
+        Route::get('configs', [BusinessController::class, 'preference'])->name('business.preference');
+        Route::put('configs', [BusinessController::class, 'updatePreference'])->name('business.preference.update');
+        Route::post('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo.post');
+        Route::get('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo');
+        Route::get('ubos', [BusinessController::class, 'uboList'])->name('business.ubo.list');
+        Route::post('/', [BusinessController::class, 'store'])->name('business.store');
+        Route::put('/', [BusinessController::class, 'update'])->name('business.update');
+    });
+
+    Route::prefix('business')->group(function () {
+
         Route::get('transactions/all', [TransactionRecordController::class, 'index']);
         Route::get('transaction/show/{transactionId}', [TransactionRecordController::class, 'show']);
         Route::get('transaction/by-currency', [TransactionRecordController::class, 'byCurrency']);
         Route::get('chart-data', [TransactionRecordController::class, 'getChartData']);
 
         Route::get('details', [BusinessController::class, 'show'])->name('business.show');
-        Route::post('/', [BusinessController::class, 'store'])->name('business.store');
-        Route::put('/', [BusinessController::class, 'update'])->name('business.update');
 
         Route::prefix('virtual-account')->group(function () {
             Route::get("/", [VirtualAccountsController::class, 'index'])->name('business.virtual-account.index');
@@ -223,12 +232,6 @@ Route::middleware(['auth:api','kyc_check'])->prefix('v1')->name('api.')->group(f
             Route::get('show/{eventId}', [EventsController::class, 'showWebhookLog']);
         });
 
-        Route::get('configs', [BusinessController::class, 'preference'])->name('business.preference');
-        Route::put('configs', [BusinessController::class, 'updatePreference'])->name('business.preference.update');
-        Route::post('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo.post');
-        Route::get('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo');
-
-        Route::get('ubos', [BusinessController::class, 'uboList'])->name('business.ubo.list');
     })->middleware('kyc_check');
 
 

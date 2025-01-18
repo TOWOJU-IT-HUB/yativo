@@ -192,7 +192,7 @@ class DepositController extends Controller
             $checkout->checkout_mode = $mode;
             $checkout->checkout_id = session()->get("checkout_id", $callback['id'] ?? null);
             $checkout->provider_checkout_response = $callback;
-            $checkout->checkouturl = route("checkout.url", ['id' => $deposit['id']]);
+            $checkout->checkouturl = str_replace('http://api.yativo.com', 'https://checkout.yativo.com', route("checkout.url", ['id' => $deposit['id']]));
             $checkout->checkout_status = "pending";
 
             if (!$checkout->save()) {
@@ -203,7 +203,7 @@ class DepositController extends Controller
             $checkoutUrl = route('checkout.url', ['id' => $encryptedId]);
 
             return [
-                'deposit_url' => $checkoutUrl,
+                'deposit_url' => $checkout->checkouturl,
                 'deposit_data' => $deposit,
             ];
 

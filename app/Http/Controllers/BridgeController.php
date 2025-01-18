@@ -68,6 +68,8 @@ class BridgeController extends Controller
                 'source_of_funds' => $customer->source_of_funds ?? 'business_income'
             ]
         ];
+        $tranfi = new TransFiController();
+        $tranfi->kycForm($bridgePayload);
         $bridgeData = $this->sendRequest("/v0/customers", 'POST', $bridgePayload);
         return $bridgeData;
     }

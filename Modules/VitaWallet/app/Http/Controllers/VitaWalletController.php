@@ -65,7 +65,7 @@ class VitaWalletController extends Controller
             "amount" => round($amount),
             "country_iso_code" => strtoupper($currencyIso2),
             "issue" => "Yativo wallet Topup",
-            "success_redirect_url" => route('vitawallet.deposit.callback.success', ["depositId" => $quoteId]),
+            "success_redirect_url" => route('vitawallet.deposit.callback.success', ["quoteId" => $quoteId]),
         ];
 
         // var_dump($payload); exit;

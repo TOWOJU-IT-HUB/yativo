@@ -52,7 +52,7 @@ class BusinessController extends Controller
 
     public function show($id)
     {
-        $business = Business::with('user')->first();
+        $business = Business::whereId($id)->with('user')->first();
         $user = $business->user;
         $customers = Customer::latest()->limit(20)->where('user_id', $user->id)->get();
         $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $user->id)->get();
@@ -60,18 +60,19 @@ class BusinessController extends Controller
         $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $user->id)->get();
         $deposits = Deposit::latest()->limit(20)->where('user_id', $user->id)->get();
         $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $user->id)->get();
+        
         // $business = $user;
 
-        // return [
-        //     "business" => $business,
-        //     "user" => $user,
-        //     "customers" => $customers,
-        //     "virtualAccounts" => $virtualAccounts,
-        //     "virtualCards" => $virtualCards,
-        //     // "transactions" => $transactions,
-        //     "deposits" => $deposits,
-        //     "withdrawals" => $withdrawals,
-        // ];
+        return [
+            "business" => $business,
+            "user" => $user,
+            "customers" => $customers,
+            "virtualAccounts" => $virtualAccounts,
+            "virtualCards" => $virtualCards,
+            "transactions" => $transactions,
+            "deposits" => $deposits,
+            "withdrawals" => $withdrawals,
+        ];
 
         return view('admin.business.show', compact('business', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
     }

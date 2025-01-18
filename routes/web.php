@@ -23,8 +23,10 @@ use App\Models\localPaymentTransactions;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use App\Models\Track;
+use App\Models\TransactionRecord;
 use App\Models\User;
 use App\Models\WebhookLog;
+use App\Models\Withdraw;
 use App\Services\Configuration;
 use App\Services\OnrampService;
 use App\Services\VitaBusinessAPI;
@@ -68,33 +70,7 @@ Route::view('onramp', 'welcome');
 
 
 Route::get('/', function () {
-    // return redirect()->to('https://yativo.com');
-    $countries = [
-        ["country" => "Austria", "iso2" => "AT", "currency" => "EUR"],
-        ["country" => "Belgium", "iso2" => "BE", "currency" => "EUR"],
-        ["country" => "Cyprus", "iso2" => "CY", "currency" => "EUR"],
-        ["country" => "Estonia", "iso2" => "EE", "currency" => "EUR"],
-        ["country" => "Finland", "iso2" => "FI", "currency" => "EUR"],
-        ["country" => "France", "iso2" => "FR", "currency" => "EUR"],
-        ["country" => "Germany", "iso2" => "DE", "currency" => "EUR"],
-        ["country" => "Greece", "iso2" => "GR", "currency" => "EUR"],
-        ["country" => "Ireland", "iso2" => "IE", "currency" => "EUR"],
-        ["country" => "Italy", "iso2" => "IT", "currency" => "EUR"],
-        ["country" => "Latvia", "iso2" => "LV", "currency" => "EUR"],
-        ["country" => "Lithuania", "iso2" => "LT", "currency" => "EUR"],
-        ["country" => "Luxembourg", "iso2" => "LU", "currency" => "EUR"],
-        ["country" => "Malta", "iso2" => "MT", "currency" => "EUR"],
-        ["country" => "Netherlands", "iso2" => "NL", "currency" => "EUR"],
-        ["country" => "Portugal", "iso2" => "PT", "currency" => "EUR"],
-        ["country" => "Slovakia", "iso2" => "SK", "currency" => "EUR"],
-        ["country" => "Slovenia", "iso2" => "SI", "currency" => "EUR"],
-        ["country" => "Spain", "iso2" => "ES", "currency" => "EUR"]
-    ];
-
-    foreach($countries as $k => $v) {
-        $get_country = Country::where('iso2', $v['iso2'])->first();
-        // add payin methods via transfi
-    }
+    return redirect()->to('https://yativo.com');
 });
 
 Route::get('omotowoju', function () {
@@ -122,11 +98,8 @@ Route::get('omotowoju', function () {
 });
 
 
-
-
 Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
 Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOnrampUrl']);
-
 
 
 
@@ -156,6 +129,13 @@ Route::get('clear', function () {
 
     // return response()->json(['result' => true]);
 });
+
+
+
+Route::any('callback/webhook/transfi', function () {
+    $incoming = request()->all();
+    Log::error("TRansfi", (array) $incoming);
+})->name('transfi.callback.success');
 
 
 Route::get('payouts', function () {
