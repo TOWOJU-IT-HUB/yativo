@@ -2,9 +2,9 @@ name: Deploy
 
 on:
   push:
-    branches: [master]
+    branches: [gcp_cloud]
   pull_request:
-    branches: [master]
+    branches: [gcp_cloud]
     
 jobs:
   deploy:
