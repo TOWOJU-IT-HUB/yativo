@@ -60,21 +60,21 @@ class BusinessController extends Controller
         $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $user->id)->get();
         $deposits = Deposit::latest()->limit(20)->where('user_id', $user->id)->get();
         $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $user->id)->get();
-        
+
         // $business = $user;
 
-        return [
-            "business" => $business,
-            "user" => $user,
-            "customers" => $customers,
-            "virtualAccounts" => $virtualAccounts,
-            "virtualCards" => $virtualCards,
-            "transactions" => $transactions,
-            "deposits" => $deposits,
-            "withdrawals" => $withdrawals,
-        ];
+        // return [
+        //     "business" => $business,
+        //     "user" => $user,
+        //     "customers" => $customers,
+        //     "virtualAccounts" => $virtualAccounts,
+        //     "virtualCards" => $virtualCards,
+        //     "transactions" => $transactions,
+        //     "deposits" => $deposits,
+        //     "withdrawals" => $withdrawals,
+        // ];
 
-        return view('admin.business.show', compact('business', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
+        return view('admin.business.show', compact('business', 'user', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
     }
 
     /**
@@ -135,5 +135,15 @@ class BusinessController extends Controller
         }
     }
 
-
+    public function approve_business($userId)
+    {
+        $user = User::findorfail($userId);
+        if ($user) {
+            $user->update([
+                'kyc_status' => 'approved'
+            ]);
+            return redirect()->back()->with('success', 'Business approved successfully');
+        }
+        return redirect()->back()->with('error', 'Business not found');
+    }
 }

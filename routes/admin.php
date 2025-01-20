@@ -51,6 +51,7 @@ Route::prefix('backoffice')->group(function () {
             Route::prefix('business')->group(function () {
                 Route::get('/', [BusinessController::class, 'index'])->name('businesses.index');
                 Route::get('show/{id}', [BusinessController::class, 'show'])->name('businesses.show');
+                Route::get('approve/{userId}', [BusinessController::class, 'approve_business'])->name('business.approve');
             });
         });
         Route::get('/', [AdminController::class, 'index'])->name('index');

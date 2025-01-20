@@ -442,7 +442,7 @@ if (!function_exists('save_base64_image')) {
     function save_base64_image($path, $imagePath)
     {
         $result = null;
-        
+
         if (!empty($imagePath) && file_exists($imagePath)) {
             // Assuming user is authenticated; modify if needed
             $user = request()->user();
@@ -455,7 +455,7 @@ if (!function_exists('save_base64_image')) {
             // Generate and return the full Cloudflare URL
             $result = getenv("CLOUDFLARE_BASE_URL") . $imgPath;
         }
-        
+
         return $result;
     }
 }
@@ -1182,12 +1182,42 @@ if (!function_exists('update_deposit_gateway_id')) {
     function update_deposit_gateway_id($depositId, $gatewayDepositId)
     {
         $deposit = Deposit::find($depositId);
-        if($deposit){
+        if ($deposit) {
             $deposit->gateway_deposit_id = $gatewayDepositId;
             $deposit->save();
         }
     }
 }
+
+if (!function_exists('generateTableFromArray')) {
+    function generateTableFromArray($data)
+    {
+        // Start the table structure
+        $html = '<table class="table table-bordered table-striped w-full mt-4">';
+
+        // Iterate over the array to create table rows
+        foreach ($data as $key => $value) {
+            // Check if the value is an array itself (nested data)
+            if (is_array($value)) {
+                // If so, recursively call the function to handle the nested array
+                $html .= '<tr><th colspan="2">' . ucfirst(str_replace('_', ' ', $key)) . '</th></tr>';
+                $html .= '<tr><td colspan="2">' . generateTableFromArray($value) . '</td></tr>';
+            } else {
+                // If it's a simple key-value pair, display it in a row
+                $html .= '<tr>';
+                $html .= '<td><strong>' . ucfirst(str_replace('_', ' ', $key)) . '</strong></td>';
+                $html .= '<td>' . htmlspecialchars($value) . '</td>';
+                $html .= '</tr>';
+            }
+        }
+
+        // Close the table
+        $html .= '</table>';
+
+        return $html;
+    }
+}
+
 
 if (!function_exists('config_can_peform')) {
     /**

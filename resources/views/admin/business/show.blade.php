@@ -49,6 +49,13 @@
         <div class="container mx-auto p-6">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Business Details</h1>
+                @if($user->kyc_status == null && $user->is_kyc_submitted == true)
+                <a href="{{ route('admin.business.approve', $user->id) }}">
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-xl">
+                        Approve Business
+                    </button>
+                </a>
+                @endif
             </div>
 
             <!-- Tabs -->
@@ -64,17 +71,84 @@
 
             <!-- Tab Content: Overview -->
             <div id="overview" class="tab-content active">
-                <div >
+                <div>
                     <h2 class="text-xl font-semibold">Overview</h2>
-                    <p class="text-gray-700 dark:text-gray-300">Business Legal Name: <?= $business->business_legal_name ?>
+                    
+                    <!-- Business Legal Name -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Business Legal Name:</strong> {{ $business->business_legal_name }}
                     </p>
-                    <p class="text-gray-700 dark:text-gray-300">Operating Name: <?= $business->business_operating_name ?>
+                    
+                    <!-- Operating Name -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Operating Name:</strong> {{ $business->business_operating_name }}
                     </p>
-                    <p class="text-gray-700 dark:text-gray-300">Country: <?= $business->incorporation_country ?></p>
-                    <p class="text-gray-700 dark:text-gray-300">Created At:
-                        <?= date('d M Y, h:i A', strtotime($business->created_at)) ?></p>
+                    
+                    <!-- Country -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Country:</strong> {{ $business->incorporation_country }}
+                    </p>
+                    
+                    <!-- Created At -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Created At:</strong> {{ \Carbon\Carbon::parse($business->created_at)->format('d M Y, h:i A') }}
+                    </p>
+                    
+                    <!-- Business Description -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Business Description:</strong> {!! nl2br(e($business->business_description)) !!}
+                    </p>
+                    
+                    <!-- Business Website -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Website:</strong> <a href="{{ $business->business_website }}" target="_blank">{{ $business->business_website }}</a>
+                    </p>
+                    
+                    <!-- Entity Type -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Entity Type:</strong> {{ $business->entity_type }}
+                    </p>
+                    
+                    <!-- Business Registration Number -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Business Registration Number:</strong> {{ $business->business_registration_number }}
+                    </p>
+                    
+                    <!-- Business Tax ID -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Business Tax ID:</strong> {{ $business->business_tax_id }}
+                    </p>
+                    
+                    <!-- Industry -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Industry:</strong> {{ $business->business_industry }}
+                    </p>
+                    
+                    <!-- Sub Industry -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Sub Industry:</strong> {{ $business->business_sub_industry }}
+                    </p>
+                    
+                    <!-- Account Purpose -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Account Purpose:</strong> {{ $business->account_purpose }}
+                    </p>
+                    
+                    <!-- Plan of Use -->
+                    <p class="text-gray-700 dark:text-gray-300">
+                        <strong>Plan of Use:</strong> {{ $business->plan_of_use }}
+                    </p>
+
+                    <!-- Verification Data Section with Box Shadow -->
+                    <div class="mt-6 p-4 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+                        <h3 class="text-lg font-semibold mb-4">Verification Information</h3>
+                        <?= generateTableFromArray($business->business_verification_response) ?>
+                        <!-- Verification Email -->
+
+                    </div>
                 </div>
             </div>
+
 
             <!-- Tab Content: Customers -->
             <div id="customers" class="tab-content">
