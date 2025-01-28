@@ -13,7 +13,6 @@
     {{-- @vite('resources/css/app.css') --}}
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @stack('css')
     {{-- <script src="//unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script> --}}
     <meta name="description"
         content="YATIVO! Build Financial Solutions with Yativo Create and launch products that enable your users hold funds, pay bills, open bank accounts, make cross-border payments and do so much more. Join Waitlist Currently in private beta Serve users in: Launch in Days, not Months Our APIs are easy to integrate, and enables you go live in" />
@@ -40,6 +39,7 @@
     <meta name="twitter:image"
         content="https://yativo.com/wp-content/uploads/2024/04/Yativo-512x512-black_090554.png" />
     <meta name="robots" content="noindex,follow" />
+    @stack('css')
 </head>
 
 <body x-data="{ page: 'Modals', 'loaded': true, 'darkMode': true, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }" x-init="darkMode = JSON.parse(localStorage.getItem('darkMode'));

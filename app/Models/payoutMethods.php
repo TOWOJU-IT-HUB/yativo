@@ -31,7 +31,18 @@ class payoutMethods extends Model
     ];
 
     protected $hidden = [
-        // "gateway",
+        "payment_mode",
+        "charges_type",
+        "fixed_charge",
+        "float_charge",
+        "estimated_delivery",
+        "pro_fixed_charge",
+        "pro_float_charge",
+        "minimum_withdrawal",
+        "maximum_withdrawal",
+        "minimum_charge",
+        "maximum_charge",
+        "gateway",
         "created_at",
         "updated_at",
         "deleted_at"

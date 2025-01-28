@@ -42,8 +42,8 @@ use Towoju5\Localpayments\Localpayments;
  * 
  * @category Wallet_Top_Up
  * @package  Null
- * @author   Emmanuel A Towoju <towojuads@gmail.com>
- * @license  MIT www.yativo.com/license
+ * @author   Emmanuel A Towoju <emma@yativo.com>
+ * @license  YAT - www.yativo.com/license
  * @link     www.yativo.com
  */
 

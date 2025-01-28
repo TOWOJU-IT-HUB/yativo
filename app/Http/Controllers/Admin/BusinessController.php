@@ -63,16 +63,16 @@ class BusinessController extends Controller
 
         // $business = $user;
 
-        // return [
-        //     "business" => $business,
-        //     "user" => $user,
-        //     "customers" => $customers,
-        //     "virtualAccounts" => $virtualAccounts,
-        //     "virtualCards" => $virtualCards,
-        //     "transactions" => $transactions,
-        //     "deposits" => $deposits,
-        //     "withdrawals" => $withdrawals,
-        // ];
+        return [
+            "business" => $business,
+            "user" => $user,
+            "customers" => $customers,
+            "virtualAccounts" => $virtualAccounts,
+            "virtualCards" => $virtualCards,
+            "transactions" => $transactions,
+            "deposits" => $deposits,
+            "withdrawals" => $withdrawals,
+        ];
 
         return view('admin.business.show', compact('business', 'user', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
     }

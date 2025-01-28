@@ -72,6 +72,8 @@ class TransFiController extends Controller
             // Wait for the response and decode the result
             $result = $response->json();
 
+            // var_dump($result); exit;
+
             // Ensure the response contains an orderId
             if (!isset($result['orderId'])) {
                 return ['error' => 'Failed to process the transaction. Missing order ID in response.'];
@@ -81,7 +83,6 @@ class TransFiController extends Controller
             update_deposit_gateway_id($deposit_id, $result['orderId']);
 
             return $result;
-
         } catch (\Exception $e) {
             return ['error' => 'Transaction processing failed: ' . $e->getMessage()];
         }
@@ -93,7 +94,7 @@ class TransFiController extends Controller
         $customer = $this->getCustomerInfo();
         try {
             $additionalDetails = [];
-            foreach($payoutObj['additionalDetails'] as $key => $value) {
+            foreach ($payoutObj['additionalDetails'] as $key => $value) {
                 $additionalDetails[$key] = $value;
             }
 
@@ -193,81 +194,75 @@ class TransFiController extends Controller
         }
     }
 
-    public function kycForm($data)
+    public function kycForm(Request $request)
     {
         try {
             $user = auth()->user();
-            if (isset($user->transfi_user_id) && null != $user->transfi_user_id) {
-                $transfiUser = $user->transfi_user_id;
-            } else {
-                $transfiUser = $this->addCustomer($data);
-                if (isset($transfiUser['error'])) {
-                    return $transfiUser;
-                }
-                $transfi_user_id = $transfiUser['userId'];
+            $transfi_user_id = $user->transfi_user_id ?? $this->processUserType($request);
+
+            if (isset($transfi_user_id['error'])) {
+                return $transfi_user_id;
             }
 
             $response = Http::asMultipart()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
             ])->post(
-                    $this->apiUrl . '/kyc/share/third-vendor',
-                    [
-                        'email' => $data['email'],
-                        'idDocExpiryDate' => $data['idExpirationDate'],
-                        'idDocUserName' => "{$data['first_name']} {$data['last_name']}",
-                        'idDocType' => 'id_card',
-                        'idDocFrontSide' => $data['gov_id_image_front'],
-                        'idDocBackSide' => $data['gov_id_image_back'],
-                        'selfie' => $data['selfieimage'],
-                        'gender' => $data['gender'],
-                        'phoneNo' => $data['phone'],
-                        'idDocIssuerCountry' => $data['gov_id_country'],
-                        'street' => $data['address']['street_line_1'],
-                        'city' => $data['address']['city'],
-                        'state' => $data['address']['state'],
-                        'country' => $data['address']['country'],
-                        'dob' => $data['dob'],
-                        'postalCode' => $data['address']['postal_code'],
-                        'firstName' => $data['first_name'],
-                        'lastName' => $data['last_name'],
-                        'userId' => $transfi_user_id,
-                        'nationality' => $data['country']
-                    ]
-                );
+                $this->apiUrl . '/kyc/share/third-vendor',
+                [
+                    'email' => $request->email,
+                    'idDocExpiryDate' => $request->idExpirationDate,
+                    'idDocUserName' => "{$request->first_name} {$request->last_name}",
+                    'idDocType' => 'id_card',
+                    'idDocFrontSide' => $request->gov_id_image_front,
+                    'idDocBackSide' => $request->gov_id_image_back,
+                    'selfie' => $request->selfieimage,
+                    'gender' => $request->gender,
+                    'phoneNo' => $request->phone,
+                    'idDocIssuerCountry' => $request->gov_id_country,
+                    'street' => $request->address['street_line_1'],
+                    'city' => $request->address['city'],
+                    'state' => $request->address['state'],
+                    'country' => $request->address['country'],
+                    'dob' => $request->dob,
+                    'postalCode' => $request->address['postal_code'],
+                    'firstName' => $request->first_name,
+                    'lastName' => $request->last_name,
+                    'userId' => $transfi_user_id,
+                    'nationality' => $request->country,
+                ]
+            );
 
-            // Check the response
             if ($response->successful()) {
                 return $response->json();
             } else {
                 return [
                     'error' => $response->status(),
-                    'message' => $response->body()
+                    'message' => $response->body(),
                 ];
             }
-
         } catch (\Throwable $th) {
-            //throw $th;
+            return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
 
-    private function addCustomer($data)
+    private function addCustomer($request)
     {
         try {
             $user = auth()->user();
             $userData = [
-                'firstName' => $data['first_name'],
-                'lastName' => $data['last_name'],
-                'date' => $data['dob'],
-                'email' => $data['email'],
-                'country' => $data['address']['country'],
-                'gender' => $data['gender'],
-                'phone' => $data['phone'],
+                'firstName' => $request->first_name,
+                'lastName' => $request->last_name,
+                'date' => $request->dob,
+                'email' => $request->email,
+                'country' => $request->address['country'],
+                'gender' => $request->gender,
+                'phone' => $request->phone,
                 'address' => [
-                    'street' => $data['address']['street_line_1'],
-                    'city' => $data['address']['city'],
-                    'state' => $data['address']['state'],
-                    'postalCode' => $data['address']['postal_code'],
+                    'street' => $request->address['street_line_1'],
+                    'city' => $request->address['city'],
+                    'state' => $request->address['state'],
+                    'postalCode' => $request->address['postal_code'],
                 ],
             ];
 
@@ -278,26 +273,23 @@ class TransFiController extends Controller
 
             if ($response->successful()) {
                 $result = $response->json();
-                $user->update(['transfi_user_id', $result['userId']]);
-                return $result;
+                $user->update(['transfi_user_id' => $result['userId']]);
+                return $result['userId'];
             } else {
                 return [
                     'error' => $response->status(),
-                    'message' => $response->body()
+                    'message' => $response->body(),
                 ];
             }
         } catch (\Throwable $th) {
-            return [
-                'error' => $th->getMessage(),
-                'message' => $th->getMessage()
-            ];
+            return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
 
-    public function addBusiness($data)
+
+    public function addBusiness($request)
     {
         try {
-            $request = request();
             $user = auth()->user();
             $userData = [
                 'businessName' => $request->business_name,
@@ -307,10 +299,10 @@ class TransFiController extends Controller
                 'phone' => $request->business_mobile,
                 'regNo' => $request->international_number,
                 'address' => [
-                    'street' => $data['address']['street_line_1'],
-                    'city' => $data['address']['city'],
-                    'state' => $data['address']['state'],
-                    'postalCode' => $data['address']['postal_code'],
+                    'street' => $request->address['street_line_1'],
+                    'city' => $request->address['city'],
+                    'state' => $request->address['state'],
+                    'postalCode' => $request->address['postal_code'],
                 ],
             ];
 
@@ -321,16 +313,25 @@ class TransFiController extends Controller
 
             if ($response->successful()) {
                 $result = $response->json();
-                $user->update(['transfi_user_id', $result['userId']]);
+                $user->update(['transfi_user_id' => $result['userId']]);
                 return $result;
             } else {
                 return [
                     'error' => $response->status(),
-                    'message' => $response->body()
+                    'message' => $response->body(),
                 ];
             }
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
+    }
+
+    private function processUserType($request)
+    {
+        if($request->type == "business") {
+            return $this->addBusiness($request);
+        } 
+
+        return $this->addCustomer($request);
     }
 }

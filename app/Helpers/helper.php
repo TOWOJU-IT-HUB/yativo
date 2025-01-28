@@ -5,6 +5,7 @@ use App\Models\Balance;
 use App\Models\Business;
 use App\Models\BusinessConfig;
 use App\Models\Country;
+use App\Models\CustomPricing;
 use App\Models\Deposit;
 use App\Models\ExchangeRate;
 use App\Models\Gateways;
@@ -119,13 +120,13 @@ if (!function_exists('settings')) {
      *
      * @return string
      */
-    function settings(string $key): string
+    function settings(string $key, $default = null): string
     {
         $setting = Settings::where('meta_key', $key)->first();
         if (!empty($setting)) {
             $setting = $setting->meta_value;
         } else {
-            return "$key not Found!";
+            return $default;
         }
 
         return $setting;
@@ -431,7 +432,6 @@ if (!function_exists('save_image')) {
             }
 
             return getenv("CLOUDFLARE_BASE_URL") . $imgPath;
-
         }
         return $result;
     }
@@ -743,7 +743,6 @@ if (!function_exists("generateSignature")) {
 
         return ($result);
     }
-
 }
 
 if (!function_exists("url_request")) {
@@ -841,7 +840,6 @@ if (!function_exists('decryptCustomerData')) {
 
         return $finalData;
     }
-
 }
 
 if (!function_exists('decryptCustomerData')) {
@@ -980,7 +978,6 @@ if (!function_exists('debit_user_wallet')) {
             ]);
 
             return ['success' => true, 'message' => 'Transaction completed successfully'];
-
         } catch (InsufficientFunds $exception) {
             // User doesn't have enough balance in wallet
             return ['error' => $exception->getMessage()];
@@ -1055,44 +1052,53 @@ if (!function_exists('get_transaction_fee')) {
                 $user->subscribeTo($plan, 30, true);
             }
         }
+
         $subscription = $user->activeSubscription();
-        if ((int) $subscription->plan_id !== 3) {
-            $user_plan = (int) $subscription->plan_id;
-            if (strtolower($gateway_type) == "payin"):
-                $gateway = PayinMethods::whereId($gateway)->first();
-            elseif (strtolower($gateway_type) == "payout"):
-                $gateway = payoutMethods::whereId($gateway)->first();
-            else:
-                abort(json_encode(['error' => "Invalid gateway selected"]));
-            endif;
+        $user_plan = (int) $subscription->plan_id;
 
-            // Calculate charges based on user plan
-            if ($user_plan === 1) {
-                $fixed_charge = $gateway->fixed_charge;
-                $float_charge = $gateway->float_charge;
-            } elseif ($user_plan === 2) {
-                $fixed_charge = $gateway->pro_fixed_charge;
-                $float_charge = $gateway->pro_float_charge;
+        // Handle gateway logic
+        if (strtolower($gateway_type) == "payin"):
+            $gateway = PayinMethods::whereId($gateway)->first();
+        elseif (strtolower($gateway_type) == "payout"):
+            $gateway = payoutMethods::whereId($gateway)->first();
+        else:
+            abort(json_encode(['error' => "Invalid gateway selected"]));
+        endif;
+
+        if ($user_plan === 3) {
+            // Handle custom pricing (Plan 3)
+            $customPricing = CustomPricing::where('user_id', $user->id)
+                ->where('gateway_id', $gateway->id)
+                ->first();
+
+            if (!$customPricing) {
+                abort(json_encode(['error' => "Custom pricing not set for this user and gateway"]));
             }
 
-            // Calculate the fee
-            $fee = $fixed_charge;
-            $rate = $float_charge;
-            $rate_floated_amount = ($amount * $rate) / 100;
-
-            $total_charge = $fee + $rate_floated_amount;
-            $minimum_charge = $gateway->minimum_charge;
-            $maximum_charge = $gateway->maximum_charge;
-
-            // Compare total charge with minimum and maximum charges
-            if ($total_charge < $minimum_charge) {
-                $total_charge = $minimum_charge;
-            } elseif ($total_charge > $maximum_charge) {
-                $total_charge = $maximum_charge;
-            }
-
-            return $fee;
+            $fixed_charge = $customPricing->fixed_charge;
+            $float_charge = $customPricing->float_charge;
+        } elseif ($user_plan === 1 || $user_plan === 2) {
+            // Handle basic and pro plans
+            $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
+            $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
         }
+
+        // Calculate the fee
+        $fee = $fixed_charge;
+        $rate = $float_charge;
+        $rate_floated_amount = ($amount * $rate) / 100;
+
+        $total_charge = $fee + $rate_floated_amount;
+        $minimum_charge = $gateway->minimum_charge;
+        $maximum_charge = $gateway->maximum_charge;
+
+        // Compare total charge with minimum and maximum charges
+        if ($total_charge < $minimum_charge) {
+            $total_charge = $minimum_charge;
+        } elseif ($total_charge > $maximum_charge) {
+            $total_charge = $maximum_charge;
+        }
+
         return $fee;
     }
 }

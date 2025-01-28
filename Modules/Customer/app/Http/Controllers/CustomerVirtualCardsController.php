@@ -173,9 +173,12 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => "Customer with the provided ID not found!"]);
             }
 
-            if ((bool)$cust->can_create_vc === false || $cust->vc_customer_id == null) {
-                return get_error_response(['error' => "Customer not approved for this service"]);
-            }
+            // if ((bool)$cust->can_create_vc === false || $cust->vc_customer_id == null) {
+            //     return get_error_response(['error' => "Customer not approved for this service"]);
+            // }
+
+            // debit user for card creation
+            debit_user_wallet(settings('virtual_card_creation', 5), "USD", "Virtual Card Creation");
 
             // Ensure the customer_email field is available and correctly fetched
             if (!$cust->customer_email) {
@@ -243,10 +246,12 @@ class CustomerVirtualCardsController extends Controller
             }
 
             if (isset($create['errorCode']) || isset($create['error'])) {
+                // credit_user_wallet();
                 return get_error_response($create["message"] ?? $create);
             }
 
             if (isset($create['statusCode']) || isset($create['error'])) {
+                // credit_user_wallet();
                 return get_error_response($create["message"] ?? $create);
             }
         } catch (\Throwable $th) {

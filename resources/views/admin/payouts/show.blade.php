@@ -276,30 +276,31 @@
                 </div>
 
                 <div id="user" class="tab-content hidden space-y-4">
+                    @if(isset($payout->user) && !empty($payout->user))
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
                             <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Name</h3>
-                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->firstName }}
-                                {{ $payout->user->lastName }}</p>
+                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->firstName ?? 'N/A' }}
+                                {{ $payout->user->lastName ?? 'N/A' }}</p>
                         </div>
                         <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
                             <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Email</h3>
-                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->email }}</p>
+                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->email ?? 'N/A' }}</p>
                         </div>
                         <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
                             <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Business Name</h3>
-                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->businessName }}</p>
+                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->businessName  ?? 'N/A'}}</p>
                         </div>
                         <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
                             <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Phone Number</h3>
-                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->phoneNumber }}</p>
+                            <p class="text-gray-600 dark:text-gray-300">{{ $payout->user->phoneNumber ?? 'N/A' }}</p>
                         </div>
                         <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
                             <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Address</h3>
                             <p class="text-gray-600 dark:text-gray-300">
-                                {{ $payout->user->street }} {{ $payout->user->houseNumber }},
-                                {{ $payout->user->city }}, {{ $payout->user->state }},
-                                {{ $payout->user->zipCode }}, {{ $payout->user->country }}
+                                {{ $payout->user->street  ?? 'N/A'}} {{ $payout->user->houseNumber  ?? 'N/A'}},
+                                {{ $payout->user->city  ?? 'N/A'}}, {{ $payout->user->state  ?? 'N/A'}},
+                                {{ $payout->user->zipCode  ?? 'N/A'}}, {{ $payout->user->country ?? 'N/A' }}
                             </p>
                         </div>
                         <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
@@ -329,6 +330,7 @@
                             </p>
                         </div>
                     </div>
+                    @endif
                 </div>
 
 

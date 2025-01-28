@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BeneficiaryFoemsController;
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\PlansController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\Business\WithdrawalController;
@@ -25,7 +26,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Business\TeamController;
 use App\Http\Controllers\FincraVirtualAccountController;
-
+use App\Http\Middleware\IdempotencyMiddleware;
+use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +54,9 @@ Route::group(['prefix' => 'v1/locations'], function () {
 
 
 Route::group(['prefix' => 'v1/auth'], function () {
+    Route::get('verification-locations', [BridgeController::class, 'getCustomerRegistrationCountries']);
+    Route::get('occupation-codes', [DojahVerificationController::class, 'occupationCodes']);
+
     Route::post('register', [AuthController::class, 'register']);
     Route::post('register/social', [AuthController::class, 'socialLogin']);
     Route::post('login', [AuthController::class, 'login']);
@@ -70,7 +75,7 @@ Route::group(['prefix' => 'v1/auth'], function () {
 });
 
 
-Route::middleware(['auth:api', 'kyc_check'])->prefix('v1')->name('api.')->group(function () {
+Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->prefix('v1')->name('api.')->group(function () {
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
 
     Route::prefix('crypto')->group(function () {

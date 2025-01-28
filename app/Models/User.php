@@ -21,18 +21,62 @@ use Yadahan\AuthenticationLog\AuthenticationLogable;
 
 class User extends Authenticatable implements JWTSubject
 {
-    use HasApiTokens, HasFactory, HasProfilePhoto, Notifiable, TwoFactorAuthenticatable, 
-        AuthenticationLogable, HasRoles, HasWallet, HasWalletFloat, HasWallets, SoftDeletes, HasPlans;
+    use HasApiTokens,
+        HasFactory,
+        HasProfilePhoto,
+        Notifiable,
+        TwoFactorAuthenticatable,
+        AuthenticationLogable,
+        HasRoles,
+        HasWallet,
+        HasWalletFloat,
+        HasWallets,
+        SoftDeletes,
+        HasPlans;
 
     protected $fillable = [
-        'name', 'email', 'businessName', 'firstName', 'lastName', 'phoneNumber',
-        'city', 'state', 'country', 'zipCode', 'street', 'additionalInfo', 'houseNumber',
-        'is_business', 'user_type', 'raw_data', 'google2fa_secret', 'transaction_pin',
-        'wallet_balance', 'login_token', 'idNumber', 'idType', 'idIssuedAt', 'idExpiryDate',
-        'idIssueDate', 'verificationDocument', 'use_cases', 'occupation', 'how_much_to_move_monthly',
-        'monthly_payment_quantity', 'registration_country', 'profile_photo_path', 'email_verified_at',
-        'two_factor_confirmed_at', 'current_team_id', 'login_token_created_at', 'google2fa_enabled',
-        'membership_id', 'kyc_status', 'is_kyc_submitted', 'last_login_at', 'is_pnd'
+        'name',
+        'email',
+        'businessName',
+        'firstName',
+        'lastName',
+        'phoneNumber',
+        'city',
+        'state',
+        'country',
+        'zipCode',
+        'street',
+        'additionalInfo',
+        'houseNumber',
+        'is_business',
+        'user_type',
+        'raw_data',
+        'google2fa_secret',
+        'transaction_pin',
+        'wallet_balance',
+        'login_token',
+        'idNumber',
+        'idType',
+        'idIssuedAt',
+        'idExpiryDate',
+        'idIssueDate',
+        'verificationDocument',
+        'use_cases',
+        'occupation',
+        'how_much_to_move_monthly',
+        'monthly_payment_quantity',
+        'registration_country',
+        'profile_photo_path',
+        'email_verified_at',
+        'two_factor_confirmed_at',
+        'current_team_id',
+        'login_token_created_at',
+        'google2fa_enabled',
+        'membership_id',
+        'kyc_status',
+        'is_kyc_submitted',
+        'last_login_at',
+        'is_pnd'
     ];
 
     protected $with = [
@@ -42,10 +86,28 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     protected $hidden = [
-        // 'password', 'remember_token', 'two_factor_recovery_codes', 'two_factor_secret',
-        // 'created_at', 'updated_at', 'deleted_at', 'raw_data', 'google2fa_secret',
-        // 'transaction_pin', 'wallet_balance', 'login_token', 'idIssuedAt', 'idExpiryDate',
-        // 'idIssueDate', 'verificationDocument'
+        'password',
+        'remember_token',
+        'two_factor_recovery_codes',
+        'two_factor_secret',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+        'raw_data',
+        'google2fa_secret',
+        'transaction_pin',
+        'wallet_balance',
+        'login_token',
+        'idIssuedAt',
+        'idExpiryDate',
+        'idIssueDate',
+        'verificationDocument',
+        'kyc_status',
+        'is_kyc_submitted',
+        'idNumber',
+        'idType',
+        'is_pnd',
+        'bussinessName'
     ];
 
     protected $casts = [
@@ -130,5 +192,10 @@ class User extends Authenticatable implements JWTSubject
     public function subscriptions()
     {
         return $this->morphMany(PlanSubscriptionModel::class, 'model');
+    }
+
+    public function customPricing()
+    {
+        return $this->hasOne(CustomPricing::class);
     }
 }
