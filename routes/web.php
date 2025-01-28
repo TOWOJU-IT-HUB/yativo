@@ -24,6 +24,7 @@ use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
 use App\Http\Controllers\CoinbaseOnrampController;
+use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -98,6 +99,7 @@ Route::group([], function () {
 
     // Bridge webhook callback
     Route::any('callback/webhook/bridge', [BridgeController::class, 'BridgeWebhook'])->name('bridge.callback.success');
+    Route::any('callback/webhook/customer-kyc', [DojahVerificationController::class, 'KycWebhook'])->name('kyc.callback.success');
 
 
     Route::any('callback/webhook/vitawallet', [VitaWalletController::class, 'callback'])->name('vitawallet.callback.success');

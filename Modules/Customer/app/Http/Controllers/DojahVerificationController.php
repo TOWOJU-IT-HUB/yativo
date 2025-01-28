@@ -11,14 +11,36 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\DojahVerification;
 use Modules\Customer\App\Services\DojahServices;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Towoju5\Bitnob\Bitnob;
 
+/* The `DojahVerificationController` class in PHP handles customer verification, KYC webhook
+    processing, KYC status requests, and occupation code retrieval with error handling and webhook
+    notifications.
+ */
+
 class DojahVerificationController extends Controller
 {
+    /**
+     * The function `customerVerification` in PHP validates customer data, generates a signed agreement
+     * ID, interacts with external APIs for customer registration, and triggers a webhook notification
+     * upon successful customer creation.
+     * 
+     * @param Request request The `customerVerification` function is a PHP method that handles the
+     * verification of customer information based on the provided request data. It performs validation
+     * on the request data according to specified rules for individual and business customers. If the
+     * validation fails, it returns a JSON response with validation errors. If the validation passes,
+     * 
+     * @return The `customerVerification` function returns a JSON response. If the validation fails, it
+     * returns validation errors with a status code of 422. If there are any errors during the process,
+     * it returns an error response with the corresponding message and status code 500. If the process
+     * is successful, it returns a success response with the data obtained from the `BridgeController`
+     * and a status code of 200
+     */
     public function customerVerification(Request $request)
     {
         $rules = [
@@ -147,6 +169,15 @@ class DojahVerificationController extends Controller
         }
     }
 
+    /**
+     * The function generates a signed agreement ID by making a POST request to a specific URL with certain
+     * parameters.
+     * 
+     * @return The function `generateSignedAgreementId` is making a POST request to
+     * https://monorail.onrender.com/dashboard/generate_signed_agreement_id with specific parameters. It
+     * then retrieves the response and returns the value of the key 'signed_agreement_id' from the JSON
+     * response.
+     */
     private function generateSignedAgreementId()
     {
         $curl = Http::post("https://monorail.onrender.com/dashboard/generate_signed_agreement_id", [
@@ -161,39 +192,90 @@ class DojahVerificationController extends Controller
     }
 
 
+    /**
+     * The PHP function `KycWebhook` processes a KYC webhook request, updates customer KYC status, and
+     * sends a notification to a webhook URL if conditions are met.
+     * 
+     * @param Request request The code snippet you provided is a PHP function that handles a KYC (Know Your
+     * Customer) webhook request. Let me explain the key points of the code:
+     * 
+     * @return The function `KycWebhook` returns a JSON response based on the conditions and processing
+     * within the function. Here are the possible return scenarios:
+     */
     public function KycWebhook(Request $request)
     {
         try {
-            if (strtoupper($_SERVER['REQUEST_METHOD']) == 'POST' && array_key_exists('x-dojah-signature', $_SERVER)) {
-                //get the request body
-                $input = @file_get_contents("php://input");
+            // Check if the request method is POST and the webhook signature is provided
+            if ($request->isMethod('post') && $request->hasHeader('x-webhook-signature') && ($request->event_type == 'customer.created')) {
+                // Get the request body
+                $input = $request->getContent();
 
-                define('DOJAH_SECRET_KEY', getenv("DOJA_PRIVATE_KEY"));
-                //validate request
-                if ($_SERVER['HTTP_X_DOJAH_SIGNATURE'] === hash_hmac('sha256', $input, DOJAH_SECRET_KEY)) {
-                    http_response_code(200);
+                // Decode the JSON payload to an associative array
+                $data = json_decode($input, true);
 
-                    //parse event
-                    $event = json_decode($input, true);
-
-                    if (!isset($event['referenceId'])) {
-                        Log::formatMessage($request->all());
-                    }
-                    unset($event['verificationUrl']);
-                    $db_event = $event;
-
-                    // since reference ID is set locate the verification type and update record
-
-                    // check if it's customer
-                    //send webhook with status
+                $customer = Customer::where('email', $data['event_object']['email'])->first();
+                if (!$customer) {
+                    return response()->json(['message' => 'Customer not found'], 404);
                 }
+
+                if ($data['event_type'] != 'customer.created') {
+                    return response()->json(['message' => 'ok'], 200);
+                }
+
+                // Extract the important KYC data
+                $kycData = [
+                    'first_name' => $data['event_object']['first_name'],
+                    'last_name' => $data['event_object']['last_name'],
+                    'email' => $data['event_object']['email'],
+                    'status' => $data['event_object']['status'],
+                    'customer_id' => $customer->customer_id,
+                ];
+
+                // Log the KYC data for debugging
+                Log::info('KYC Webhook Received:', $kycData);
+
+                // Process the KYC data
+                $customer->update([
+                    'customer_kyc_status' => $data['event_object']['status']
+                ]);
+
+                // Send a success response
+                $userId = $customer->user_id;
+
+                // Queue webhook notification
+                dispatch(function () use ($userId, $kycData) {
+                    $webhook = Webhook::whereUserId($userId)->first();
+                    if ($webhook) {
+                        WebhookCall::create()
+                            ->meta(['_uid' => $webhook->user_id])
+                            ->url($webhook->url)
+                            ->useSecret($webhook->secret)
+                            ->payload([
+                                "event.type" => "customer.created",
+                                "payload" => $kycData,
+                            ])
+                            ->dispatchSync();
+                    }
+                })->afterResponse();
+                return response()->json(['message' => 'Webhook received successfully'], 200);
+            } else {
+                return response()->json(['error' => 'Invalid request method or missing signature'], 400);
             }
-            exit();
-        } catch (\Throwable $th) {
-            Log::formatMessage($request->all());
+        } catch (\Exception $e) {
+            Log::error('Error processing KYC Webhook: ' . $e->getMessage());
+            return response()->json(['error' => 'Internal Server Error'], 500);
         }
     }
 
+    /**
+     * The function kycStatus handles the KYC status request in PHP, with error handling using a try-catch
+     * block.
+     * 
+     * @param Request request The `` parameter in the `kycStatus` function is an instance of the
+     * `Request` class. It is typically used in Laravel applications to handle incoming HTTP requests and
+     * retrieve data from those requests. You can access request parameters, headers, and other information
+     * using this object.
+     */
     public function kycStatus(Request $request)
     {
         try {
@@ -203,6 +285,20 @@ class DojahVerificationController extends Controller
         }
     }
 
+    /**
+     * This PHP function retrieves occupation codes from an API and returns a success response with the
+     * data or an error response with the message if an exception occurs.
+     * 
+     * @param Request request The `occupationCodes` function is making a HTTP GET request to
+     * '//api.bridge.xyz/v0/lists/occupation_codes' to retrieve a list of occupation codes. If the
+     * request is successful, it returns a success response with the retrieved data. If an error occurs
+     * during the request, it catches the exception
+     * 
+     * @return The `occupationCodes` function is making a HTTP GET request to
+     * '//api.bridge.xyz/v0/lists/occupation_codes' to retrieve a list of occupation codes. If the
+     * request is successful, it returns a success response with the retrieved data. If an error occurs
+     * during the request, it returns an error response with the error message.
+     */
     public function occupationCodes(Request $request)
     {
         try {
