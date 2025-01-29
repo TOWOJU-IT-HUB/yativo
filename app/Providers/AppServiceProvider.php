@@ -2,13 +2,8 @@
 
 namespace App\Providers;
 
-use App\Mail\Transport\AzureTransport;
-use Artisan;
 use Auth;
 use DB;
-use GuzzleHttp\Client;
-use Http;
-use Illuminate\Mail\MailManager;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Log;
@@ -36,7 +31,7 @@ class AppServiceProvider extends ServiceProvider
                 $payload = $query->bindings;
                 $sql = $query->sql;
                 $executionTime = $query->time;
-    
+
                 Log::channel('database')->info('Database Query Executed', [
                     'ip' => $ip,
                     'query' => $sql,

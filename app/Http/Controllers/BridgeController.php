@@ -32,46 +32,19 @@ class BridgeController extends Controller
     public function addCustomerV1(array|object $customer = [])
     {
         $customer = (object) $customer;
-        $bridgePayload = [
-            "type" => "individual",
-            "first_name" => $customer->first_name ?? null,
-            "middle_name" => $customer->middle_name ?? null,
-            "last_name" => $customer->last_name ?? null,
-            'transliterated_first_name' => $customer->first_name ?? null,
-            'transliterated_middle_name' => $customer->middle_name ?? null,
-            'transliterated_last_name' => $customer->last_name ?? null,
-            "email" => $customer->email ?? null,
-            "phone" => $customer->phone ?? null,
-            "birth_date" => $customer->dob ?? null,
-            "address" => [
-                "street_line_1" => $customer->street ?? null,
-                "street_line_2" => $customer->landmark ?? null,
-                "city" => $customer->lga ?? null,
-                "state" => $customer->state ?? null,
-                "postal_code" => $customer->postal_code ?? null,
-                "country" => $customer->country ?? null,
-            ],
-            "gov_id_image_front" => $this->formatBase64Image($customer->imageFrontSide, 'jpeg'),
-            "gov_id_image_back" => $this->formatBase64Image($customer->imageBackSide, 'jpeg'),
-            "proof_of_address_document" => $this->formatBase64Image($customer->proof_of_address_document, 'jpeg'),
-            "tax_identification_number" => $customer->tax_identification_number,
-            "endorsements" => ["sepa"],
-            'signed_agreement_id' => 'string',
-            'gov_id_country' => $customer->gov_id_country,
-            'sof_eu_questionnaire' => [
-                'acting_as_intermediary' => 'yes',
-                'employment_status' => $customer->employment_status ?? 'employed',
-                'expected_monthly_payments' => $customer->expected_monthly_payments ?? '0_4999',
-                'most_recent_occupation' => $customer->most_recent_occupation ?? 'string',
-                'primary_purpose' => $customer->primary_purpose ?? 'business_transactions',
-                'primary_purpose_other' => $customer->primary_purpose_other ?? 'string',
-                'source_of_funds' => $customer->source_of_funds ?? 'business_income'
-            ]
-        ];
-        $tranfi = new TransFiController();
-        $tranfi->kycForm($bridgePayload);
+        
         $bridgeData = $this->sendRequest("/v0/customers", 'POST', $bridgePayload);
         return $bridgeData;
+    }
+
+    public function getCustomerRegistrationCountries(Request $request)
+    {
+        try {
+            $curl = $this->sendRequest("/v0/lists/countries", 'GET', []);
+            return get_success_response($curl);
+        } catch (\Throwable $th) {
+            return get_error_response(['error' => $th->getMessage()], 500);
+        }
     }
 
     public function addCustomer(array $customer = [])
@@ -390,7 +363,6 @@ class BridgeController extends Controller
     }
 
 
-
     public function sendRequest($endpoint, $method = "GET", $payload = [])
     {
         $method = strtolower($method);
@@ -438,5 +410,11 @@ class BridgeController extends Controller
 
         // Format as a proper data URI
         return "data:image/{$format};base64,{$encodedData}";
+    }
+
+    public function BridgeWebhook(Request $request)
+    {
+        // Get the request body
+        if()
     }
 }

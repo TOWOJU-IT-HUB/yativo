@@ -15,17 +15,17 @@ class KycStatusMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (auth()->check()) {
-            $user = auth()->user();
+        // if (auth()->check()) {
+        //     $user = auth()->user();
 
-            if (!str_starts_with(request()->path(), 'api/v1/business') && ($user->kyc_status != 'approved' || $user->is_kyc_submitted == false)) {
-                return get_error_response(['error' => 'KYC is pending, please complete the KYC process to access this feature'], 403);
-            }            return $next($request);
-        }
+        //     if (!str_starts_with(request()->path(), 'api/v1/business') && ($user->kyc_status != 'approved' || $user->is_kyc_submitted == false)) {
+        //         return get_error_response(['error' => 'KYC is pending, please complete the KYC process to access this feature'], 403);
+        //     }            return $next($request);
+        // }
 
         return $next($request);
     }
 }
 
 
-app/Http/Middleware/KycStatusMiddleware.php
+// app/Http/Middleware/KycStatusMiddleware.php

@@ -6,53 +6,25 @@ use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CronController;
 use App\Http\Controllers\CryptoWalletsController;
+use App\Http\Controllers\DepositController;
 use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
-use App\Http\Controllers\TransactionRecordController;
-use App\Models\Admin;
-use App\Models\ApiLog;
-use App\Models\BeneficiaryFoems;
-use App\Models\Business;
-use App\Models\Business\VirtualAccount;
-use App\Models\BusinessUbo;
-use App\Models\CheckoutModel;
-use App\Models\Country;
-use App\Models\Deposit;
-use App\Models\ExchangeRate;
-use App\Models\localPaymentTransactions;
-use App\Models\PayinMethods;
+use App\Http\Controllers\PaxosController;
 use App\Models\payoutMethods;
-use App\Models\Track;
-use App\Models\TransactionRecord;
-use App\Models\User;
-use App\Models\WebhookLog;
-use App\Models\Withdraw;
-use App\Services\Configuration;
 use App\Services\OnrampService;
-use App\Services\VitaBusinessAPI;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Modules\Advcash\app\Http\Controllers\AdvcashController;
-use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
-use Modules\BinancePay\app\Models\BinancePay;
 use Modules\Bitso\app\Http\Controllers\BitsoController as ControllersBitsoController;
-use Modules\Bitso\app\Services\BitsoServices;
-use Modules\Customer\app\Models\Customer;
-use Modules\Customer\app\Models\CustomerVirtualCards;
 use Modules\Flow\app\Http\Controllers\FlowController;
-use Modules\ShuftiPro\app\Models\ShuftiPro;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
-use Spatie\WebhookServer\WebhookCall;
-use App\Http\Controllers\ManageDBController;
-
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use App\Http\Controllers\CoinbaseOnrampController;
+use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -73,35 +45,9 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
-Route::get('omotowoju', function () {
-    // $bridge = new BridgeController();
-    // $bridgeCustomerId = "7d5b9315-796e-4d4d-b771-1ee5997e4abf";
-    // $createWallet = $bridge->getCustomerBridgeWallet();
-    // dd($createWallet);
-    // return response()->json(['message' => CheckoutModel::all()]);
-    // $table = 'tracks'; // Replace with your table name
-    // $columns = DB::getSchemaBuilder()->getColumnListing($table);
-    // dd($columns);
-
-    // $response = Http::withHeaders([
-    //     'Content-Type' => 'application/json',
-    //     'Api-Key' => env('BRIDGE_API_KEY'),
-    //     // 'Idempotency-Key' => generate_uuid()
-    // ])->get(env('BRIDGE_BASE_URL') . 'v0/kyc_links/5a825002-d42b-494a-b1de-b954e42d630b');
-
-    // if ($response->failed()) {
-    //     return get_error_response(['error' => $response->json()]);
-    // }
-
-    // return get_success_response($response->json());
-
-});
-
 
 Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
 Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOnrampUrl']);
-
-
 
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
@@ -110,7 +56,6 @@ Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
 Route::domain(env('KYC_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [KycServiceController::class, 'init'])->name('checkout.url');
 });
-
 
 Route::get('/wallets/{uuid}', [VitaWalletTestController::class, 'getWalletByUUID']);
 Route::get('/wallets', [VitaWalletTestController::class, 'listWallets']);
@@ -121,14 +66,7 @@ Route::get('/transactions', [VitaWalletTestController::class, 'listTransactions'
 Route::get('/wallet-transactions/{uuid}', [VitaWalletTestController::class, 'listWalletTransactions']);
 
 
-Route::get('clear', function () {
-    // Artisan::call('config:clear');
-    // Artisan::call('cache:clear');
-    // Artisan::call('view:clear');
-    // Artisan::call('route:clear');
-
-    // return response()->json(['result' => true]);
-});
+Route::get('clear', function () {});
 
 
 
@@ -158,6 +96,11 @@ Route::group([], function () {
     Route::any('callback/webhook/local-payments', [LocalPaymentWebhookController::class, 'handle']);
     Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposit_webhook'])->name('bitso.cop.deposit');
 
+    // Bridge webhook callback
+    Route::any('callback/webhook/bridge', [BridgeController::class, 'BridgeWebhook'])->name('bridge.callback.success');
+    Route::any('callback/webhook/customer-kyc', [DojahVerificationController::class, 'KycWebhook'])->name('kyc.callback.success');
+
+
     Route::any('callback/webhook/vitawallet', [VitaWalletController::class, 'callback'])->name('vitawallet.callback.success');
     Route::any('callback/webhook/deposit/vitawallet/{quoteId}', [VitaWalletController::class, 'deposit_callback'])->name('vitawallet.deposit.callback.success');
 
@@ -169,6 +112,106 @@ Route::group([], function () {
 })->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::any('cron', [CronController::class, 'index'])->name('cron.index');
+
+
+
+
+Route::get('bkp', function () {
+    // $host = env('DB_HOST', 'localhost');
+    // $username = env('DB_USERNAME', 'root');
+    // $password = env('DB_PASSWORD', '');
+    // $dbname = env('DB_DATABASE', 'your_database');
+
+    // // Path to the SQL file in Laravel storage directory
+    // $sqlFile = storage_path('mys.sql');  // Storage path in Laravel
+
+    // // Check if the file exists
+    // if (!File::exists($sqlFile)) {
+    //     die("SQL file does not exist at " . $sqlFile);
+    // }
+
+    // // Create the connection
+    // $conn = new mysqli($host, $username, $password, $dbname);
+
+    // // Check connection
+    // if ($conn->connect_error) {
+    //     die("Connection failed: " . $conn->connect_error);
+    // }
+
+    // // Open the SQL backup file
+    // $handle = fopen($sqlFile, "r");
+    // if (!$handle) {
+    //     die("Could not open SQL file.");
+    // }
+
+    // // Settings for chunking
+    // $chunkSize = 500;  // Number of lines to read per chunk
+    // $buffer = '';  // To store the SQL lines
+
+    // // Read the file line by line
+    // $lineCount = 0;
+    // while (($line = fgets($handle)) !== false) {
+    //     // Skip empty lines or comments
+    //     $line = trim($line);
+    //     if (empty($line) || substr($line, 0, 2) == '--') {
+    //         continue;
+    //     }
+
+    //     // Append the current line to the buffer
+    //     $buffer .= $line . "\n";
+    //     $lineCount++;
+
+    //     // When we reach the chunk size, execute the SQL and clear the buffer
+    //     if ($lineCount >= $chunkSize) {
+    //         if (!empty($buffer)) {
+    //             // Execute the SQL chunk
+    //             if ($conn->query($buffer) === FALSE) {
+    //                 echo "Error: " . $conn->error . "\n";
+    //             }
+    //         }
+    //         // Reset buffer and line count
+    //         $buffer = '';
+    //         $lineCount = 0;
+    //     }
+    // }
+
+    // // Execute any remaining SQL in the buffer
+    // if (!empty($buffer)) {
+    //     if ($conn->query($buffer) === FALSE) {
+    //         echo "Error: " . $conn->error . "\n";
+    //     }
+    // }
+
+    // // Close the file and database connection
+    // fclose($handle);
+    // $conn->close();
+
+    // echo "Database restore completed in chunks.";
+});
+
+
+
+
+
+
+
+
+
+Route::post('process-paxos', [PaxosController::class, 'processPexos'])->name('process.pexos');
+
+
+Route::match(['get', 'post'], 'login', function () {
+    $json = [
+        "endpoint" => request()->fullUrl(),
+        "ip" => request()->ip(),
+        "userAgent" => request()->userAgent(),
+        "payload" => request()->all(),
+    ];
+    return get_error_response([
+        "error" => "Sorry we could not find a matching route for this request",
+        "info" => $json
+    ]);
+});
 
 
 Route::fallback(function () {

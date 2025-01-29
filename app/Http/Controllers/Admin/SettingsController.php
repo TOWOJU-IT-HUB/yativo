@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use DB;
 use Illuminate\Http\Request;
-use App\Models\Settings;
+use App\Models\settings;
+use Illuminate\Support\Facades\DB;
 
 class SettingsController extends Controller
 {
@@ -16,7 +16,7 @@ class SettingsController extends Controller
      */
     public function index()
     {
-        $settings = Settings::all()->pluck('value', 'key')->toArray();
+        $settings = settings::all()->pluck('value', 'key')->toArray();
         return view('admin.settings.index', compact('settings'));
     }
 

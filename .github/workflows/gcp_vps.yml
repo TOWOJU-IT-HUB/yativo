@@ -50,7 +50,6 @@ jobs:
             sudo chown -R www-data:www-data storage
             sudo chmod -R 775 storage
             sudo chmod -R g+s storage/logs
-
-            # Verify the logs directory is writable
+            
             touch storage/logs/laravel.log
             echo "Log file is ready and writable" >> storage/logs/laravel.log

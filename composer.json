@@ -9,6 +9,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "asbiin/laravel-webauthn": "^4.6",
         "aws/aws-sdk-php": "^3.325",
         "bavix/laravel-wallet": "^11.3",
         "dipeshsukhia/laravel-country-state-city-data": "^2.0",
@@ -20,6 +21,7 @@
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.29",
         "nwidart/laravel-modules": "^11.1",
+        "paragonie/sodium_compat": "^2.1",
         "pomelopay/pomelopay-connect-php": "^2.1",
         "pragmarx/google2fa-laravel": "^2.2",
         "spatie/laravel-permission": "^6.9",

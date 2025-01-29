@@ -267,10 +267,10 @@
                     <!-- Menu Item Tables -->
                     <li>
                         <a class="group relative flex items-center gap-2.5 rounded-sm py-2 px-4 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                            href="tables.html" @click="selected = (selected === 'Tables' ? '':'Tables')"
+                            href="{{ route('admin.custom-pricing.index') }}" @click="selected = (selected === 'Custom Pricing' ? '':'Custom Pricing')"
                             :class="{
-                                'bg-graydark dark:bg-meta-4': (selected === 'Tables') && (
-                                    page === 'tables')
+                                'bg-graydark dark:bg-meta-4': (selected === 'Custom Pricing') && (
+                                    page === 'Custom Pricing')
                             }">
                             <svg class="fill-current" width="18" height="19" viewBox="0 0 18 19"
                                 fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -287,7 +287,7 @@
                                 </defs>
                             </svg>
 
-                            Tables
+                            Custom Pricing
                         </a>
                     </li>
                     <!-- Menu Item Tables -->
