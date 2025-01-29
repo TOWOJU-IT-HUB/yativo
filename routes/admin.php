@@ -51,14 +51,6 @@ Route::get('panel', function () {
 
 
 
-// WebAuthn Routes
-// WebAuthnRoutes::register()->withoutMiddleware(VerifyCsrfToken::class);
-
-// Route::group([], function () {
-//     Route::get('login', [AuthController::class, 'showAdminLoginForm'])->name('login');
-//     Route::post('process-login', [AuthController::class, 'login'])->name('login.process');
-// });
-
 Route::prefix('backoffice')->group(function () {
     Route::get('login', [App\Http\Controllers\Admin\AuthController::class, 'showAdminLoginForm'])->name('admin.login');
     Route::post('login', [App\Http\Controllers\Admin\AuthController::class, 'login']);
