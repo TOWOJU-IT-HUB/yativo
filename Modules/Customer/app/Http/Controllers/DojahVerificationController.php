@@ -4,6 +4,7 @@ namespace Modules\Customer\app\Http\Controllers;
 
 use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\MiscController;
 use App\Http\Controllers\TransFiController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -132,7 +133,7 @@ class DojahVerificationController extends Controller
                 'country' => $validatedData['address']['country'] ?? null,
                 'zipCode' => $validatedData['address']['postal_code'] ?? null,
                 'line1' => $validatedData['address']['street_line_1'] ?? null,
-                'idImage' => $validatedData['documents'][0]['file'] ?? null,
+                'idImage' => MiscController::uploadBase64ImageToCloudflare($validatedData['documents'][0]['file']) ?? null,
                 'dateOfBirth' => $validatedData['birth_date'] ?? null,
             ];
 

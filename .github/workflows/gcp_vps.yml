@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to GCP
 
 on:
   push:
@@ -20,18 +20,9 @@ jobs:
         with: 
           node-version: 16
 
-      - name: Copy .env
-        run: cp .env.example .env
-
       - name: Install Composer Dependencies
         run: composer update -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
-      - name: Setup Project
-        run: |
-          php artisan migrate:fresh --force --seed
-          php artisan config:clear
-          php artisan cache:clear
-          php artisan key:generate
 
       - name: Deploy to Server
         if: ${{ success() }}
@@ -41,7 +32,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /var/www/polarisoption.io
+            cd /var/www/api.yativo.com
             # Fetch and reset to remote main branch
             git fetch origin
             git reset --hard origin/gcp_cloud
