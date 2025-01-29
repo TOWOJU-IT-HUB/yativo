@@ -48,24 +48,13 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:admins,email,' . $admin->id,
             'roles' => 'nullable|array',
+            'roles.*' => 'exists:roles,id',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,id',
         ]);
 
-        // $admin->update($request->only('name', 'email'));
-        // $admin->roles()->sync($request->input('roles', []));
-
-        // $validated = $request->validate([
-        //     'name' => 'required|string|max:255',
-        //     'email' => 'required|email|max:255',
-        //     'roles' => 'nullable|array',
-        //     'roles.*' => 'exists:roles,id',
-        // ]);
-    
-        // $admin->update([
-        //     'name' => $validated['name'],
-        //     'email' => $validated['email'],
-        // ]);
+        $admin->update($request->only('name', 'email'));
+        $admin->roles()->sync($request->input('roles', []));
     
         // Sync roles and permissions
         $admin->syncRoles($validated['roles'] ?? []);

@@ -60,7 +60,6 @@ Route::get('panel', function () {
 // });
 
 Route::prefix('backoffice')->group(function () {
-    // Route::get('login', [WebAuthnLoginController::class, 'options'])->name('webauthn.options');
     Route::get('login', [App\Http\Controllers\Admin\AuthController::class, 'showAdminLoginForm'])->name('admin.login');
     Route::post('login', [App\Http\Controllers\Admin\AuthController::class, 'login']);
     Route::get('2fa', [App\Http\Controllers\Admin\AuthController::class, 'show2faForm'])->name('admin.2fa.show');
@@ -68,7 +67,7 @@ Route::prefix('backoffice')->group(function () {
 
     // Route::domain(env('ADMIN_URL'))->middleware('admin')->group(function () {
     Route::prefix('admin')->as('admin.')
-        // ->middleware('auth:admin')
+        ->middleware('auth:admin')
         ->group(function () {
             Route::group([], function () {
                 Route::get('dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');

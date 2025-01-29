@@ -2,10 +2,11 @@
 
 namespace Database\Seeders;
 
-use DB;
-use Hash;
+
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class AdminSeeder extends Seeder
 {
@@ -17,7 +18,7 @@ class AdminSeeder extends Seeder
         DB::table('admins')->insert([
             'name' => 'Emma',
             'email' => 'emma@yativo.com',
-            'password' => Hash::make('Adedayo201@!'),
+            'password' => Hash::make('jhondoe@smith10!'),
             'is_two_factor_enabled' => false,
             'created_at' => now(),
             'updated_at' => now(),

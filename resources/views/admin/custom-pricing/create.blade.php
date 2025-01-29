@@ -86,7 +86,7 @@
                         data.forEach(function(gateway) {
                             const option = document.createElement('option');
                             option.value = gateway.id;
-                            option.textContent = gateway.name;
+                            option.textContent = gateway.method_name + ' - ' + gateway.country;
                             gatewaySelect.appendChild(option);
                         });
                     } else {

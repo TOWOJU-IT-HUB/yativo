@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PayoutMethods;
+use App\Models\payoutMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-class PayoutMethodsController extends Controller
+class payoutMethodsController extends Controller
 {
     public function __construct()
     {
@@ -19,7 +19,7 @@ class PayoutMethodsController extends Controller
 
     public function index()
     {
-            $query = PayoutMethods::query();
+            $query = payoutMethods::query();
 
             if (request('currency')) {
                 $query->where('currency', request('currency'));
@@ -74,21 +74,21 @@ class PayoutMethodsController extends Controller
         if(empty($request->country)) {
             $validatedData['country'] = 'global';
         }
-        PayoutMethods::create($request->all());
+        payoutMethods::create($request->all());
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method created successfully.');
     }
 
-    public function show(PayoutMethods $payoutMethod)
+    public function show(payoutMethods $payoutMethod)
     {
         return view('admin.payout_methods.show', compact('payoutMethod'));
     }
 
-    public function edit(PayoutMethods $payoutMethod)
+    public function edit(payoutMethods $payoutMethod)
     {
         return view('admin.payout_methods.edit', compact('payoutMethod'));
     }
 
-    public function update(Request $request, PayoutMethods $payoutMethod)
+    public function update(Request $request, payoutMethods $payoutMethod)
     {
         $request->validate([
             'method_name' => 'required|string|max:255',
@@ -114,7 +114,7 @@ class PayoutMethodsController extends Controller
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method updated successfully.');
     }
 
-    public function destroy(PayoutMethods $payoutMethod)
+    public function destroy(payoutMethods $payoutMethod)
     {
         $payoutMethod->delete();
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method deleted successfully.');
