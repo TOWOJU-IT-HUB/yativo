@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to GCP
 
 on:
   push:
@@ -20,11 +20,9 @@ jobs:
         with: 
           node-version: 16
 
-      - name: Copy .env
-        run: cp .env.example .env
-
       - name: Install Composer Dependencies
         run: composer update -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
 
       - name: Deploy to Server
         if: ${{ success() }}
@@ -34,7 +32,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /var/www/polarisoption.io
+            cd /var/www/api.yativo.com
             # Fetch and reset to remote main branch
             git fetch origin
             git reset --hard origin/gcp_cloud
@@ -43,6 +41,6 @@ jobs:
             sudo chown -R www-data:www-data storage
             sudo chmod -R 775 storage
             sudo chmod -R g+s storage/logs
-
+            
             touch storage/logs/laravel.log
             echo "Log file is ready and writable" >> storage/logs/laravel.log
