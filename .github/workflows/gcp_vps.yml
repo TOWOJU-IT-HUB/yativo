@@ -28,7 +28,6 @@ jobs:
 
       - name: Setup Project
         run: |
-          touch database/database.sqlite
           php artisan migrate:fresh --force --seed
           php artisan config:clear
           php artisan cache:clear
@@ -51,6 +50,6 @@ jobs:
             sudo chown -R www-data:www-data storage
             sudo chmod -R 775 storage
             sudo chmod -R g+s storage/logs
-
+            
             touch storage/logs/laravel.log
             echo "Log file is ready and writable" >> storage/logs/laravel.log
