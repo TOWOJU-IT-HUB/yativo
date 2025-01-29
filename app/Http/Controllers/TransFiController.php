@@ -199,11 +199,11 @@ class TransFiController extends Controller
         try {
             $user = auth()->user();
             $transfi_user_id = $user->transfi_user_id ?? $this->processUserType($request);
-
+    
             if (isset($transfi_user_id['error'])) {
                 return $transfi_user_id;
             }
-
+    
             $response = Http::asMultipart()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
@@ -211,41 +211,37 @@ class TransFiController extends Controller
                 $this->apiUrl . '/kyc/share/third-vendor',
                 [
                     'email' => $request->email,
-                    'idDocExpiryDate' => $request->idExpirationDate,
+                    'idDocExpiryDate' => $request->identifying_information[0]['number'] ?? null,
                     'idDocUserName' => "{$request->first_name} {$request->last_name}",
-                    'idDocType' => 'id_card',
-                    'idDocFrontSide' => $request->gov_id_image_front,
-                    'idDocBackSide' => $request->gov_id_image_back,
-                    'selfie' => $request->selfieimage,
-                    'gender' => $request->gender,
-                    'phoneNo' => $request->phone,
-                    'idDocIssuerCountry' => $request->gov_id_country,
+                    'idDocType' => $request->identifying_information[0]['type'] ?? 'id_card',
+                    'idDocFrontSide' => MiscController::uploadBase64ImageToCloudflare($request->documents[0]['file'] ?? null),
+                    'idDocBackSide' => MiscController::uploadBase64ImageToCloudflare($request->documents[1]['file'] ?? null),
+                    'selfie' => MiscController::uploadBase64ImageToCloudflare($request->selfieimage),
+                    'gender' => $request->gender ?? null,
+                    'phoneNo' => $request->phone ?? null,
+                    'idDocIssuerCountry' => $request->identifying_information[0]['issuing_country'] ?? null,
                     'street' => $request->address['street_line_1'],
                     'city' => $request->address['city'],
-                    'state' => $request->address['state'],
+                    'state' => $request->address['subdivision'] ?? null,
                     'country' => $request->address['country'],
-                    'dob' => $request->dob,
+                    'dob' => $request->birth_date,
                     'postalCode' => $request->address['postal_code'],
                     'firstName' => $request->first_name,
                     'lastName' => $request->last_name,
                     'userId' => $transfi_user_id,
-                    'nationality' => $request->country,
+                    'nationality' => $request->address['country'],
                 ]
             );
-
-            if ($response->successful()) {
-                return $response->json();
-            } else {
-                return [
-                    'error' => $response->status(),
-                    'message' => $response->body(),
-                ];
-            }
+    
+            return $response->successful() ? $response->json() : [
+                'error' => $response->status(),
+                'message' => $response->body(),
+            ];
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
-
+    
     private function addCustomer($request)
     {
         try {
@@ -253,24 +249,24 @@ class TransFiController extends Controller
             $userData = [
                 'firstName' => $request->first_name,
                 'lastName' => $request->last_name,
-                'date' => $request->dob,
+                'date' => $request->birth_date,
                 'email' => $request->email,
                 'country' => $request->address['country'],
-                'gender' => $request->gender,
-                'phone' => $request->phone,
+                'gender' => $request->gender ?? null,
+                'phone' => $request->phone ?? null,
                 'address' => [
                     'street' => $request->address['street_line_1'],
                     'city' => $request->address['city'],
-                    'state' => $request->address['state'],
+                    'state' => $request->address['subdivision'] ?? null,
                     'postalCode' => $request->address['postal_code'],
                 ],
             ];
-
+    
             $response = Http::asJson()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
             ])->post("{$this->apiUrl}/users/individual", $userData);
-
+    
             if ($response->successful()) {
                 $result = $response->json();
                 $user->update(['transfi_user_id' => $result['userId']]);
@@ -285,32 +281,30 @@ class TransFiController extends Controller
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
-
-
-    public function addBusiness($request)
+    
+    public function addBusiness(Request $request)
     {
         try {
             $user = auth()->user();
             $userData = [
-                'businessName' => $request->business_name,
-                'email' => $user->email,
-                'date' => $request->date_of_birth,
-                'country' => $request->country_code,
+                'businessName' => $request->business_legal_name,
+                'email' => $request->email,
+                'country' => $request->registered_address['country'],
                 'phone' => $request->business_mobile,
-                'regNo' => $request->international_number,
+                'regNo' => $request->business_type,
                 'address' => [
-                    'street' => $request->address['street_line_1'],
-                    'city' => $request->address['city'],
-                    'state' => $request->address['state'],
-                    'postalCode' => $request->address['postal_code'],
+                    'street' => $request->registered_address['street_line_1'],
+                    'city' => $request->registered_address['city'],
+                    'state' => $request->registered_address['subdivision'] ?? null,
+                    'postalCode' => $request->registered_address['postal_code'],
                 ],
             ];
-
+    
             $response = Http::asJson()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
             ])->post("{$this->apiUrl}/users/business", $userData);
-
+    
             if ($response->successful()) {
                 $result = $response->json();
                 $user->update(['transfi_user_id' => $result['userId']]);
@@ -325,6 +319,7 @@ class TransFiController extends Controller
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
+    
 
     private function processUserType($request)
     {
