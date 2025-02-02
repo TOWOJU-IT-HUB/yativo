@@ -21,7 +21,10 @@ class ShuftiProController extends Controller
             $process = $shufti->init($request);
             return $process;
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -32,7 +35,10 @@ class ShuftiProController extends Controller
             $process = $shufti->callback(request());
             return $process;
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -48,7 +54,10 @@ class ShuftiProController extends Controller
                 return get_success_response(['message' => 'Email sent successfully']);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -67,7 +76,10 @@ class ShuftiProController extends Controller
             
             return get_success_response(['message' => 'Business verification request received and will be processed within the next 48hours. Thank you.'], 200);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -79,7 +91,10 @@ class ShuftiProController extends Controller
             $token = base64_encode("$client_id:$secret_key");
             return get_success_response($token);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

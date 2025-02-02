@@ -37,7 +37,10 @@ class PlansController extends Controller
             });
             return get_success_response($plans);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -92,7 +95,10 @@ class PlansController extends Controller
 
             return get_error_response(["error" => "Subscription failed. please recheck you're not already subscribed to this plan"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -142,7 +148,10 @@ class PlansController extends Controller
             return get_success_response(['message' => 'Subscription upgraded successfully']);
             // return get_error_response(['message' => 'No active subscription found'], 404);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

@@ -48,7 +48,10 @@ class WalletController extends Controller
             $payouts = Withdraw::where('user_id', auth()->id())->with('beneficiary')->paginate(per_page());
             return paginate_yativo($payouts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -164,7 +167,10 @@ class WalletController extends Controller
             }
             return get_error_response(['error' => 'Unable to process request, please try again later']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -181,7 +187,10 @@ class WalletController extends Controller
             $deposits = Deposit::whereUserId(active_user())->with('transaction')->paginate(per_page());
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -291,7 +300,10 @@ class WalletController extends Controller
             //                 ->get();
             return get_success_response($transfer);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

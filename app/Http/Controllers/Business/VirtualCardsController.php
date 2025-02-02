@@ -25,7 +25,10 @@ class VirtualCardsController extends Controller
             $verify = $this->card->verifyUser();
             return get_success_response(['verify' => $verify]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -72,7 +75,10 @@ class VirtualCardsController extends Controller
             
             return $result;
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -106,7 +112,10 @@ class VirtualCardsController extends Controller
             return get_success_response($create);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -116,7 +125,10 @@ class VirtualCardsController extends Controller
             $card = $this->card->getCard($cardId);
             return get_success_response(['card' => $card]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -134,7 +146,10 @@ class VirtualCardsController extends Controller
             $card = $this->card->action($request->action, $cardId);
             return get_success_response(['action' => $card]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -144,7 +159,10 @@ class VirtualCardsController extends Controller
             $card = $this->card->getTransaction($cardId);
             return get_success_response(['transactions' => $card]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

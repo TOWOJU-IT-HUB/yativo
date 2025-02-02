@@ -31,7 +31,10 @@ class CustomerVirtualCardsController extends Controller
             $cards = CustomerVirtualCards::where('business_id', get_business_id(auth()->id()))->paginate(per_page());
             return paginate_yativo($cards);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -41,7 +44,10 @@ class CustomerVirtualCardsController extends Controller
             $verify = $this->card->verifyUser();
             return get_success_response(['verify' => $verify]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -144,7 +150,10 @@ class CustomerVirtualCardsController extends Controller
 
             return $result;
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -256,7 +265,10 @@ class CustomerVirtualCardsController extends Controller
             }
         } catch (\Throwable $th) {
             Log::error("Bitnob error:", $th->getTrace());
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -305,7 +317,10 @@ class CustomerVirtualCardsController extends Controller
             return get_success_response($arrData);
         } catch (\Exception $e) {
             // Return the error response with the exception message
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -324,7 +339,10 @@ class CustomerVirtualCardsController extends Controller
             $card = $this->card->action($request->action, $cardId);
             return get_success_response(['action' => $card['message']]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -339,7 +357,10 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response(['error' => "Error encountered, please check your request"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -383,7 +404,10 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response($bitnob);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -393,7 +417,10 @@ class CustomerVirtualCardsController extends Controller
             $card = $this->card->getTransaction($cardId);
             return get_success_response(['transactions' => $card]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

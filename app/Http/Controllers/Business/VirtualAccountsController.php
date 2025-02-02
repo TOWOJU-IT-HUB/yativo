@@ -62,7 +62,10 @@ class VirtualAccountsController extends Controller
             $accounts = $accounts->paginate(per_page());
             return paginate_yativo($accounts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
     
@@ -73,7 +76,10 @@ class VirtualAccountsController extends Controller
             $accounts = VirtualAccount::whereUserId(auth()->id())->where('customer_id', $customerId)->paginate(per_page());
             return paginate_yativo($accounts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -110,7 +116,10 @@ class VirtualAccountsController extends Controller
 
             return get_success_response($accounts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
     public function create(Request $request)
@@ -161,7 +170,10 @@ class VirtualAccountsController extends Controller
 
             return get_success_response($record, 201, "{$request->currency} Virtual account generated successfully");
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -442,7 +454,10 @@ class VirtualAccountsController extends Controller
                 }
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -466,7 +481,10 @@ class VirtualAccountsController extends Controller
             }
             return get_error_response(["error" => "Account with the provided ID does not exists"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -620,7 +638,10 @@ class VirtualAccountsController extends Controller
 
             return paginate_yativo($transactions);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

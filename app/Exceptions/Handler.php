@@ -24,7 +24,10 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (\Throwable $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         });
     }
 }

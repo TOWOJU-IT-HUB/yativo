@@ -35,7 +35,10 @@ class WithdrawalConntroller extends Controller
 
             return get_success_response($methods);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -58,7 +61,10 @@ class WithdrawalConntroller extends Controller
             $payout = payoutMethods::where($filters)->get();
             return get_success_response($payout);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -77,7 +83,10 @@ class WithdrawalConntroller extends Controller
             }
             return paginate_yativo($payouts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -91,7 +100,10 @@ class WithdrawalConntroller extends Controller
             $payout = Withdraw::where($where)->with('beneficiary')->first()->makeHidden(['raw_data']);
             return get_success_response($payout);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -175,7 +187,10 @@ class WithdrawalConntroller extends Controller
             $monnet = new MonnetServices();
             return $monnet->payoutStatus($payoutsId);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -188,7 +203,10 @@ class WithdrawalConntroller extends Controller
                 ->get();
             return get_success_response($countries);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

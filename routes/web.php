@@ -24,6 +24,8 @@ use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
 use App\Http\Controllers\CoinbaseOnrampController;
+use App\Models\Business;
+use App\Models\User;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 /*
@@ -66,9 +68,6 @@ Route::get('/transactions', [VitaWalletTestController::class, 'listTransactions'
 Route::get('/wallet-transactions/{uuid}', [VitaWalletTestController::class, 'listWalletTransactions']);
 
 
-Route::get('clear', function () {});
-
-
 
 Route::any('callback/webhook/transfi', function () {
     $incoming = request()->all();
@@ -77,7 +76,8 @@ Route::any('callback/webhook/transfi', function () {
 
 
 Route::get('payouts', function () {
-    $gateways = payoutMethods::whereGateway('vitawallet')->get();
+    $currency = request()->currency ?? "EUR";
+    $gateways = payoutMethods::whereCurrency($currency)->get();
     return response()->json($gateways);
 });
 
@@ -112,89 +112,6 @@ Route::group([], function () {
 })->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::any('cron', [CronController::class, 'index'])->name('cron.index');
-
-
-
-
-Route::get('bkp', function () {
-    // $host = env('DB_HOST', 'localhost');
-    // $username = env('DB_USERNAME', 'root');
-    // $password = env('DB_PASSWORD', '');
-    // $dbname = env('DB_DATABASE', 'your_database');
-
-    // // Path to the SQL file in Laravel storage directory
-    // $sqlFile = storage_path('mys.sql');  // Storage path in Laravel
-
-    // // Check if the file exists
-    // if (!File::exists($sqlFile)) {
-    //     die("SQL file does not exist at " . $sqlFile);
-    // }
-
-    // // Create the connection
-    // $conn = new mysqli($host, $username, $password, $dbname);
-
-    // // Check connection
-    // if ($conn->connect_error) {
-    //     die("Connection failed: " . $conn->connect_error);
-    // }
-
-    // // Open the SQL backup file
-    // $handle = fopen($sqlFile, "r");
-    // if (!$handle) {
-    //     die("Could not open SQL file.");
-    // }
-
-    // // Settings for chunking
-    // $chunkSize = 500;  // Number of lines to read per chunk
-    // $buffer = '';  // To store the SQL lines
-
-    // // Read the file line by line
-    // $lineCount = 0;
-    // while (($line = fgets($handle)) !== false) {
-    //     // Skip empty lines or comments
-    //     $line = trim($line);
-    //     if (empty($line) || substr($line, 0, 2) == '--') {
-    //         continue;
-    //     }
-
-    //     // Append the current line to the buffer
-    //     $buffer .= $line . "\n";
-    //     $lineCount++;
-
-    //     // When we reach the chunk size, execute the SQL and clear the buffer
-    //     if ($lineCount >= $chunkSize) {
-    //         if (!empty($buffer)) {
-    //             // Execute the SQL chunk
-    //             if ($conn->query($buffer) === FALSE) {
-    //                 echo "Error: " . $conn->error . "\n";
-    //             }
-    //         }
-    //         // Reset buffer and line count
-    //         $buffer = '';
-    //         $lineCount = 0;
-    //     }
-    // }
-
-    // // Execute any remaining SQL in the buffer
-    // if (!empty($buffer)) {
-    //     if ($conn->query($buffer) === FALSE) {
-    //         echo "Error: " . $conn->error . "\n";
-    //     }
-    // }
-
-    // // Close the file and database connection
-    // fclose($handle);
-    // $conn->close();
-
-    // echo "Database restore completed in chunks.";
-});
-
-
-
-
-
-
-
 
 
 Route::post('process-paxos', [PaxosController::class, 'processPexos'])->name('process.pexos');

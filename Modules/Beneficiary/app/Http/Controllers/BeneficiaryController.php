@@ -29,7 +29,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error' => 'Currently unable to retrieve beneficiaries']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -67,7 +70,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error' => 'Currently unable to add new beneficiaries']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -83,7 +89,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error' => "Beneficiary with the provided data not found"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -124,7 +133,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error' => 'Currently unable to update beneficiari']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -139,7 +151,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error' => 'Beneficiary not found']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -154,7 +169,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error' => 'Beneficiary not found']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -170,7 +188,10 @@ class BeneficiaryController extends Controller
             }
             return get_error_response(['error'  =>"Beneficiary with the provided data not found"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }
