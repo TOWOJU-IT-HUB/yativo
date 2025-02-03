@@ -208,7 +208,14 @@ class BusinessController extends Controller
             }
             return get_error_response(['No UBO found'], 404);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            Mail::send('emails.error', ['error' => $th->getMessage()], function ($message) {
+                $message->to("env('MAIL_TO_ADDRESS')")
+                    ->subject('Error in Yativo live platform');
+            });
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -298,7 +305,10 @@ class BusinessController extends Controller
 
             return get_error_response(['error' => 'Unable to update data']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

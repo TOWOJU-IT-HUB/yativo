@@ -199,11 +199,11 @@ class TransFiController extends Controller
         try {
             $user = auth()->user();
             $transfi_user_id = $user->transfi_user_id ?? $this->processUserType($request);
-    
+
             if (isset($transfi_user_id['error'])) {
                 return $transfi_user_id;
             }
-    
+
             $response = Http::asMultipart()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
@@ -232,7 +232,7 @@ class TransFiController extends Controller
                     'nationality' => $request->address['country'],
                 ]
             );
-    
+
             return $response->successful() ? $response->json() : [
                 'error' => $response->status(),
                 'message' => $response->body(),
@@ -241,7 +241,7 @@ class TransFiController extends Controller
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
-    
+
     private function addCustomer($request)
     {
         try {
@@ -261,12 +261,12 @@ class TransFiController extends Controller
                     'postalCode' => $request->address['postal_code'],
                 ],
             ];
-    
+
             $response = Http::asJson()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
             ])->post("{$this->apiUrl}/users/individual", $userData);
-    
+
             if ($response->successful()) {
                 $result = $response->json();
                 $user->update(['transfi_user_id' => $result['userId']]);
@@ -281,7 +281,7 @@ class TransFiController extends Controller
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
-    
+
     public function addBusiness(Request $request)
     {
         try {
@@ -299,12 +299,12 @@ class TransFiController extends Controller
                     'postalCode' => $request->registered_address['postal_code'],
                 ],
             ];
-    
+
             $response = Http::asJson()->withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => 'Basic ' . base64_encode("$this->apiKey:$this->apiSecret"),
             ])->post("{$this->apiUrl}/users/business", $userData);
-    
+
             if ($response->successful()) {
                 $result = $response->json();
                 $user->update(['transfi_user_id' => $result['userId']]);
@@ -319,14 +319,44 @@ class TransFiController extends Controller
             return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
         }
     }
-    
+
 
     private function processUserType($request)
     {
-        if($request->type == "business") {
+        if ($request->type == "business") {
             return $this->addBusiness($request);
-        } 
+        }
 
         return $this->addCustomer($request);
+    }
+
+    public function processWebhook(Request $request)
+    {
+        // Extract the incoming webhook data from the request
+        $data = $request->json()->all(); // This will be a single event object
+
+        // Extract order and user details from the data
+        $order = $data['order'];
+        $user = $data['user'];
+        $status = $data['status']; // "initiated", "fund_settled", or "fund_failed"
+
+        // Prepare the response data with relevant details
+        $responseData = [
+            'type' => $order['type'],
+            'status' => $status,
+            'amount' => $order['fiatAmount'],
+            'orderId' => $order['orderId'],
+            'paymentType' => $order['paymentType'],
+            'user' => [
+                'userId' => $user['userId'],
+                'firstName' => $user['firstName'],
+                'lastName' => $user['lastName'],
+                'country' => $user['country']
+            ],
+            'orderDetails' => $order // Full order information
+        ];
+
+        // Return the response as JSON
+        return response()->json($responseData);
     }
 }

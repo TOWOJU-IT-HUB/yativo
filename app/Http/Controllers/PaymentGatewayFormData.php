@@ -21,7 +21,10 @@ class PaymentGatewayFormData extends Controller
             $lists = PaymentGatewayFormData::orderBy("gateway_name", "asc")->get();
             return get_success_response($lists);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

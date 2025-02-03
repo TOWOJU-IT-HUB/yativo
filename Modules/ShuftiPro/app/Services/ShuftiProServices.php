@@ -57,7 +57,10 @@ class ShuftiProServices
             return get_success_response(['url' => $url]);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -138,7 +141,10 @@ class ShuftiProServices
             return ["verification_result" => $response->json()];
         } catch (\Throwable $th) {
             return ["verification_result" => $th->getMessage()];
-            // return get_error_response(['error' => $th->getMessage()]);
+            // if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -213,7 +219,10 @@ class ShuftiProServices
                 return get_error_response(["status" => 'Verification completed successfully']);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

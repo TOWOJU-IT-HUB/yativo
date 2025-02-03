@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\WebAuthn\WebAuthnLoginController;
 use App\Http\Controllers\WebAuthn\WebAuthnRegisterController;
 use App\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laragear\WebAuthn\Contracts\WebAuthnChallengeRepository;
 use Laragear\WebAuthn\Http\Routes as WebAuthnRoutes;
@@ -112,6 +113,17 @@ Route::prefix('backoffice')->group(function () {
                 Route::get('activity-logs/{activityLog}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
                 Route::delete('activity-logs/{activityLog}', [ActivityLogController::class, 'destroy'])->name('activity-logs.destroy');
                 Route::post('activity-logs/bulk-delete', [ActivityLogController::class, 'bulkDelete'])->name('activity-logs.bulkDelete');
+            });
+
+
+            Route::get('clear', function () {
+                Artisan::call('cache:clear');
+                Artisan::call('config:clear');
+                Artisan::call('config:cache');
+                Artisan::call('view:clear');
+                Artisan::call('route:clear');
+
+                return back()->with('success', 'Cache cleared successfully');
             });
         });
 });

@@ -219,7 +219,10 @@ class SendMoneyController extends Controller
 
 			return get_success_response($params->with('quote')->first()->toArray());
 		} catch (\Throwable $th) {
-			return get_error_response(['error' => $th->getMessage()]);
+			if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
 		}
 	}
 
@@ -367,7 +370,10 @@ class SendMoneyController extends Controller
 				return get_success_response($init_payout); //['message' => 'Bulk payout request initiated']);
 			}
 		} catch (\Throwable $th) {
-			return get_error_response(['error' => $th->getMessage()]);
+			if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
 		}
 	}
 

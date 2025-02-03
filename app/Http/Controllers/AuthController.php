@@ -355,7 +355,10 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
             }
             return get_success_response($profile);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -436,7 +439,10 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
                 ]);
             }
         } catch (\Throwable $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -503,7 +509,10 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
             $user->delete();
             return get_success_response(['message' => 'Account deleted successfully']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

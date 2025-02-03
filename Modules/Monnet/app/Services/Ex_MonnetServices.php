@@ -423,7 +423,10 @@ class Ex_MonnetServices
             // echo json_encode($body, JSON_PRETTY_PRINT); exit;
             return $body;
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

@@ -39,7 +39,10 @@ class WithdrawalController extends Controller
             $process = $payout->store($request);
             return $process;
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -149,7 +152,10 @@ class WithdrawalController extends Controller
             $payouts = (new WithdrawalConntroller())->index(true);
             return paginate_yativo($payouts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -158,7 +164,10 @@ class WithdrawalController extends Controller
         try {
             return (new WithdrawalConntroller())->show($payoutId);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -179,7 +188,10 @@ class WithdrawalController extends Controller
             $payouts = Withdraw::whereIn('payout_id', $ids)->latest()->get();
             return get_success_response($payouts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

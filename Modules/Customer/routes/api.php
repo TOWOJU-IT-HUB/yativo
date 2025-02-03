@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CustomerKycMiddleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\Customer\app\Http\Controllers\CustomerController;
@@ -52,4 +53,4 @@ Route::middleware(['auth:api', 'kyc_check'])->prefix('v1/verification/')->name('
     Route::post('business-search', [DojahVerificationController::class, 'verifyBusiness'])->name('customer.verification.businessSerach');
     Route::post('business-details', [DojahVerificationController::class, 'businessDetails'])->name('customer.verification.businessDetails');
     Route::post('verify-selfie', [DojahVerificationController::class, 'customerSelfie'])->name('customer.verification.customerSelfie');
-});
+})->withoutMiddleware(CustomerKycMiddleware::class);

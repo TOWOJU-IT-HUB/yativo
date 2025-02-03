@@ -1,46 +1,46 @@
-name: Deploy to GCP
+name: Deploy to Server
 
 on:
   push:
-    branches: [gcp_cloud]
-  pull_request:
-    branches: [gcp_cloud]
-    
+    branches:
+      - main  # Trigger on push to the 'main' branch
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - uses: actions/checkout@v2
+    - name: Set up SSH agent
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}  # GitHub secret for SSH private key
 
-      - uses: actions/setup-node@v3
-        with: 
-          node-version: 16
+    - name: Deploy to server
+      run: |
+        echo "Deploying to server..."
+        
+        # Create the SSH directory if it doesn't exist
+        mkdir -p ~/.ssh
+        
+        # Add the SSH host to known_hosts to prevent SSH warnings about authenticity
+        ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+        
+        # SSH into the server and perform deployment
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << EOF
+          cd /var/www/api.yativo.com || exit
+          git pull origin main || exit  # Replace 'main' with your branch if necessary
+          chown -R www-data:www-data /var/www/api.yativo.com
+          chmod -R 775 /var/www/api.yativo.com/storage /var/www/api.yativo.com/bootstrap/cache
+          # Restart PHP-FPM
+          systemctl restart php7.4-fpm  # Adjust PHP version if necessary
+          # Optionally clear Laravel's cache
+          php artisan config:clear
+          php artisan cache:clear
+          php artisan optimize
+        EOF
 
-      - name: Install Composer Dependencies
-        run: composer update -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-
-
-      - name: Deploy to Server
-        if: ${{ success() }}
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /var/www/api.yativo.com
-            # Fetch and reset to remote main branch
-            git fetch origin
-            git reset --hard origin/gcp_cloud
-
-            # Ensure proper permissions for logs directory and its files (append mode)
-            sudo chown -R www-data:www-data storage
-            sudo chmod -R 775 storage
-            sudo chmod -R g+s storage/logs
-            
-            touch storage/logs/laravel.log
-            echo "Log file is ready and writable" >> storage/logs/laravel.log
+    - name: Deployment successful
+      run: echo "Deployment completed successfully!"

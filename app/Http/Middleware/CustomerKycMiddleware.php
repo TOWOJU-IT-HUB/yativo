@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Modules\Customer\app\Models\Customer;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -16,6 +17,9 @@ class CustomerKycMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if(Route::is('customer.verification.customer')) {
+            return $next($request);
+        }
         if ($request->has('customer_id')) {
             $customerId = $request->customer_id;
             // Validate customer existence and KYC status

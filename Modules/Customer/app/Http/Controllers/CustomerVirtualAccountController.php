@@ -86,7 +86,10 @@ class CustomerVirtualAccountController extends Controller
                 return get_error_response(['error' => "We're currently unable to process your request, please contact support"]);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

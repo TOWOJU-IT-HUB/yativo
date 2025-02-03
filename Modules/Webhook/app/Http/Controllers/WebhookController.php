@@ -16,7 +16,10 @@ class WebhookController extends Controller
             $webhooks = Webhook::where('user_id', auth()->id())->get();
             return get_success_response($webhooks);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -52,7 +55,10 @@ class WebhookController extends Controller
             }
             return get_success_response($webhook);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -75,7 +81,10 @@ class WebhookController extends Controller
 
             return get_error_response(['error' => 'Provided webhook not found!'], 400);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -85,7 +94,10 @@ class WebhookController extends Controller
             $webhook->delete();
             return get_success_response(['message' => 'Webhook deleted successfully']);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -98,7 +110,10 @@ class WebhookController extends Controller
 
             return get_success_response($webhook);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

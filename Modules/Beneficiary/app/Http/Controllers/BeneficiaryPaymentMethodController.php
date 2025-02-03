@@ -24,7 +24,10 @@ class BeneficiaryPaymentMethodController extends Controller
                 return get_success_response($beneficiaries);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -157,7 +160,10 @@ class BeneficiaryPaymentMethodController extends Controller
                 return get_success_response(['message' => "Payment data processed successfully", "data" => $model]);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -189,7 +195,10 @@ class BeneficiaryPaymentMethodController extends Controller
                 return ['message' => "Payment data processed successfully"];
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -203,7 +212,10 @@ class BeneficiaryPaymentMethodController extends Controller
 
             return get_error_response(['error' => 'Record not found'], 404);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -234,7 +246,10 @@ class BeneficiaryPaymentMethodController extends Controller
                 return get_success_response(['message' => "Payment data updated successfully"]);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
