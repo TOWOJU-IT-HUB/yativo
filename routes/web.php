@@ -24,6 +24,7 @@ use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
 use App\Http\Controllers\CoinbaseOnrampController;
+use App\Http\Controllers\TransFiController;
 use App\Models\Business;
 use App\Models\User;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
@@ -69,17 +70,14 @@ Route::get('/wallet-transactions/{uuid}', [VitaWalletTestController::class, 'lis
 
 
 
-Route::any('callback/webhook/transfi', function () {
-    $incoming = request()->all();
-    Log::error("TRansfi", (array) $incoming);
-})->name('transfi.callback.success');
+Route::any('callback/webhook/transfi', [TransFiController::class, 'processWebhook'])->name('transfi.callback.success');
 
 
-Route::get('payouts', function () {
-    $currency = request()->currency ?? "EUR";
-    $gateways = payoutMethods::whereCurrency($currency)->get();
-    return response()->json($gateways);
-});
+// Route::get('payouts', function () {
+//     $currency = request()->currency ?? "EUR";
+//     $gateways = payoutMethods::whereCurrency($currency)->get();
+//     return response()->json($gateways);
+// });
 
 
 Route::group([], function () {
