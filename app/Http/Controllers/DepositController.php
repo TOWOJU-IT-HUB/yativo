@@ -92,6 +92,9 @@ class DepositController extends Controller
             $deposit->receive_amount = floatval($request->amount * $exchange_rate);
             $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
+            if(is_array($transaction_fee) && isset($transaction_fee['error'])) {
+                return get_error_response($transaction_fee, 422);
+            }
             // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
 
             if (!$payin) {
@@ -123,7 +126,7 @@ class DepositController extends Controller
             return get_error_response(['error' => "Sorry we're currently unable to process your deposit request"]);
         } catch (\Throwable $th) {
             // return response()->json(['error' => $th->getTraceAsString()]);
-            return get_error_response(['error' => $th->getMessage(), "trace" => $th->getTrace()]);
+            return get_error_response(['error' => $th->getMessage()]);
         }
     }
 

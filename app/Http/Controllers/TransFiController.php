@@ -194,7 +194,7 @@ class TransFiController extends Controller
         }
     }
 
-    public function kycForm(Request $request)
+    public function kycForm($request)
     {
         try {
             $user = auth()->user();
@@ -282,7 +282,7 @@ class TransFiController extends Controller
         }
     }
 
-    public function addBusiness(Request $request)
+    public function addBusiness($request)
     {
         try {
             $user = auth()->user();
@@ -355,6 +355,10 @@ class TransFiController extends Controller
             ],
             'orderDetails' => $order // Full order information
         ];
+
+        // if event type is deposit then call the right class to complete the deposit
+
+        // if event type is payout call the right class to complete the payout
 
         // Return the response as JSON
         return response()->json($responseData);

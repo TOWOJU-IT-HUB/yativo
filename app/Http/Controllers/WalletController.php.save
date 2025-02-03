@@ -53,7 +53,7 @@ class WalletController extends Controller
             \Log::error($th);
 
             // Return error response
-            return get_error_response(['error' => 'Unable to get wallets', "info" => $th->getMessage(), "trace" => $th->getTrace()]);
+            return get_error_response(['error' => 'Unable to get wallets', "info" => $th->getMessage()]);
         }
     }
 

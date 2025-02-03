@@ -228,7 +228,12 @@ class DepositService
 
             return (array) $payin;
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
+            if(env('APP_DEBUG') == true) {
+                // notify of error on telegram channel
+                return ['error'=> $th->getMessage()];
+            }
+
+            return ['error'=> "Error encountered please contact support"];
         }
     }
 
@@ -239,7 +244,7 @@ class DepositService
             $init = $binance->init($deposit_id, $amount, $currency, $gateway, $txn_type);
             return $init;
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), "trace" => $th->getTrace()];
+            return ['error' => $th->getMessage()];
         }
     }
 

@@ -17,21 +17,28 @@ class CustomerKycMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if(Route::is('customer.verification.customer')) {
+        // Skip validation if the request is for the KYC verification URL
+        if ($request->is('api/v1/verification/verify-customer')) {
             return $next($request);
         }
+
+        // Proceed with validation if 'customer_id' is present in the request
         if ($request->has('customer_id')) {
             $customerId = $request->customer_id;
+
             // Validate customer existence and KYC status
             $customer = Customer::where('customer_id', $customerId)
-                ->where('customer_status', 'active')
-                ->where('customer_kyc_status', 'approved')
-                ->first();
+                            ->where('customer_status', 'active')
+                            ->where('customer_kyc_status', 'approved')
+                            ->first();
 
+            // If no valid customer is found, return a response with an error
             if (!$customer) {
-                return response()->json(['error' => 'Invalid or unapproved customer'], 403);
+                return get_error_response(['error' => 'Invalid or unapproved customer'], 403);
             }
         }
+
+        // Continue with the request processing
         return $next($request);
     }
 }

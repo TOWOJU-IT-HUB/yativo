@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Webhook\Http\Controllers;
+namespace Modules\Webhook\App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
