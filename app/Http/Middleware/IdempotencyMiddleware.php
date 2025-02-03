@@ -18,7 +18,7 @@ class IdempotencyMiddleware
     {
         // If the request method is POST and no idempotency key is provided
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH']) && !$request->header('Idempotency-Key')) {
-            return response()->json(['error' => 'Idempotency key missing'], 400);
+            return get_error_response(['error' => 'Idempotency key missing'], 400);
         }
 
         // Check if the idempotency key exists in the cache
