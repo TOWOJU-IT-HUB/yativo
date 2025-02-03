@@ -35,7 +35,7 @@ class TransactionRecordController extends Controller
                     return $query->where('transaction_amount', $amount);
                 })
                 ->latest()
-                ->paginate(per_page());
+                ->paginate(per_page())->withQueryString();
                 
             return paginate_yativo($records);
         } catch (\Throwable $th) {
@@ -54,7 +54,7 @@ class TransactionRecordController extends Controller
                 ->orWhere('secondary_currency', $currency)
                 ->whereUserId(auth()->id())
                 ->latest()
-                ->paginate(per_page());
+                ->paginate(per_page())->withQueryString();
 
             return paginate_yativo($records);
         } catch (\Throwable $th) {

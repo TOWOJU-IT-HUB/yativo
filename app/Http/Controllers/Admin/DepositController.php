@@ -17,7 +17,7 @@ class DepositController extends Controller
         });
 
         $query->orderBy('created_at', 'desc');
-        $deposits = $query->paginate(10);
+        $deposits = $query->paginate(per_page())->withQueryString();
 
         return view('admin.deposits.index', compact('deposits'));
     }

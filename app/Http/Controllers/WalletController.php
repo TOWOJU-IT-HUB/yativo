@@ -45,7 +45,7 @@ class WalletController extends Controller
     public function index()
     {
         try {
-            $payouts = Withdraw::where('user_id', auth()->id())->with('beneficiary')->paginate(per_page());
+            $payouts = Withdraw::where('user_id', auth()->id())->with('beneficiary')->paginate(per_page())->withQueryString();
             return paginate_yativo($payouts);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
@@ -184,7 +184,7 @@ class WalletController extends Controller
     public function deposits()
     {
         try {
-            $deposits = Deposit::whereUserId(active_user())->with('transaction')->paginate(per_page());
+            $deposits = Deposit::whereUserId(active_user())->with('transaction')->paginate(per_page())->withQueryString();
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {

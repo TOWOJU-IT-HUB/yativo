@@ -24,7 +24,7 @@ class PayinMethodsController extends Controller
             }
         }
 
-        $payinMethods = $query->paginate(15);
+        $payinMethods = $query->paginate(per_page())->withQueryString();
 
         // Return the view with the paginated results
         return view('admin.payin_methods.index', compact('payinMethods'));

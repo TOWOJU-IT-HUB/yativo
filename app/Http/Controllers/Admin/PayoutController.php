@@ -21,7 +21,7 @@ class PayoutController extends Controller
         });
 
         $query->orderBy('created_at', 'desc');
-        $payouts = $query->cursorPaginate(10);
+        $payouts = $query->cursorPaginate(10)->withQueryString();;
 
 
         return view('admin.payouts.index', compact('payouts'));

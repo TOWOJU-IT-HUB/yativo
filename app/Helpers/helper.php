@@ -1037,7 +1037,7 @@ if (!function_exists('get_transaction_fee')) {
      * @param mixed $amount | 100
      * @param mixed $txn_type deposit | payout
      * @param mixed $gateway_type - payin | payout
-     * @return int
+     * @return int|array
      */
     function get_transaction_fee(int $gateway, float $amount, string $txn_type, string $gateway_type)
     {
@@ -1046,7 +1046,7 @@ if (!function_exists('get_transaction_fee')) {
         $rate_floated_amount = 0;
 
         // get user pricing model
-        $user = request()->user();
+        $user = auth()->user();
         if (!$user->hasActiveSubscription()) {
             $plan = PlanModel::where('price', 0)->latest()->first();
             if ($plan) {
@@ -1063,7 +1063,7 @@ if (!function_exists('get_transaction_fee')) {
         elseif (strtolower($gateway_type) == "payout"):
             $gateway = payoutMethods::whereId($gateway)->first();
         else:
-            abort(json_encode(['error' => "Invalid gateway selected"]));
+            return ['error' => "Invalid gateway selected"];
         endif;
 
         if ($user_plan === 3) {
@@ -1073,12 +1073,15 @@ if (!function_exists('get_transaction_fee')) {
                 ->first();
 
             if (!$customPricing) {
-                abort(json_encode(['error' => "Custom pricing not set for this user and gateway"]));
+                // If no custom pricing is found, fall back to Plan 2 pricing
+                $user_plan = 2;
+            } else {
+                $fixed_charge = $customPricing->fixed_charge;
+                $float_charge = $customPricing->float_charge;
             }
+        }
 
-            $fixed_charge = $customPricing->fixed_charge;
-            $float_charge = $customPricing->float_charge;
-        } elseif ($user_plan === 1 || $user_plan === 2) {
+        if ($user_plan === 1 || $user_plan === 2) {
             // Handle basic and pro plans
             $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
             $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;

@@ -46,7 +46,7 @@ class BusinessController extends Controller
             }
         }
 
-        $businesses = $query->with('user')->paginate(10);
+        $businesses = $query->with('user')->paginate(per_page())->withQueryString();
         return view('admin.business.index', compact('businesses'));
     }
 
