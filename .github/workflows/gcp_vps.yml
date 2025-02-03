@@ -32,17 +32,18 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /var/www/api.yativo.com
+            cd /var/www/yativo
             # Fetch and reset to remote main branch
             git fetch origin
             git reset --hard origin/gcp_cloud
 
-            chown -R www-data:www-data /var/www/api.yativo.com
-            chmod -R 775 /var/www/api.yativo.com/storage /var/www/api.yativo.com/bootstrap/cache            
+            chown -R www-data:www-data /var/www/yativo
+            chmod -R 775 /var/www/yativo/storage /var/www/yativo/bootstrap/cache            
             
             # Optionally clear Laravel's cache
             php artisan config:clear
             php artisan cache:clear
+            php artisan storage:link
 
             # Ensure proper permissions for logs directory and its files (append mode)
             sudo chown -R www-data:www-data storage
