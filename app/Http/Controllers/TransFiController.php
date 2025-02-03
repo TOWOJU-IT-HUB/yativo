@@ -357,6 +357,19 @@ class TransFiController extends Controller
         ];
 
         // if event type is deposit then call the right class to complete the deposit
+        if (isset($responseData['status']) && $responseData['status'] === "fund_settled") {
+            $where = [
+                "transaction_memo" => "payin",
+                "transaction_id" => $deposit->deposit_id
+            ];
+            $order = TransactionRecord::where($where)->first();
+            if ($order) {
+                $deposit_services = new DepositService();
+                $deposit_services->process_deposit($order->transaction_id);
+                $this->updateTracking($deposit->id, $verify['data']['status'], $verify);
+            }
+        }
+
 
         // if event type is payout call the right class to complete the payout
 

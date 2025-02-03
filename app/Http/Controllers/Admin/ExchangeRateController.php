@@ -13,7 +13,7 @@ class ExchangeRateController extends Controller
 {
     public function index()
     {
-        $exchangeRates = ExchangeRate::with('payin', 'payout')->paginate(15);
+        $exchangeRates = ExchangeRate::with('payin', 'payout')->paginate(per_page())->withQueryString();
         return view('admin.exchange_rates.index', compact('exchangeRates'));
     }
 

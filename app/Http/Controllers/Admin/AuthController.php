@@ -46,7 +46,7 @@ class AuthController extends Controller
    /**
     * The function showAdminLoginForm displays the admin login form view in PHP.
     * 
-    * @return A view named 'auth.login' is being returned with the data array containing the key 'url'
+    * view named 'auth.login' is being returned with the data array containing the key 'url'
     * with the value 'admin'.
     */
     public function showAdminLoginForm()

@@ -59,7 +59,7 @@ class VirtualAccountsController extends Controller
                 });
             }
 
-            $accounts = $accounts->paginate(per_page());
+            $accounts = $accounts->paginate(per_page())->withQueryString();
             return paginate_yativo($accounts);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
@@ -73,7 +73,7 @@ class VirtualAccountsController extends Controller
     {
         try {
             // retrieve all users virtual accounts.
-            $accounts = VirtualAccount::whereUserId(auth()->id())->where('customer_id', $customerId)->paginate(per_page());
+            $accounts = VirtualAccount::whereUserId(auth()->id())->where('customer_id', $customerId)->paginate(per_page())->withQueryString();
             return paginate_yativo($accounts);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
@@ -634,7 +634,7 @@ class VirtualAccountsController extends Controller
     public function get_history($accountNumber)
     {
         try {
-            $transactions = localPaymentTransactions::where('account_number', $accountNumber)->paginate(per_page());
+            $transactions = localPaymentTransactions::where('account_number', $accountNumber)->paginate(per_page())->withQueryString();
 
             return paginate_yativo($transactions);
         } catch (\Throwable $th) {

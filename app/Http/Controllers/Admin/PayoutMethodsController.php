@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -19,30 +19,31 @@ class payoutMethodsController extends Controller
 
     public function index()
     {
-            $query = payoutMethods::query();
+        $query = payoutMethods::query();
 
-            if (request('currency')) {
-                $query->where('currency', request('currency'));
-            }
+        if (request('currency')) {
+            $query->where('currency', request('currency'));
+        }
 
-            if (request('gateway')) {
-                $query->where('gateway', 'like', '%' . request('gateway') . '%');
-            }
+        if (request('gateway')) {
+            $query->where('gateway', 'like', '%' . request('gateway') . '%');
+        }
 
-            if (request('method_name')) {
-                $query->where('method_name', 'like', '%' . request('method_name') . '%');
-            }
+        if (request('method_name')) {
+            $query->where('method_name', 'like', '%' . request('method_name') . '%');
+        }
 
-            if (request('country')) {
-                $query->where('country', 'like', '%' . request('country') . '%');
-            }
+        if (request('country')) {
+            $query->where('country', 'like', '%' . request('country') . '%');
+        }
 
-            if (request('show_deleted')) {
-                $query->withTrashed();
-            }
+        if (request('show_deleted')) {
+            $query->withTrashed();
+        }
 
-            $payoutMethods = $query->paginate(15)->withQueryString();
-            return view('admin.payout_methods.index', compact('payoutMethods'));    }
+        $payoutMethods = $query->paginate(per_page())->withQueryString();
+        return view('admin.payout_methods.index', compact('payoutMethods'));
+    }
 
     public function create()
     {
@@ -71,7 +72,7 @@ class payoutMethodsController extends Controller
             'cutoff_hrs_end' => 'nullable'
         ]);
 
-        if(empty($request->country)) {
+        if (empty($request->country)) {
             $validatedData['country'] = 'global';
         }
         payoutMethods::create($request->all());

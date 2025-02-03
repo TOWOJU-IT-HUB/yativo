@@ -25,7 +25,7 @@ class ActivityLogController extends Controller
                     });
             })
             ->orderBy($request->input('sort', 'log_name'))
-            ->paginate(10);
+            ->paginate(per_page())->withQueryString();
 
         return view('admin.activity-logs.index', compact('logs'));
     }

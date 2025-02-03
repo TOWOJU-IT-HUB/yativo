@@ -9,7 +9,7 @@ use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\Withdraw;
 use Illuminate\Http\Request;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 class TransFiWebhookController extends Controller
 {

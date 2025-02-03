@@ -14,7 +14,7 @@ class CustomPricingController extends Controller
 {
     public function index()
     {
-        $customPricings = CustomPricing::with('user')->paginate(10);
+        $customPricings = CustomPricing::with('user')->paginate(per_page())->withQueryString();
         return view('admin.custom-pricing.index', compact('customPricings'));
     }
 

@@ -234,7 +234,7 @@ class CryptoWalletsController extends Controller
     public function getWallets()
     {
         try {
-            $wallets = CryptoWallets::whereUserId(auth()->id())->with('customer')->latest()->paginate(per_page());
+            $wallets = CryptoWallets::whereUserId(auth()->id())->with('customer')->latest()->paginate(per_page())->withQueryString();
             if ($wallets) {
                 return paginate_yativo($wallets);
             }
@@ -321,7 +321,7 @@ class CryptoWalletsController extends Controller
             $history = $deposits->whereUserId(auth()->id())
                 ->with('customer')
                 ->whereAddress($walletAddresses)
-                ->paginate(per_page());
+                ->paginate(per_page())->withQueryString();
 
             if ($history->isNotEmpty()) {
                 return paginate_yativo($history);
@@ -348,7 +348,7 @@ class CryptoWalletsController extends Controller
         $walletAddresses = CryptoWallets::where([
             "user_id" => auth()->id(),
             "customer_id" => $customerId
-        ])->paginate(per_page());
+        ])->paginate(per_page())->withQueryString();
 
         return paginate_yativo($walletAddresses);
     }

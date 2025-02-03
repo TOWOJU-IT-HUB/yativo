@@ -12,7 +12,7 @@ class AdminController extends Controller
 {
     public function index()
     {
-        $admins = Admin::paginate(10);
+        $admins = Admin::paginate(per_page())->withQueryString();
         return view('admin.index', compact('admins'));
     }
 

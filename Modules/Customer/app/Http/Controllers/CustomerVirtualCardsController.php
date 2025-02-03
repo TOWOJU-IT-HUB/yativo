@@ -28,7 +28,7 @@ class CustomerVirtualCardsController extends Controller
     public function index()
     {
         try {
-            $cards = CustomerVirtualCards::where('business_id', get_business_id(auth()->id()))->paginate(per_page());
+            $cards = CustomerVirtualCards::where('business_id', get_business_id(auth()->id()))->paginate(per_page())->withQueryString();
             return paginate_yativo($cards);
         } catch (\Exception $e) {
             if(env('APP_ENV') == 'local') {

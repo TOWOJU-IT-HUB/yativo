@@ -20,7 +20,7 @@ class EventsController extends Controller
                     return $query->where('method', request('method'));
                 })
                 ->latest()->limit(300)
-                ->paginate(per_page());
+                ->paginate(per_page())->withQueryString();
             return paginate_yativo($activity);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
@@ -51,7 +51,7 @@ class EventsController extends Controller
     public function getWebhookLogs(Request $request)
     {
         try {
-            $activity = WebhookLog::where('user_id', auth()->id())->latest()->paginate(per_page());
+            $activity = WebhookLog::where('user_id', auth()->id())->latest()->paginate(per_page())->withQueryString();
 
             return paginate_yativo($activity);
         } catch (\Throwable $th) {
