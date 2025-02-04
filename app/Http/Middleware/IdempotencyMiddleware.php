@@ -17,6 +17,11 @@ class IdempotencyMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // If the request method is POST and no idempotency key is provided
+        if (!in_array($request->method(), ['POST', 'PUT', 'PATCH'])) {
+            return $next($request);
+        }
+    
+        // If the request method is POST and no idempotency key is provided
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH']) && !$request->header('Idempotency-Key')) {
             return get_error_response(['error' => 'Idempotency key missing'], 400);
         }
