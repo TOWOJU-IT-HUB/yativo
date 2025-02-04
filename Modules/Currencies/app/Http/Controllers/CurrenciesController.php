@@ -17,7 +17,7 @@ class CurrenciesController extends Controller
     public function index()
     {
         try {
-            $currencies = Currency::all();
+            $currencies = Currency::where('is_active', true);
             if($currencies) {
                 return get_success_response($currencies);
             }

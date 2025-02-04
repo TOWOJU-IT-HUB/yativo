@@ -142,6 +142,11 @@ class BridgeController extends Controller
             return ['error' => 'Customer not enrolled for service'];
         }
         $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
+        $destinationAddress = $this->createWallet($this->customer->bridge_customer_id);
+
+        if($destinationAddress == false) {
+            return ["error"=> "Unable to generate virtual account"];
+        }
 
         $payload = [
             // "developer_fee_percent" => env('BRIDGE_DEVELOPER_FEE_PERCENT', "1"),
@@ -151,7 +156,7 @@ class BridgeController extends Controller
             "destination" => [
                 "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
                 "payment_rail" => env('BRIDGE_PAYMENT_RAIL', "polygon"),
-                "address" => env('BRIDGE_DESINATION_ADDRESS', "0x59a8f26552CaF6ea7F669872bf39443d8d0eFB96")
+                "address" => $destinationAddress
             ]
         ];
 
@@ -229,7 +234,7 @@ class BridgeController extends Controller
             "source" => [
                 "currency" => "usdc",
                 "payment_rail" => "bridge_wallet",
-                "bridge_wallet_id" => "v0/customers/{customerID}/wallets"
+                "bridge_wallet_id" => "xoxo" // Zee Technology SPA wallet ID
             ],
             "destination" => [
                 "currency" => $to_currency, // eur and usd
@@ -367,7 +372,7 @@ class BridgeController extends Controller
     {
         $method = strtolower($method);
         $url = env('BRIDGE_BASE_URL');
-        $apiKey = env('BRIDGE_API_KEY', "sk-test-bff33685a0aa22973f54bef2f8a814de");
+        $apiKey = env('BRIDGE_API_KEY');
 
         if ($method === 'get' && !empty($payload)) {
             $url .= $endpoint . '?' . http_build_query($payload);
@@ -415,6 +420,20 @@ class BridgeController extends Controller
     public function BridgeWebhook(Request $request)
     {
         // Get the request body
-        if()
+        // if()
+    }
+
+    public function createWallet($customerId)
+    {
+        $endpoint = "v0/customers/{$customerId}/wallets";
+        $curl = $this->sendRequest($endpoint, "POST", $payload = [
+            'chain' => 'solana'
+        ]);
+
+        if(isset($curl['address'])) {
+            return $curl['address'];
+        }
+
+        return false;
     }
 }
