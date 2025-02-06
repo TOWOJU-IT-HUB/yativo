@@ -31,9 +31,7 @@ class BridgeController extends Controller
      */
     public function addCustomerV1(array|object $customer = [])
     {
-        $customer = (object) $customer;
-        
-        $bridgeData = $this->sendRequest("/v0/customers", 'POST', $bridgePayload);
+        $bridgeData = $this->sendRequest("/v0/customers", 'POST', $customer);
         return $bridgeData;
     }
 
@@ -149,13 +147,13 @@ class BridgeController extends Controller
         }
 
         $payload = [
-            // "developer_fee_percent" => env('BRIDGE_DEVELOPER_FEE_PERCENT', "1"),
+            "developer_fee_percent" => env('BRIDGE_DEVELOPER_FEE_PERCENT', "0.6"),
             "source" => [
                 "currency" => "usd"
             ],
             "destination" => [
                 "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
-                "payment_rail" => env('BRIDGE_PAYMENT_RAIL', "polygon"),
+                "payment_rail" => "solana"; //env('BRIDGE_PAYMENT_RAIL', "polygon"),
                 "address" => $destinationAddress
             ]
         ];
@@ -425,6 +423,7 @@ class BridgeController extends Controller
 
     public function createWallet($customerId)
     {
+        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD";
         $endpoint = "v0/customers/{$customerId}/wallets";
         $curl = $this->sendRequest($endpoint, "POST", $payload = [
             'chain' => 'solana'
