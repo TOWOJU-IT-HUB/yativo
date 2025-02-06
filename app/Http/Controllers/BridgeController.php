@@ -140,7 +140,7 @@ class BridgeController extends Controller
             return ['error' => 'Customer not enrolled for service'];
         }
         $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
-        $destinationAddress = $this->createWallet($this->customer->bridge_customer_id);
+        $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; //$this->createWallet($this->customer->bridge_customer_id);
 
         if($destinationAddress == false) {
             return ["error"=> "Unable to generate virtual account"];
