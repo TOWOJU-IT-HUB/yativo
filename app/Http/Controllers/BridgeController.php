@@ -153,7 +153,7 @@ class BridgeController extends Controller
             ],
             "destination" => [
                 "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
-                "payment_rail" => "solana"; //env('BRIDGE_PAYMENT_RAIL', "polygon"),
+                "payment_rail" => "solana", //env('BRIDGE_PAYMENT_RAIL', "polygon"),
                 "address" => $destinationAddress
             ]
         ];
