@@ -259,10 +259,10 @@ class CurrencyListSeeder extends Seeder
         
         set_time_limit(0);
         foreach ($countries as $country) {
-            CurrencyList::updateOrCreate(
-                ['iso_alpha2' => $country['iso_alpha2']], 
-                $country
-            );
+            // CurrencyList::updateOrCreate(
+            //     ['iso_alpha2' => $country['iso_alpha2']], 
+            //     $country
+            // );
 
             Country::where('iso3', $country['iso_alpha3'])
                 ->update(['currency_code' => $country['currency_code']]);

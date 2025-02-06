@@ -76,7 +76,7 @@ class DojahVerificationController extends Controller
                 'documents.*.file' => 'required|string|starts_with:data:image',
             ]);
         } elseif ($request->input('type') === 'business') {
-            $rules = array_merge($rules, [
+            $ex_rules = array_merge($rules, [
                 'registered_address.street_line_1' => 'required|string|max:255',
                 'registered_address.city' => 'required|string|max:255',
                 'registered_address.subdivision' => 'nullable|string|max:255',
@@ -166,7 +166,7 @@ class DojahVerificationController extends Controller
             })->afterResponse();
             return get_success_response($bridgeData);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()], 500);
+            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()], 500);
         }
     }
 

@@ -57,7 +57,7 @@ class VitaWalletController extends Controller
 
         if (strlen($currencyIso2) == 3) {
             $country = Country::where('currency_code', $currencyIso2)->first();
-            if ($country->iso2)
+            if ($country && $country->iso2)
                 $currencyIso2 = $country->iso2;
         }
 

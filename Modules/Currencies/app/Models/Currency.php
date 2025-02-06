@@ -23,9 +23,14 @@ class Currency extends Model
         "balance_type",
         "currency_full_name",
         "logo_url",
+        "is_true"
+    ];
+
+    protected $casts = [
+        "is_active"=> "boolean"
     ];
     
-    protected static function newFactory(): CurrencyFactory
+    protected static function newFactory()
     {
         //return CurrencyFactory::new();
     }
