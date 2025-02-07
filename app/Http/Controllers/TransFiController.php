@@ -194,9 +194,10 @@ class TransFiController extends Controller
         }
     }
 
-    public function kycForm($request)
+    public function kycForm($incoming)
     {
         try {
+            $request = (object)$incoming;
             $user = auth()->user();
             $transfi_user_id = $user->transfi_user_id ?? $this->processUserType($request);
 
