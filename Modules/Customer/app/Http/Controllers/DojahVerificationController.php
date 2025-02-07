@@ -48,12 +48,7 @@ class DojahVerificationController extends Controller
             'customer_id' => 'required|exists:customers,customer_id',
             'type' => 'required|in:individual,business',
             'email' => 'required|email',
-            'address.street_line_1' => 'required|string|max:255',
-            'address.city' => 'required|string|max:255',
-            'address.subdivision' => 'nullable|string|max:3',
-            'address.postal_code' => 'required|string|max:20',
-            'address.country' => 'required|string|size:3',
-            // 'signed_agreement_id' => 'required|uuid',
+            'address' => 'required|array',
         ];
 
         if ($request->input('type') === 'individual') {
@@ -68,12 +63,7 @@ class DojahVerificationController extends Controller
                 'account_purpose' => 'required|string|in:purchase_goods_and_services,other',
                 'source_of_funds' => 'required|string',
                 'identifying_information' => 'required|array|min:1',
-                'identifying_information.*.type' => 'required|string|in:ssn,drivers_license,passport',
-                'identifying_information.*.issuing_country' => 'required|string|size:3',
-                'identifying_information.*.number' => 'required|string',
                 'documents' => 'required|array|min:1',
-                'documents.*.purposes' => 'required|array|min:1',
-                'documents.*.file' => 'required|string|starts_with:data:image',
             ]);
         } elseif ($request->input('type') === 'business') {
             $ex_rules = array_merge($rules, [

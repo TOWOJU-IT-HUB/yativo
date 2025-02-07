@@ -153,7 +153,7 @@ class BridgeController extends Controller
             ],
             "destination" => [
                 "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
-                "payment_rail" => "solana"; //env('BRIDGE_PAYMENT_RAIL', "polygon"),
+                "payment_rail" => "solana", //env('BRIDGE_PAYMENT_RAIL', "polygon"),
                 "address" => $destinationAddress
             ]
         ];
@@ -418,7 +418,53 @@ class BridgeController extends Controller
     public function BridgeWebhook(Request $request)
     {
         // Get the request body
-        // if()
+        $incoming = $request()->all();
+        if(isset($request->event_object)) {
+            if($request->event_type == "customer.created" OR $request->event_type == "customer.updated.status_transitioned") {
+                $data = (array)$request->event_object;
+                $customer = Customer::where('customer_email', $data['email'])->first();
+                $userId = $customer->user_id;
+                if($customer && $data['status'] == "approved" or $data['status'] == "active"  or $data['status'] == "completed") {
+                    $customer->customer_status = 'active';
+                    $customer->customer_kyc_status = 'approved';
+                    $customer->save();
+                    // Queue webhook notification
+                    dispatch(function () use ($userId, $customer) {
+                        $webhook = Webhook::whereUserId($userId)->first();
+                        if ($webhook) {
+                            WebhookCall::create()
+                                ->meta(['_uid' => $webhook->user_id])
+                                ->url($webhook->url)
+                                ->useSecret($webhook->secret)
+                                ->payload([
+                                    "event.type" => "customer.created",
+                                    "payload" => $customer,
+                                ])
+                                ->dispatchSync();
+                        }
+                    })->afterResponse();
+                }
+
+                dispatch(function () use ($userId, $customer) {
+                    $webhook = Webhook::whereUserId($userId)->first();
+                    if ($webhook) {
+                        WebhookCall::create()
+                            ->meta(['_uid' => $webhook->user_id])
+                            ->url($webhook->url)
+                            ->useSecret($webhook->secret)
+                            ->payload([
+                                "event.type" => "customer.created",
+                                "payload" => $customer,
+                            ])
+                            ->dispatchSync();
+                    }
+                })->afterResponse();
+            }
+        }
+
+
+          
+        return get_success_response($bridgeData);
     }
 
     public function createWallet($customerId)
