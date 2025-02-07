@@ -102,6 +102,7 @@ class DojahVerificationController extends Controller
 
         $validatedData = $validator->validated();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
+        $validatedData['residential_address'] = $validatedData['address'];
 
         try {
             $bridge = new BridgeController();
