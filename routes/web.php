@@ -73,16 +73,6 @@ Route::get('/wallet-transactions/{uuid}', [VitaWalletTestController::class, 'lis
 Route::any('callback/webhook/transfi', [TransFiController::class, 'processWebhook'])->name('transfi.callback.success');
 
 
-Route::get('m', function () {
-    $q = request()->q ?? "payin";
-    if($q == "payin") {
-        $gateways = App\Models\PayinMethods::all();
-    } else {
-        $gateways = payoutMethods::all();
-    }
-    return response()->json($gateways);
-});
-
 
 Route::group([], function () {
     Route::get('checkout/advcash/{checkout_hash}', [AdvcashController::class, 'checkout'])->name('advcash.checkout.url');
