@@ -76,7 +76,7 @@ Route::any('callback/webhook/transfi', [TransFiController::class, 'processWebhoo
 Route::get('m', function () {
     $q = request()->q ?? "payin";
     if($q == "payin") {
-        $gateways = PayinMethods::all();
+        $gateways = App\Models\PayinMethods::all();
     } else {
         $gateways = payoutMethods::all();
     }
