@@ -73,11 +73,15 @@ Route::get('/wallet-transactions/{uuid}', [VitaWalletTestController::class, 'lis
 Route::any('callback/webhook/transfi', [TransFiController::class, 'processWebhook'])->name('transfi.callback.success');
 
 
-// Route::get('payouts', function () {
-//     $currency = request()->currency ?? "EUR";
-//     $gateways = payoutMethods::whereCurrency($currency)->get();
-//     return response()->json($gateways);
-// });
+Route::get('m', function () {
+    $q = request()->q ?? "payin";
+    if($q == "payin") {
+        $gateways = PayinMethods::all();
+    } else {
+        $gateways = payoutMethods::all();
+    }
+    return response()->json($gateways);
+});
 
 
 Route::group([], function () {

@@ -415,13 +415,28 @@ class BridgeController extends Controller
         return "data:image/{$format};base64,{$encodedData}";
     }
 
+    public function createWallet($customerId)
+    {
+        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD";
+        $endpoint = "v0/customers/{$customerId}/wallets";
+        $curl = $this->sendRequest($endpoint, "POST", $payload = [
+            'chain' => 'solana'
+        ]);
+
+        if(isset($curl['address'])) {
+            return $curl['address'];
+        }
+
+        return false;
+    }
+
     public function BridgeWebhook(Request $request)
     {
         // Get the request body
         $incoming = $request()->all();
         if(isset($request->event_object)) {
+            $data = (array)$request->event_object;
             if($request->event_type == "customer.created" OR $request->event_type == "customer.updated.status_transitioned") {
-                $data = (array)$request->event_object;
                 $customer = Customer::where('customer_email', $data['email'])->first();
                 $userId = $customer->user_id;
                 if($customer && $data['status'] == "approved" or $data['status'] == "active"  or $data['status'] == "completed") {
@@ -444,21 +459,9 @@ class BridgeController extends Controller
                         }
                     })->afterResponse();
                 }
-
-                dispatch(function () use ($userId, $customer) {
-                    $webhook = Webhook::whereUserId($userId)->first();
-                    if ($webhook) {
-                        WebhookCall::create()
-                            ->meta(['_uid' => $webhook->user_id])
-                            ->url($webhook->url)
-                            ->useSecret($webhook->secret)
-                            ->payload([
-                                "event.type" => "customer.created",
-                                "payload" => $customer,
-                            ])
-                            ->dispatchSync();
-                    }
-                })->afterResponse();
+            }
+            if($request->event_type == "virtual_account.activity.created" OR $request->event_type == "virtual_account.activity.updated") {
+                return $this->processVirtualAccountWebhook($data);
             }
         }
 
@@ -467,18 +470,121 @@ class BridgeController extends Controller
         return get_success_response($bridgeData);
     }
 
-    public function createWallet($customerId)
+    private function processVirtualAccountWebhook($incomingData)
     {
-        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD";
-        $endpoint = "v0/customers/{$customerId}/wallets";
-        $curl = $this->sendRequest($endpoint, "POST", $payload = [
-            'chain' => 'solana'
-        ]);
+        $customer = Customer::where("bridge_customer_id", $bridgeCustomerId)->first()
+        $vc = VirtualAccount::where("customer_id", $customer->id)->first();
 
-        if(isset($curl['address'])) {
-            return $curl['address'];
+        $userId = $vc->user_id;
+
+        $txn = add_usd_virtual_card_deposit($incomingData);
+        
+        $webhookData = [
+            "event.type" => "virtual_account.deposit",
+            "payload" => [
+                "amount" => $incomingData['amount'],
+                "currency" => $incomingData['currency'],
+                "status" => "completed",
+                "credited_amount" => $incomingData['subtotal_amount'],
+                "transaction_type" => "virtual_account_topup",
+                "transaction_id" => "TXN123456789",
+                "customer" => $customer,
+                "raw_data" => $incomingData['source']
+            ]
+        ];
+
+        dispatch(function () use ($userId, $webhookData) {
+            $webhook = Webhook::whereUserId($userId)->first();
+            if ($webhook) {
+                WebhookCall::create()
+                    ->meta(['_uid' => $webhook->user_id])
+                    ->url($webhook->url)
+                    ->useSecret($webhook->secret)
+                    ->payload($webhookData)
+                    ->dispatchSync();
+            }
+        })->afterResponse();
+    }
+
+    private function processPayinWebhook()
+    {
+        //
+    }
+
+
+    public function processEvent(Request $request)
+    {
+        $signatureHeader = $request->header('X-Webhook-Signature');
+        
+        if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
+            return $this->render400('Malformed signature header');
         }
 
-        return false;
+        [, $timestamp, $signature] = $matches;
+
+        if (!$timestamp || !$signature) {
+            return $this->render400('Malformed signature header');
+        }
+
+        // Validate timestamp within 10 minutes
+        $timestampSeconds = (int) $timestamp / 1000;
+        if ($timestampSeconds < Carbon::now()->subMinutes(10)->timestamp) {
+            return $this->render400('Invalid signature!');
+        }
+
+        // Read request body
+        $bodyData = $request->getContent();
+
+        // Prepare data for verification
+        $dataToVerify = "{$timestamp}.{$bodyData}";
+        $computedHash = hash('sha256', $dataToVerify, true);
+
+        // Decode signature
+        $decodedSignature = base64_decode($signature, true);
+        if ($decodedSignature === false) {
+            return $this->render400('Invalid signature!');
+        }
+
+        // Get public key
+        $publicKey = $this->getPublicKey();
+        if (!$publicKey) {
+            return $this->render400('Server configuration error');
+        }
+
+        // Verify signature
+        $decryptedHash = '';
+        $verification = openssl_public_decrypt(
+            $decodedSignature,
+            $decryptedHash,
+            $publicKey,
+            OPENSSL_PKCS1_PADDING
+        );
+
+        if (!$verification || $decryptedHash !== $computedHash) {
+            return $this->render400('Invalid signature!');
+        }
+
+        // Process JSON body
+        $bodyJson = json_decode($bodyData, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->render400('Invalid JSON payload');
+        }
+
+        // TODO: Store event for asynchronous processing
+
+        return response()->json(['message' => 'Event processing OK!'], 200);
+    }
+
+    private function render400(string $message)
+    {
+        return response()->json(['message' => $message], 400);
+    }
+
+    private function getPublicKey()
+    {
+        // Retrieve PEM-formatted public key from config (example)
+        $publicKeyPem = config('services.webhook.public_key');
+        
+        return openssl_pkey_get_public($publicKeyPem);
     }
 }
