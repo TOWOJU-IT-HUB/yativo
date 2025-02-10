@@ -57,13 +57,13 @@ class DojahVerificationController extends Controller
                 'last_name' => 'required|string|max:255',
                 'birth_date' => 'required|date|before:today',
                 'employment_status' => 'required|string|in:employed,self_employed,unemployed',
-                'expected_monthly_payments' => 'required|string|in:5000_9999,10000_14999,15000_plus',
+                'expected_monthly_payments' => 'required|string|in:0_4999,5000_9999,10000_14999,15000_plus',
                 'acting_as_intermediary' => 'required|boolean',
                 'most_recent_occupation' => 'required|string',
                 'account_purpose' => 'required|string|in:purchase_goods_and_services,other',
                 'source_of_funds' => 'required|string',
                 'identifying_information' => 'required|array|min:1',
-                'documents' => 'required|array|min:1',
+                'documents' => 'sometimes|array|min:1',
             ]);
         } elseif ($request->input('type') === 'business') {
             $rules = $request->all();
