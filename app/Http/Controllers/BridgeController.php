@@ -126,8 +126,8 @@ class BridgeController extends Controller
         if(isset($data['code'])) {
             return get_error_response($data);
         }
-        // return $data;
-        return get_error_response(['error' => "please contact support", "data" => $data]);
+        return $data;
+        // return get_error_response(['error' => "please contact support", "data" => $data]);
     }
 
     public function createCustomerBridgeWallet($customerId)
