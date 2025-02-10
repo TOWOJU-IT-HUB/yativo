@@ -417,7 +417,7 @@ class BridgeController extends Controller
 
     public function createWallet($customerId)
     {
-        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD";
+        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
         $endpoint = "v0/customers/{$customerId}/wallets";
         $curl = $this->sendRequest($endpoint, "POST", $payload = [
             'chain' => 'solana'
@@ -583,7 +583,7 @@ class BridgeController extends Controller
     private function getPublicKey()
     {
         // Retrieve PEM-formatted public key from config (example)
-        $publicKeyPem = config('services.webhook.public_key');
+        $publicKeyPem = storage_path('app/keys/bridge.pem');
         
         return openssl_pkey_get_public($publicKeyPem);
     }
