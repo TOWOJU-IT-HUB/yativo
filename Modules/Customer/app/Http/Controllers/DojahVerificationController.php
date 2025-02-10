@@ -63,7 +63,7 @@ class DojahVerificationController extends Controller
                 'account_purpose' => 'required|string|in:purchase_goods_and_services,other',
                 'source_of_funds' => 'required|string',
                 'identifying_information' => 'required|array|min:1',
-                'documents' => 'sometimes|array|min:1',
+                'documents' => 'sometimes|array',
             ]);
         } elseif ($request->input('type') === 'business') {
             $rules = $request->all();
@@ -72,7 +72,7 @@ class DojahVerificationController extends Controller
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return get_error_response(['errors' => $validator->errors()], 422);
         }
 
         $validatedData = $validator->validated();
