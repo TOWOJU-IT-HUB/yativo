@@ -71,23 +71,40 @@ class DepositController extends Controller
                 return get_error_response(['error' => "Invalid wallet selected"], 400);
             }
 
-            $payin = PayinMethods::whereId($request->gateway)->first();     
+            $payin = PayinMethods::whereId($request->gateway)->first();
 
-            $currencyArray = array_map('trim', explode(',', $payin->base_currency)); // Split and trim whitespace
-            if (!in_array($request->currency, $currencyArray)) {
-                return get_error_response(['error' => "Sorry the selected currency pair are not allowed: Allowed currency pairs are: ".json_encode($currencyArray)]);
-            } 
-
-            $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
-
+            if (!$payin) {
+                return get_error_response(['error' => 'Invalid payment gateway selected.'], 400);
+            }
             
-            if($payin->minimum_deposit > ($request->amount * $exchange_rate)) {
+            $currencyArray = $payin->base_currency ? array_map('trim', explode(',', $payin->base_currency)) : [];
+            
+            if (!$request->currency || !in_array($request->currency, $currencyArray)) {
+                return get_error_response([
+                    'error' => "Sorry, the selected currency is not allowed. Allowed currencies: " . json_encode($currencyArray)
+                ], 400);
+            }
+            
+            $exchange_rate = get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin");
+            
+            if (!$exchange_rate || $exchange_rate <= 0) {
+                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
+            }
+            $exchange_rate = floatval($exchange_rate);
+            
+            $amount = floatval($request->amount ?? 0);
+            if ($amount <= 0) {
+                return get_error_response(['error' => 'Invalid deposit amount.'], 400);
+            }
+            
+            if ($payin->minimum_deposit > ($amount * $exchange_rate)) {
                 return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is {$payin->minimum_deposit}"], 400);
             }
-
-            if($payin->maximum_deposit < ($request->amount * $exchange_rate)) {
+            
+            if ($payin->maximum_deposit < ($amount * $exchange_rate)) {
                 return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is {$payin->maximum_deposit}"], 400);
             }
+            
 
             // record deposit info into the DB
             $deposit = new Deposit();
