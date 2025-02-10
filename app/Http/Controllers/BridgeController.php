@@ -490,7 +490,7 @@ class BridgeController extends Controller
 
     private function processVirtualAccountWebhook($incomingData)
     {
-        $customer = Customer::where("bridge_customer_id", $bridgeCustomerId)->first()
+        $customer = Customer::where("bridge_customer_id", $bridgeCustomerId)->first();
         $vc = VirtualAccount::where("customer_id", $customer->id)->first();
 
         $userId = $vc->user_id;
