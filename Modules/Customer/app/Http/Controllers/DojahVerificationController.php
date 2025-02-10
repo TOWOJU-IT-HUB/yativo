@@ -50,7 +50,7 @@ class DojahVerificationController extends Controller
             'email' => 'required|email',
             'address' => 'required|array',
         ];
-
+    
         if ($request->input('type') === 'individual') {
             $rules = array_merge($rules, [
                 'first_name' => 'required|string|max:255',
@@ -66,27 +66,35 @@ class DojahVerificationController extends Controller
                 'documents' => 'sometimes|array',
             ]);
         } elseif ($request->input('type') === 'business') {
-            $rules = $request->all();
+            $rules = array_merge($rules, [
+                'business_name' => 'required|string|max:255',
+                'business_type' => 'required|string|in:sole_proprietorship,partnership,corporation',
+                'registration_number' => 'required|string|max:255',
+                'tax_identification_number' => 'nullable|string|max:255',
+                'contact_person' => 'required|string|max:255',
+                'business_address' => 'required|array',
+                'business_documents' => 'sometimes|array',
+            ]);
         }
-
+    
         $validator = Validator::make($request->all(), $rules);
-
+    
         if ($validator->fails()) {
             return get_error_response(['errors' => $validator->errors()], 422);
         }
-
-        $validatedData = $request->all()->toArray();
+    
+        $validatedData = $request->all();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
         $validatedData['residential_address'] = $request->address;
-
+    
         try {
             $bridge = new BridgeController();
             $bridgeData = $bridge->addCustomerV1($validatedData);
-
+    
             if (isset($bridgeData['code']) && $bridgeData['code'] === 'invalid_parameters') {
                 return get_error_response(['error' => $bridgeData]);
             }
-
+    
             $bitnobPayload = [
                 'customerEmail' => $validatedData['email'],
                 'idNumber' => $validatedData['identifying_information'][0]['number'] ?? null,
@@ -99,23 +107,23 @@ class DojahVerificationController extends Controller
                 'country' => $validatedData['address']['country'] ?? null,
                 'zipCode' => $validatedData['address']['postal_code'] ?? null,
                 'line1' => $validatedData['address']['street_line_1'] ?? null,
-                'idImage' => MiscController::uploadBase64ImageToCloudflare($validatedData['documents'][0]['file']) ?? null,
+                'idImage' => isset($validatedData['documents'][0]['file'])
+                    ? MiscController::uploadBase64ImageToCloudflare($validatedData['documents'][0]['file'])
+                    : null,
                 'dateOfBirth' => $validatedData['birth_date'] ?? null,
             ];
-
-
+    
             $bitnob = new Bitnob();
             $bitnobResponse = $bitnob->cards()->regUser($bitnobPayload);
-
+    
             if (isset($bitnobResponse['error'])) {
                 return get_error_response(['error' => $bitnobResponse['message'] ?? 'Bitnob registration failed']);
             }
-
+    
             $tranfi = new TransFiController();
             $tranfi->kycForm($request);
             $userId = auth()->id();
-
-            // Queue webhook notification
+    
             dispatch(function () use ($userId, $bridgeData) {
                 $webhook = Webhook::whereUserId($userId)->first();
                 if ($webhook) {
@@ -130,12 +138,13 @@ class DojahVerificationController extends Controller
                         ->dispatchSync();
                 }
             })->afterResponse();
+    
             return get_success_response($bridgeData);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()], 500);
         }
     }
-
+    
     /**
      * The function generates a signed agreement ID by making a POST request to a specific URL with certain
      * parameters.
