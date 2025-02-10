@@ -143,6 +143,11 @@ class WithdrawalConntroller extends Controller
             // Get beneficiary payout method
             $payoutMethod = payoutMethods::where('id', $is_beneficiary->gateway_id)->first();
             
+            $currencyArray = array_map('trim', explode(',', $payoutMethod->base_currency)); // Split and trim whitespace
+            if (!in_array($request->currency, $currencyArray)) {
+                return get_error_response['error' => "Sorry the selected currency pair are not allowed: allowed currency pairs are: {$payin->base_currency}", "allowed_pairs" => $payin->base_currency]
+            } 
+            
             if($request->amount < $payoutMethod->minimum_withdrawal) {
                 return get_error_response(['error' => "Amount can not be less than {$payoutMethod->minimum_withdrawal}"]);
             }

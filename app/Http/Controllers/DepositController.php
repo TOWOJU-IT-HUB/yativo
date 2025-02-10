@@ -55,8 +55,8 @@ class DepositController extends Controller
                 [
                     'gateway' => 'required',
                     'amount' => 'required',
-                    'currency' => 'sometimes',
-                    'credit_wallet' => 'sometimes'
+                    'currency' => 'required_if:credit_wallet,null',
+                    'credit_wallet' => 'required_if:currency,null'
                 ]
             );
 
@@ -66,21 +66,26 @@ class DepositController extends Controller
 
             $user = $request->user();
 
-            if (!$user->hasWallet($request->credit_wallet ?? $request->currency)) {
+            if (!$user->hasWallet($request->currency)) {
                 return get_error_response(['error' => "Invalid wallet selected"], 400);
             }
 
-            $payin = PayinMethods::whereId($request->gateway)->first();
+            $payin = PayinMethods::whereId($request->gateway)->first();            
+            $currencyArray = array_map('trim', explode(',', $payin->base_currency)); // Split and trim whitespace
+            if (!in_array($request->currency, $currencyArray)) {
+                return get_error_response['error' => "Sorry the selected currency pair are not allowed: Allowed currency pairs are: {$payin->base_currency}"]
+            } 
+
+            $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
+
             
-            if($payin->minimum_deposit > $request->amount) {
+            if($payin->minimum_deposit > ($request->amount * $exchange_rate)) {
                 return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is {$payin->minimum_deposit}"], 400);
             }
 
-            if($payin->maximum_deposit < $request->amount) {
+            if($payin->maximum_deposit < ($request->amount * $exchange_rate)) {
                 return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is {$payin->maximum_deposit}"], 400);
             }
-
-            $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
 
             // record deposit info into the DB
             $deposit = new Deposit();
