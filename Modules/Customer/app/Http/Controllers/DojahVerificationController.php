@@ -75,7 +75,7 @@ class DojahVerificationController extends Controller
             return get_error_response(['errors' => $validator->errors()], 422);
         }
 
-        $validatedData = $validator->validated();
+        $validatedData = $request->all();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
         $validatedData['residential_address'] = $request->address;
 
