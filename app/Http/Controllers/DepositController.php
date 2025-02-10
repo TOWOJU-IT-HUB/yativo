@@ -246,56 +246,66 @@ class DepositController extends Controller
             $validate = Validator::make($request->all(), [
                 'country' => 'required|min:3|max:3'
             ]);
-
+    
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
-
+    
             $where = [
                 'country' => $request->country
             ];
-
-
+    
             $currencies = PayinMethods::where($where)
                 ->join('currency_lists', 'currency_lists.currency_code', '=', 'payin_methods.currency')
-                ->groupBy('currency_lists.currency_code', 'currency_lists.currency_name', 'currency_lists.currency_symbol')
                 ->select('currency_lists.currency_code', 'currency_lists.currency_name', 'currency_lists.currency_symbol')
                 ->get();
-
+    
             return get_success_response($currencies);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+    
 
     public function payinMethods(Request $request)
     {
         try {
+            // Validation: country and currency can be nullable
             $validate = Validator::make($request->all(), [
-                'country' => 'required|min:3|max:3',
-                'currency' => 'required'
+                'country' => 'nullable|min:3|max:3',  // country can be null or 3 chars long
+                'currency' => 'nullable|min:3|max:3', // currency can be null or 3 chars long
             ]);
 
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
-            $where = [
-                'country' => $request->country,
-                'currency' => $request->currency
-            ];
+            // Initialize the query conditions based on which parameter is provided
+            $where = [];
+            if ($request->has('country')) {
+                $where['country'] = $request->country;
+            }
+
+            if ($request->has('currency')) {
+                $where['currency'] = $request->currency;
+            }
+
+            // Fetch the payin methods based on the query conditions
             $methods = PayinMethods::where($where)->get();
+
             return get_success_response($methods);
         } catch (\Throwable $th) {
+            // Handle errors
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+
 
     public function payinMethodsCountries()
     {
