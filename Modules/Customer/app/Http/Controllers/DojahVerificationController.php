@@ -66,32 +66,7 @@ class DojahVerificationController extends Controller
                 'documents' => 'required|array|min:1',
             ]);
         } elseif ($request->input('type') === 'business') {
-            $ex_rules = array_merge($rules, [
-                'registered_address.street_line_1' => 'required|string|max:255',
-                'registered_address.city' => 'required|string|max:255',
-                'registered_address.subdivision' => 'nullable|string|max:255',
-                'registered_address.postal_code' => 'required|string|max:20',
-                'registered_address.country' => 'required|string|size:3',
-                'business_type' => 'required|string',
-                'business_industry' => 'required|string',
-                'business_legal_name' => 'required|string|max:255',
-                'estimated_annual_revenue_usd' => 'required|string',
-                'expected_monthly_payments_usd' => 'required|numeric',
-                'ultimate_beneficial_owners' => 'required|array|min:1',
-                'ultimate_beneficial_owners.*.first_name' => 'required|string|max:255',
-                'ultimate_beneficial_owners.*.last_name' => 'required|string|max:255',
-                'ultimate_beneficial_owners.*.birth_date' => 'required|date|before:today',
-                'ultimate_beneficial_owners.*.email' => 'required|email',
-                'ultimate_beneficial_owners.*.address.street_line_1' => 'required|string|max:255',
-                'ultimate_beneficial_owners.*.address.country' => 'required|string|size:3',
-                'ultimate_beneficial_owners.*.has_ownership' => 'required|boolean',
-                'ultimate_beneficial_owners.*.ownership_percentage' => 'required_if:ultimate_beneficial_owners.*.has_ownership,true|numeric|min:0|max:100',
-                'ultimate_beneficial_owners.*.is_director' => 'required|boolean',
-                'ultimate_beneficial_owners.*.is_signer' => 'required|boolean',
-                'ultimate_beneficial_owners.*.documents' => 'required|array|min:1',
-                'ultimate_beneficial_owners.*.documents.*.purposes' => 'required|array|min:1',
-                'ultimate_beneficial_owners.*.documents.*.file' => 'required|string|starts_with:data:image',
-            ]);
+            $rules = $request->all();
         }
 
         $validator = Validator::make($request->all(), $rules);
@@ -102,7 +77,7 @@ class DojahVerificationController extends Controller
 
         $validatedData = $validator->validated();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
-        $validatedData['residential_address'] = $validatedData['address'];
+        $validatedData['residential_address'] = $request->address;
 
         try {
             $bridge = new BridgeController();

@@ -20,7 +20,7 @@ class BridgeController extends Controller
     public function __construct()
     {
         // $customer = Customer::whereCustomerId(request()->customer_id)->first();
-        $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->first();
+        $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
         // Log::info("Customer Info: ", (array) $this->customer);
         $this->customerId = $this->customer->customer_id ?? null;
     }
@@ -31,7 +31,15 @@ class BridgeController extends Controller
      */
     public function addCustomerV1(array|object $customer = [])
     {
+        $customer = Customer::where('customer_id', request()->customer_id)->first();
         $bridgeData = $this->sendRequest("/v0/customers", 'POST', $customer);
+        if(isset($bridgeData['id'])) {
+            // update the customer with the bridge customer ID
+            $customer->update([
+                "bridge_customer_id" => $bridgeData['id'],
+            ]);
+        }
+
         return $bridgeData;
     }
 
@@ -99,12 +107,22 @@ class BridgeController extends Controller
         return $data;
     }
 
-    public function getCustomer($customerId)
+    public function getCustomer($customerId = null)
     {
 
         $request = request();
         $endpoint = "customers/{$this->customer->bridge_customer_id}";
         $data = $this->sendRequest($endpoint);
+        if($data['status']) {
+            return [
+                "first_name" => $data['first_name'],
+                "last_name" => $data['last_name'],
+                "status" => $data['status'],
+                "rejection_reasons" => $data['rejection_reasons'],
+                "requirements_due" => $data['requirements_due'],
+                "future_requirements_due" => $data['future_requirements_due']
+            ];
+        }
         return $data;
     }
 
