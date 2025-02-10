@@ -153,34 +153,34 @@ class VitaWalletController extends Controller
     public function create_withdrawal($requestBody)
     {
         $configuration = Configuration::getInstance();
-        $erequestBody = [
-            "url_notify" => "https://webhook.site/cf0640bf-ea30-4a50-acbb-b82061426f97",
-            "beneficiary_first_name" => "John",
-            "beneficiary_last_name" => "Doe",
-            "beneficiary_email" => "john.doe@example.com",
-            "beneficiary_address" => "123 Main St",
-            "beneficiary_document_type" => "RUT",
-            "beneficiary_document_number" => "111111",
-            "account_type_bank" => "Cuenta de ahorros",
-            "account_bank" => "1234567890123456",
-            "bank_code" => "10",
-            "purpose" => "ISGDDS",
-            "purpose_comentary" => "For business purposes",
-            "country" => "CL",
-            "currency" => "CLP",
-            "amount" => 50000,  // Assuming $amount is already defined
-            "order" => rand(2314, 849584),  // Assuming $quoteId is a variable already defined
-            "city" => "smaller territories of the uk",
-            "phone" => "9203751431",
-            "beneficiary_type" => "Individual",
-            "company_name" => null,
-            "bank_branch" => null,
-            "swift_bic" => "TCCLGB",
-            "zipcode" => null,
-            "routing_number" => null,
-            "transactions_type" => "withdrawal",
-            "wallet" => "76f1d08e-9981-4d69-bfc5-edc0c1bc0574",  // Assuming $walletUUID is already defined
-        ];
+        // $erequestBody = [
+        //     "url_notify" => "https://webhook.site/cf0640bf-ea30-4a50-acbb-b82061426f97",
+        //     "beneficiary_first_name" => "John",
+        //     "beneficiary_last_name" => "Doe",
+        //     "beneficiary_email" => "john.doe@example.com",
+        //     "beneficiary_address" => "123 Main St",
+        //     "beneficiary_document_type" => "RUT",
+        //     "beneficiary_document_number" => "111111",
+        //     "account_type_bank" => "Cuenta de ahorros",
+        //     "account_bank" => "1234567890123456",
+        //     "bank_code" => "10",
+        //     "purpose" => "ISGDDS",
+        //     "purpose_comentary" => "For business purposes",
+        //     "country" => "CL",
+        //     "currency" => "CLP",
+        //     "amount" => 50000,  // Assuming $amount is already defined
+        //     "order" => rand(2314, 849584),  // Assuming $quoteId is a variable already defined
+        //     "city" => "smaller territories of the uk",
+        //     "phone" => "9203751431",
+        //     "beneficiary_type" => "Individual",
+        //     "company_name" => null,
+        //     "bank_branch" => null,
+        //     "swift_bic" => "TCCLGB",
+        //     "zipcode" => null,
+        //     "routing_number" => null,
+        //     "transactions_type" => "withdrawal",
+        //     "wallet" => "76f1d08e-9981-4d69-bfc5-edc0c1bc0574",  // Assuming $walletUUID is already defined
+        // ];
 
         // Prepare headers
         $headers = $configuration->prepareHeaders($requestBody);

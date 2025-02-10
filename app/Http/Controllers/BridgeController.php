@@ -474,6 +474,9 @@ class BridgeController extends Controller
 
     public function BridgeWebhook(Request $request)
     {
+        if($this->processEvent() !== true) {
+            return http_respnose_code(200);
+        }
         // Get the request body
         $incoming = $request()->all();
         if(isset($request->event_object)) {
@@ -502,6 +505,7 @@ class BridgeController extends Controller
                     })->afterResponse();
                 }
             }
+
             if($request->event_type == "virtual_account.activity.created" OR $request->event_type == "virtual_account.activity.updated") {
                 return $this->processVirtualAccountWebhook($data);
             }
@@ -548,30 +552,44 @@ class BridgeController extends Controller
         })->afterResponse();
     }
 
-    private function processPayinWebhook()
+    private function processPayinWebhook($data)
     {
-        //
-    }
+        try {
+            $order = TransactionRecord::where([
+                "transaction_id" => $data['client_reference_id']
+                "transaction_memo" => "payin",
+            ])->first();
 
+            if ($order) {
+                $deposit_services = new DepositService();
+                $deposit_services->process_deposit($order->transaction_id);
+                return response()->json(['message' => 'Order processed successfully'], 200);
+            }
+
+            return http_respnose_code(200);
+        } catch (\Throwable $th) {
+            return http_respnose_code($th->getCode());
+        }
+    }
 
     public function processEvent(Request $request)
     {
         $signatureHeader = $request->header('X-Webhook-Signature');
         
         if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
-            return $this->render400('Malformed signature header');
+            return false; // $this->render400('Malformed signature header');
         }
 
         [, $timestamp, $signature] = $matches;
 
         if (!$timestamp || !$signature) {
-            return $this->render400('Malformed signature header');
+            return false; // $this->render400('Malformed signature header');
         }
 
         // Validate timestamp within 10 minutes
         $timestampSeconds = (int) $timestamp / 1000;
         if ($timestampSeconds < Carbon::now()->subMinutes(10)->timestamp) {
-            return $this->render400('Invalid signature!');
+            return false; // $this->render400('Invalid signature!');
         }
 
         // Read request body
@@ -584,13 +602,13 @@ class BridgeController extends Controller
         // Decode signature
         $decodedSignature = base64_decode($signature, true);
         if ($decodedSignature === false) {
-            return $this->render400('Invalid signature!');
+            return false; // $this->render400('Invalid signature!');
         }
 
         // Get public key
         $publicKey = $this->getPublicKey();
         if (!$publicKey) {
-            return $this->render400('Server configuration error');
+            return false; // $this->render400('Server configuration error');
         }
 
         // Verify signature
@@ -603,23 +621,18 @@ class BridgeController extends Controller
         );
 
         if (!$verification || $decryptedHash !== $computedHash) {
-            return $this->render400('Invalid signature!');
+            return false; // $this->render400('Invalid signature!');
         }
 
         // Process JSON body
         $bodyJson = json_decode($bodyData, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return $this->render400('Invalid JSON payload');
+            return false; // $this->render400('Invalid JSON payload');
         }
 
         // TODO: Store event for asynchronous processing
-
+        return true;
         return response()->json(['message' => 'Event processing OK!'], 200);
-    }
-
-    private function render400(string $message)
-    {
-        return response()->json(['message' => $message], 400);
     }
 
     private function getPublicKey()
@@ -628,5 +641,10 @@ class BridgeController extends Controller
         $publicKeyPem = storage_path('app/keys/bridge.pem');
         
         return openssl_pkey_get_public($publicKeyPem);
+    }
+
+    private function render400(string $message)
+    {
+        return response()->json(['message' => $message], 400);
     }
 }
