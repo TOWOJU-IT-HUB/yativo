@@ -113,7 +113,7 @@ class BridgeController extends Controller
         $request = request();
         $endpoint = "customers/{$this->customer->bridge_customer_id}";
         $data = $this->sendRequest($endpoint);
-        if($data['status']) {
+        if(isset($data['status'])) {
             return [
                 "first_name" => $data['first_name'],
                 "last_name" => $data['last_name'],
