@@ -110,7 +110,7 @@ class BridgeController extends Controller
     public function getCustomer($customerId)
     {
         $customer = Customer::where('customer_id', $customerId)->first();
-        if(!$customer OR empty($customer->bridge_customer_id)) {
+        if(!$customer) {
             return get_error_response(['error' => 'Customer ID is invalid']);
         }
 
