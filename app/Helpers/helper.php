@@ -809,6 +809,28 @@ if (!function_exists('add_transaction_details')) {
     }
 }
 
+if (!function_exists('add_usd_virtual_card_deposit')) {
+    function add_usd_virtual_card_deposit($data)
+    {
+        // TransactionRecord::create([
+        //     "user_id" => $data['user_id'],
+        //     "transaction_beneficiary_id" => $data['user_id'],
+        //     "transaction_id" => $data['id'],
+        //     "transaction_amount" => $data['user_id'],
+        //     "gateway_id" => 0,
+        //     "transaction_status" => "completed",
+        //     "transaction_type" => $txn_type,
+        //     "transaction_memo" => "payin",
+        //     "transaction_currency" => $currency,
+        //     "base_currency" => $currency,
+        //     "secondary_currency" => $paymentMethods->currency,
+        //     "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
+        //     "transaction_payin_details" => array_merge([$send, $result]),
+        //     "transaction_payout_details" => [],
+        // ]);
+    }
+}
+
 
 
 if (!function_exists('decryptCustomerData')) {
