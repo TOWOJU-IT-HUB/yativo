@@ -54,11 +54,12 @@ class DepositController extends Controller
                 $request->all(),
                 [
                     'gateway' => 'required',
-                    'amount' => 'required',
-                    'currency' => 'required_if:credit_wallet,null',
-                    'credit_wallet' => 'required_if:currency,null'
+                    'amount' => 'required|numeric',
+                    'currency' => 'required_without:credit_wallet',
+                    'credit_wallet' => 'required_without:currency'
                 ]
             );
+            
 
             if ($validate->fails()) {
                 return get_error_response($validate->errors()->toArray());
