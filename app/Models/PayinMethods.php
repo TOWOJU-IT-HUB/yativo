@@ -31,6 +31,7 @@ class PayinMethods extends Model
         "cutoff_hrs_end",
         "Working_hours_start",
         "Working_hours_end",
+        "base_currency"
     ];
 
     protected $hidden = [

@@ -27,7 +27,8 @@ class payoutMethods extends Model
         "minimum_charge",
         "maximum_charge",
         "cutoff_hrs_start",
-        "cutoff_hrs_end"
+        "cutoff_hrs_end",
+        "base_currency"
     ];
 
     protected $hidden = [
