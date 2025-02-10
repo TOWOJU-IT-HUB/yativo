@@ -111,19 +111,23 @@ class BridgeController extends Controller
     {
 
         $request = request();
-        $endpoint = "customers/{$this->customer->bridge_customer_id}";
+        $endpoint = "v0/customers/{$this->customer->bridge_customer_id}";
         $data = $this->sendRequest($endpoint);
         if(isset($data['status'])) {
-            return [
+            return get_success_response([
                 "first_name" => $data['first_name'],
                 "last_name" => $data['last_name'],
                 "status" => $data['status'],
                 "rejection_reasons" => $data['rejection_reasons'],
                 "requirements_due" => $data['requirements_due'],
                 "future_requirements_due" => $data['future_requirements_due']
-            ];
+            ]);
         }
-        return $data;
+        if(isset($data['code'])) {
+            return get_error_response($data);
+        }
+        // return $data;
+        return get_error_response(['error' => "please contact support"]);
     }
 
     public function createCustomerBridgeWallet($customerId)
