@@ -88,12 +88,13 @@ class DojahVerificationController extends Controller
         $validatedData['residential_address'] = $request->address;
     
         try {
-            return $validatedData;
+            unset($validatedData['customer_id']);
+            // return $validatedData;
             $bridge = new BridgeController();
             $bridgeData = $bridge->addCustomerV1($validatedData);
     
-            if (isset($bridgeData['code']) && $bridgeData['code'] === 'invalid_parameters') {
-                return get_error_response(['error' => $bridgeData]);
+            if (isset($bridgeData['code']) && $bridgeData['code'] == 'invalid_parameters') {
+                return get_error_response(['error' => $bridgeData['source']]);
             }
     
             $bitnobPayload = [

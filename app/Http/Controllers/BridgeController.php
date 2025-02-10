@@ -39,9 +39,9 @@ class BridgeController extends Controller
                 "bridge_customer_id" => $bridgeData['id'],
             ]);
         }
-        if(isset($bridgeData['code']) && $bridgeData['code'] == 'invalid_parameters') {
-            return $bridgeData['source'];
-        }
+        // if(isset($bridgeData['code']) && $bridgeData['code'] == 'invalid_parameters') {
+        //     return $bridgeData['source'];
+        // }
         return $bridgeData;
     }
 
