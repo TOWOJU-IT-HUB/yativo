@@ -107,12 +107,32 @@ class BridgeController extends Controller
         return $data;
     }
 
-    public function getCustomer($customerId = null)
+    public function getCustomer($customerId)
     {
+        $customer = Customer::where('customer_id', $customerId)->first();
+        if(!$customer OR empty($customer->bridge_customer_id)) {
+            return get_error_response(['error' => 'Customer ID is invalid']);
+        }
 
-        $request = request();
-        $endpoint = "v0/customers/{$this->customer->bridge_customer_id}";
+        $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
+
+        if(is_array($data) && isset($data['count'])) {
+            // customer bridge ID is empty so check if it exists
+            foreach ($data['data'] as $k => $v) {
+                if($customer->customer_email == $v['email']) {
+                    $update = $customer->update([
+                        'bridge_customer_id' => $v['id']
+                    ]);  
+                    
+                    if($update) {
+                        $endpoint = "v0/customers/".$v['id'];
+                        $data = $this->sendRequest($endpoint);
+                    }
+                }
+            }
+        }
+
         if(isset($data['status'])) {
             return get_success_response([
                 "first_name" => $data['first_name'],
