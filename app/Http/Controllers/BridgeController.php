@@ -32,7 +32,7 @@ class BridgeController extends Controller
     public function addCustomerV1(array|object $payload = [])
     {
         $customer = Customer::where('customer_id', request()->customer_id)->first();
-        $bridgeData = $this->sendRequest("/v0/customers", 'POST', $payload);
+        $bridgeData = $this->sendRequest("/v0/customers", 'POST', array_filter($payload));
         if(isset($bridgeData['id'])) {
             // update the customer with the bridge customer ID
             $customer->update([
