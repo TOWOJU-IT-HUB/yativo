@@ -54,7 +54,7 @@ Route::get('mmm', function() {
     if(request()->q == "payin") {
         PayinMethods::truncate();
         Schema::table('payin_methods', function (Blueprint $table) {
-            $table->string('base_currency')->nullable();
+            $table->string('base_currency')->nullable()->change();
             $table->enum('charges_type', ['fixed', 'float', 'combined'])->change();
         });
         $payins = [
@@ -5730,7 +5730,7 @@ Route::get('mmm', function() {
     } else {
         payoutMethods::truncate();
         Schema::table('payout_methods', function (Blueprint $table) {
-            $table->string('base_currency')->nullable();            
+            $table->string('base_currency')->change()->nullable();            
             $table->enum('charges_type', ['fixed', 'float', 'combined'])->change();
         });
         $payouts = [
