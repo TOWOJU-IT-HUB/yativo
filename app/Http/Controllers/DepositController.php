@@ -73,7 +73,7 @@ class DepositController extends Controller
             $payin = PayinMethods::whereId($request->gateway)->first();            
             $currencyArray = array_map('trim', explode(',', $payin->base_currency)); // Split and trim whitespace
             if (!in_array($request->currency, $currencyArray)) {
-                return get_error_response['error' => "Sorry the selected currency pair are not allowed: Allowed currency pairs are: {$payin->base_currency}"];
+                return get_error_response(['error' => "Sorry the selected currency pair are not allowed: Allowed currency pairs are: {$payin->base_currency}"]);
             } 
 
             $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
