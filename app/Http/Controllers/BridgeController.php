@@ -29,10 +29,10 @@ class BridgeController extends Controller
      * GEt KYC link to add a customer
      * @return 
      */
-    public function addCustomerV1(array|object $customer = [])
+    public function addCustomerV1(array|object $payload = [])
     {
         $customer = Customer::where('customer_id', request()->customer_id)->first();
-        $bridgeData = $this->sendRequest("/v0/customers", 'POST', $customer);
+        $bridgeData = $this->sendRequest("/v0/customers", 'POST', $payload);
         if(isset($bridgeData['id'])) {
             // update the customer with the bridge customer ID
             $customer->update([

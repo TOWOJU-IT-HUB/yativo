@@ -89,7 +89,7 @@ class DojahVerificationController extends Controller
     
         try {
             unset($validatedData['customer_id']);
-            return $validatedData;
+            // return $validatedData;
             $bridge = new BridgeController();
             $bridgeData = $bridge->addCustomerV1($validatedData);
     
