@@ -88,6 +88,7 @@ class DojahVerificationController extends Controller
         $validatedData['residential_address'] = $request->address;
     
         try {
+            return $validatedData;
             $bridge = new BridgeController();
             $bridgeData = $bridge->addCustomerV1($validatedData);
     
