@@ -53,7 +53,7 @@ class BridgeController extends Controller
         }
     }
 
-    public function addCustomer(array $customer = [])
+    public function updateCustomer(array $customer = [])
     {
         $endpoint = 'v0/kyc_links';
         $payload = [
@@ -556,7 +556,7 @@ class BridgeController extends Controller
     {
         try {
             $order = TransactionRecord::where([
-                "transaction_id" => $data['client_reference_id']
+                "transaction_id" => $data['client_reference_id'],
                 "transaction_memo" => "payin",
             ])->first();
 
