@@ -49,18 +49,13 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 
 Route::get('mmm', function() {
-    PayinMethods::truncate();
-    payoutMethods::truncate();
-
-
-    // add new column for supported base currencies
-    Schema::table('', function (Blueprint $table) {
-        $table->string('base_currency')->nullable()->after('existing_column');
-    });
-
-
-
+    // disable foriegn key checks
+    DB::statement('SET FOREIGN_KEY_CHECKS=0;');
     if(request()->q == "payin") {
+        PayinMethods::truncate();
+        Schema::table('payin_methods', function (Blueprint $table) {
+            $table->string('base_currency')->nullable();
+        });
         $payins = [
             [
                 "method_name" => "PSE",
@@ -5732,6 +5727,10 @@ Route::get('mmm', function() {
             PayinMethods::create($v);
         }
     } else {
+        payoutMethods::truncate();
+        Schema::table('payout_methods', function (Blueprint $table) {
+            $table->string('base_currency')->nullable();
+        });
         $payouts = [
             [
                 "method_name" => "SPEI",
