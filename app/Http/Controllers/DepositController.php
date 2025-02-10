@@ -114,12 +114,11 @@ class DepositController extends Controller
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
             $deposit->receive_amount = floatval($request->amount * $exchange_rate);
-            $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+            $transaction_fee = floatval($exchange_rate * get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin"));
 
             if(is_array($transaction_fee) && isset($transaction_fee['error'])) {
                 return get_error_response($transaction_fee, 422);
             }
-            // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
 
             if (!$payin) {
                 return get_error_response(['error' => 'Invalid gateway, please contact support']);

@@ -1063,7 +1063,7 @@ if (!function_exists('get_transaction_fee')) {
      */
     function get_transaction_fee(int $gateway, float $amount, string $txn_type, string $gateway_type)
     {
-        $fee = 0;
+        $fee = $total_charge = 0;
         $rate = 0;
         $rate_floated_amount = 0;
 
@@ -1125,7 +1125,7 @@ if (!function_exists('get_transaction_fee')) {
             $total_charge = $maximum_charge;
         }
 
-        return $fee;
+        return $total_charge;
     }
 }
 
