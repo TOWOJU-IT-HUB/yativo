@@ -5725,7 +5725,9 @@ Route::get('mmm', function() {
         ];
 
         foreach ($payins as $k => $v) {
-            PayinMethods::create($v);
+            if(!empty($v['method_name'])){
+                PayinMethods::create($v);
+            }
         }
     } else {
         payoutMethods::truncate();
@@ -18463,7 +18465,9 @@ Route::get('mmm', function() {
         ];
 
         foreach ($payouts as $k => $v) {
-            payoutMethods::create($v);
+            if(!empty($v['method_name'])){
+                payoutMethods::create($v);
+            }
         }
     }
 });
