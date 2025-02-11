@@ -31,7 +31,7 @@ class FlowController extends Controller
                 'quote_id' => $quoteId,
                 'custom' => $quoteId,
                 'amount' => $amount,
-                'redirect_url' => route('floid.callback.redirect'),
+                'redirect_url' => request()->redirect_url ?? route('floid.callback.redirect'),
                 'webhook_url' => route('floid.callback.success'),
                 // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
@@ -86,7 +86,7 @@ class FlowController extends Controller
         return ["error" => $result];
     }
 
-    private function getPaymentStatus($url, $payment_token)
+    public function getPaymentStatus($url, $payment_token)
     {
         $request = request();
         Log::info("Floid request and response data", ['request' => $payment_token]);
