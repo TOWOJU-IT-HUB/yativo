@@ -63,7 +63,7 @@ class FlowController extends Controller
 
         $result = $this->getPaymentStatus($url, $token);
 
-        if (isset($result['payment_url'])) {
+        if (isset($result['status'])) {
             return $result;
         }
         return ["error" => $result];
@@ -80,7 +80,7 @@ class FlowController extends Controller
 
         $result = $this->getPaymentStatus($url, $token);
 
-        if (isset($result['payment_url'])) {
+        if (isset($result['status'])) {
             return $result;
         }
         return ["error" => $result];

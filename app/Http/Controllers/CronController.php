@@ -21,10 +21,15 @@ class CronController extends Controller
         //update status for deposits
         $this->getTransFiStatus();
         $this->getBinancePayStatus();
+        $this->getFloidStatus();
+        $this->getBridgeStatus();
+        // $this->getBinancePayStatus();
+        // $this->getBinancePayStatus();
+        // $this->getBinancePayStatus();
 
         // run general failed update
-        $this->payout();
-        $this->deposit();
+        // $this->payout();
+        // $this->deposit();
     }
 
     private function payout()
@@ -87,26 +92,26 @@ class CronController extends Controller
 
         $now = now();
 
-        $failedDepositIds = Deposit::query()
-            ->with('depositGateway:id,settlement_time')
-            ->where('status', 'pending')
-            ->whereHas('depositGateway', function ($query) {
-                $query->whereNotNull('settlement_time');
-            })
-            ->get()
-            ->filter(function ($deposit) use ($now) {
-                $settlementTimeHours = $deposit->depositGateway->settlement_time;
-                $settlementThreshold = $deposit->created_at->addHours(floor($settlementTimeHours))
-                    ->addMinutes(($settlementTimeHours - floor($settlementTimeHours)) * 60);
+        // $failedDepositIds = Deposit::query()
+        //     ->with('depositGateway:id,settlement_time')
+        //     ->where('status', 'pending')
+        //     ->whereHas('depositGateway', function ($query) {
+        //         $query->whereNotNull('settlement_time');
+        //     })
+        //     ->get()
+        //     ->filter(function ($deposit) use ($now) {
+        //         $settlementTimeHours = $deposit->depositGateway->settlement_time;
+        //         $settlementThreshold = $deposit->created_at->addHours(floor($settlementTimeHours))
+        //             ->addMinutes(($settlementTimeHours - floor($settlementTimeHours)) * 60);
 
-                return $now->greaterThan($settlementThreshold);
-            })
-            ->pluck('id'); // Collect IDs of failed deposits
+        //         return $now->greaterThan($settlementThreshold);
+        //     })
+        //     ->pluck('id'); // Collect IDs of failed deposits
 
-        // Bulk update failed deposits
-        if ($failedDepositIds->isNotEmpty()) {
-            Deposit::whereIn('id', $failedDepositIds)->update(['status' => 'failed']);
-        }
+        // // Bulk update failed deposits
+        // if ($failedDepositIds->isNotEmpty()) {
+        //     Deposit::whereIn('id', $failedDepositIds)->update(['status' => 'failed']);
+        // }
     }
 
     // get status of transFi transaction
@@ -160,13 +165,23 @@ class CronController extends Controller
                         "transaction_memo" => "payin",
                         "transaction_id" => $deposit->id
                     ];
+                    
                     $order = TransactionRecord::where($where)->first();
+                    
                     if ($order) {
                         $deposit_services = new DepositService();
                         $deposit_services->process_deposit($txn->transaction_id);
+                    } else {    
+                        $order->update([
+                            "transaction_status" => strtolower($order['status'])
+                        ]);
+                        $deposit->update([
+                            'status' => strtolower($order['status'])
+                        ]);
                     }
                 }
             }
+            $this->updateTracking($deposit->id, $order['status'], $order);
         }
     }
 
@@ -216,6 +231,12 @@ class CronController extends Controller
                     $deposit_services->process_deposit($order->transaction_id);
                 } else {
                     // update the status withoutout completing the deposit
+                    $order->update([
+                        "transaction_status" => strtolower($order['status'])
+                    ]);
+                    $deposit->update([
+                        'status' => strtolower($order['status'])
+                    ]);
                 }
                 $this->updateTracking($deposit->id, $verify['data']['status'], $verify);
             }
