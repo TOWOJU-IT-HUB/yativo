@@ -79,7 +79,7 @@ class WalletController extends Controller
                 ]);
             }
 
-            $wallets = $user->wallets->makeHidden(['holder_id', 'id', 'holder_type', 'uuid', 'created_at', 'updated_at'])->;
+            $wallets = $user->wallets->makeHidden(['holder_id', 'id', 'holder_type', 'uuid', 'created_at', 'updated_at']);
 
             if ($param == "total") {
                 $total_balance = 0;
