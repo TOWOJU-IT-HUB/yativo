@@ -189,8 +189,8 @@ class WithdrawalConntroller extends Controller
     public function getWithdrawalStatus($payoutsId)
     {
         try {
-            $monnet = new MonnetServices();
-            return $monnet->payoutStatus($payoutsId);
+            // $monnet = new MonnetServices();
+            // return $monnet->payoutStatus($payoutsId);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
