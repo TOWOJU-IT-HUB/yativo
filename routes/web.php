@@ -53,7 +53,7 @@ Route::get('bit', function() {
         Schema::table('payin_methods', function (Blueprint $table) {
             $table->string('base_currency')->nullable()->change();
             $table->enum('charges_type', ['fixed', 'float', 'combined'])->change();
-            $table->string('exchange_rate_float')->change();
+            $table->string('exchange_rate_float')->nullable();
         });
         $payins = [
             0  => [
@@ -1293,7 +1293,7 @@ Route::get('bit', function() {
         Schema::table('payout_methods', function (Blueprint $table) {
             $table->string('base_currency')->change()->nullable();            
             $table->enum('charges_type', ['fixed', 'float', 'combined'])->change();
-            $table->string('exchange_rate_float')->change();
+            $table->string('exchange_rate_float')->nullable();
         });
         
         $payouts = [
