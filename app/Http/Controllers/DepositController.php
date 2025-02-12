@@ -79,7 +79,7 @@ class DepositController extends Controller
             
             $currencyArray = $payin->base_currency ? array_map('trim', explode(',', $payin->base_currency)) : [];
             
-            if (($request->currency || !in_array($request->currency, $currencyArray)) AND ($request->currency != $payin->currency)) {
+            if (($request->currency || !in_array($request->currency, $currencyArray))) {
                 return get_error_response([
                     'error' => "Sorry, the selected currency is not allowed. Allowed currencies: " . json_encode($currencyArray)
                 ], 400);

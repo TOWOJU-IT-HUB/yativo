@@ -126,22 +126,24 @@ class DojahVerificationController extends Controller
             $tranfi->kycForm($request);
             $userId = auth()->id();
     
-            dispatch(function () use ($userId, $bridgeData) {
-                $webhook = Webhook::whereUserId($userId)->first();
-                if ($webhook) {
-                    WebhookCall::create()
-                        ->meta(['_uid' => $webhook->user_id])
-                        ->url($webhook->url)
-                        ->useSecret($webhook->secret)
-                        ->payload([
-                            "event.type" => "customer.created",
-                            "payload" => $bridgeData,
-                        ])
-                        ->dispatchSync();
-                }
-            })->afterResponse();
+            // dispatch(function () use ($userId, $bridgeData) {
+            //     $webhook = Webhook::whereUserId($userId)->first();
+            //     if ($webhook) {
+            //         WebhookCall::create()
+            //             ->meta(['_uid' => $webhook->user_id])
+            //             ->url($webhook->url)
+            //             ->useSecret($webhook->secret)
+            //             ->payload([
+            //                 "event.type" => "customer.created",
+            //                 "payload" => $bridgeData,
+            //             ])
+            //             ->dispatchSync();
+            //     }
+            // })->afterResponse();
     
-            return get_success_response($bridgeData);
+            return get_success_response([
+                "message" => "Customer KYC is currently under review",
+            ]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()], 500);
         }

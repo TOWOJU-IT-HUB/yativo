@@ -22,7 +22,7 @@ class BridgeController extends Controller
         // $customer = Customer::whereCustomerId(request()->customer_id)->first();
         $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
         // Log::info("Customer Info: ", (array) $this->customer);
-        $this->customerId = $this->customer->customer_id ?? null;
+        $this->customerId = $this->customer->customer_id ?? "7316bfb1-0601-4056-8fca-77a6322960f2";
     }
 
     /**
@@ -181,7 +181,7 @@ class BridgeController extends Controller
     {
         $request = request();
         if(!auth()->user()->bridge_customer_id) {
-            return ['error' => 'Customer not enrolled for service'];
+            return ['error' => 'Customer not enrolled for service or KYC not complete'];
         }
         $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
         $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; //$this->createWallet($this->customer->bridge_customer_id);
