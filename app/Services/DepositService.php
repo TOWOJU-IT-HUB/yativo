@@ -109,145 +109,6 @@ class DepositService
         }
     }
 
-    public function local_payment($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        try {
-            $request = request();
-            $paymentMethod = null;
-
-            // Determine account file path based on environment
-            $accountFilePath = public_path('pay-methods/' . (strtolower(getenv('LOCALPAYMENT_MODE')) === 'test' ? 'localpayment-account-test.json' : 'localpayment-account.json'));
-
-            // Load and decode account data
-            if (!file_exists($accountFilePath)) {
-                throw new \Exception("File not found at path: " . $accountFilePath);
-            }
-            $accountData = json_decode(file_get_contents($accountFilePath), true);
-
-            // Determine payment mode and method
-            $payment_mode = strtolower($gateway->payment_mode) === 'apm' ? 'BankTransfer' : $gateway->payment_mode;
-            if ($payment_mode === 'BankTransfer' && preg_match('/\((.*?)\)/', $gateway->method_name, $matches)) {
-                $paymentMethod = strtolower($matches[1]);
-            }
-
-            // Find matching account details
-            $payObj = collect($accountData)->first(function ($acc) use ($payment_mode, $gateway, $currency, $paymentMethod, $amount) {
-                return strtolower($acc['country_iso3']) === strtolower($gateway->country)
-                    && strtolower($acc['currency_iso3']) === strtolower($currency)
-                    && strtolower($acc['paymentMethodType']) === strtolower($payment_mode)
-                    && ($paymentMethod === null || strtolower($acc['name']) === strtolower($paymentMethod))
-                    && (!isset($acc['minAmount']) || $amount >= $acc['minAmount'])
-                    && (!isset($acc['maxAmount']) || $amount <= $acc['maxAmount']);
-            });
-
-            if (!$payObj) {
-                return ['error' => 'Payment method is currently unavailable, please contact support'];
-            }
-
-            $customer = auth()->user();
-            $accountNumber = $payObj['number'] ?? null;
-
-            if (is_array($accountNumber) && isset($accountNumber['error'])) {
-                return $accountNumber;
-            }
-
-            // Prepare payload based on payment mode
-            $basePayload = [
-                "paymentMethod" => [
-                    "type" => ucfirst($payObj['paymentMethodType']),
-                    "code" => $payObj['gateway_code'],
-                    "flow" => strtolower($gateway->payment_mode) === 'apm' ? 'REDIRECT' : 'DIRECT',
-                ],
-                "externalId" => $deposit_id,
-                "country" => strtoupper($payObj['country_iso3']),
-                "amount" => floatval($amount),
-                "currency" => strtoupper($gateway->currency),
-                "accountNumber" => $accountNumber,
-                "conceptCode" => "0003",
-                "comment" => "Yativo payin transaction id: " . $deposit_id,
-                "merchant" => [
-                    "type" => "COMPANY",
-                    "name" => "Zee Technologies SPA",
-                    "email" => "michael@yativo.com",
-                ],
-            ];
-
-            $payerDetails = [
-                "type" => "INDIVIDUAL",
-                "name" => $customer->firstName,
-                "lastname" => $customer->lastName,
-                "document" => [
-                    "id" => $request->document_id ?? $customer->idNumber,
-                    "type" => $request->document_type ?? $customer->idType,
-                ],
-                "email" => $customer->email,
-            ];
-
-            if (strtolower($gateway->payment_mode) === 'cash') {
-                $payerDetails['bank'] = [
-                    "name" => $request->bank_name,
-                    "code" => $request->bank_code,
-                    "account" => [
-                        "number" => $request->account_number,
-                        "type" => $request->account_type,
-                    ],
-                ];
-            }
-
-            $payload = array_merge($basePayload, ["payer" => $payerDetails]);
-
-            // Initiate local payment
-            $local = new Localpayments();
-            $payin = $local->payin()->init($payload);
-
-            // Handle responses
-            if (!is_array($payin)) {
-                return ['result' => $payin];
-            }
-
-            if (isset($payin['error']) && !is_array($payin['error'])) {
-                $errors = json_decode($payin['error'], true);
-                return ['error' => $errors['errors'] ?? $payin['error']];
-            }
-
-            if (isset($payin["qr"])) {
-                return ['qr' => array_merge($payin["qr"], $payin['payment'])];
-            }
-
-            if (isset($payin['redirectUrl'])) {
-                return $payin['redirectUrl'];
-            }
-
-            if (isset($payin['wireInstructions'], $payin['payment'])) {
-                return array_merge($payin['payment'], $payin['wireInstructions']);
-            }
-
-            if (isset($payin['ticket'], $payin['payment'])) {
-                return array_merge($payin['payment'], $payin['ticket']);
-            }
-
-            return (array) $payin;
-        } catch (\Throwable $th) {
-            if(env('APP_DEBUG') == true) {
-                // notify of error on telegram channel
-                return ['error'=> $th->getMessage()];
-            }
-
-            return ['error'=> "Error encountered please contact support"];
-        }
-    }
-
-    public function binance_pay($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        try {
-            $binance = new BinancePayController();
-            $init = $binance->init($deposit_id, $amount, $currency, $gateway, $txn_type);
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
-    }
-
     public function advcash($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         try {
@@ -257,36 +118,6 @@ class DepositService
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
         }
-    }
-
-    public function flutterwave($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        try {
-            $flutterwave = new FlutterwaveController();
-            $init = $flutterwave->makePayment($deposit_id, $amount, $currency);
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
-    }
-
-    public function coinpayment($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        $coinpayment = new CoinPaymentsController();
-        // echo json_encode([$deposit_id, $amount, $currency, $txn_type, $gateway]); exit;
-        $checkout = $coinpayment->makePayment($deposit_id, $amount, $currency);
-        if ($checkout['error'] == 'ok') {
-            update_deposit_gateway_id($deposit_id, $checkout['result']['txn_id']);
-            return $checkout['result']['checkout_url'];
-        }
-        return ["result" => $checkout['error']];
-    }
-
-    public function monnet($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        $monnet = new MonnetServices();
-        $checkout = $monnet->payin($deposit_id, $amount, $currency, 'DEPOSIT');
-        return $checkout;
     }
 
     public function floid($deposit_id, $amount, $currency, $txn_type, $gateway)
@@ -310,44 +141,6 @@ class DepositService
         return $checkout;
     }
 
-    public function transak($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        $user = auth()->user();
-        if (!empty($amount) && !empty($currency)) {
-            $baseUrl = getenv('TRANSAK_BASE_URL');
-            $queryParams = [
-                'walletAddress' => "0x316363Fd9B3e7E9e1ea4cC8503681a15A0cc5ECb",
-                'disableWalletAddressForm' => true,
-                'network' => "ethereum",
-                'cryptoCurrencyCode' => "USDT",
-                'apiKey' => getenv('TRANSAK_API_KEY'),
-                'fiatCurrency' => $currency,
-                'fiatAmount' => $amount,
-                'hideExchangeScreen' => true,
-                'userData' => [
-                    "firstName" => $user->firstName,
-                    "lastName" => $user->lastName,
-                    "email" => $user->email,
-                    "mobileNumber" => $user->phoneNumber,
-                    "dob" => $user->phone,
-                    "address" => [
-                        "addressLine1" => $user->street,
-                        "addressLine2" => "San Francisco",
-                        "city" => $user->city,
-                        "state" => $user->state,
-                        "postCode" => $user->zipCode,
-                        "countryCode" => $user->country
-                    ]
-                ]
-            ];
-
-            $queryString = http_build_query($queryParams);
-
-            $url = $baseUrl . '?' . $queryString;
-            return $url;
-        }
-    }
-
     /**
      * Retrive user clabe info
      */
@@ -356,20 +149,6 @@ class DepositService
         // return [];
         $bitso = new BitsoController();
         $checkout = $bitso->deposit($amount, $currency);
-        return $checkout;
-    }
-
-    /**
-     * Retrive user clabe info
-     */
-    private function coinbase($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        // return [];
-        $bitso = new CoinbaseOnrampController();
-        request()->merge([
-            'amount' => request()->amount
-        ]);
-        $checkout = $bitso->generateOnrampUrl($amount, $currency);
         return $checkout;
     }
 
@@ -399,6 +178,11 @@ class DepositService
         $vitawallet = new VitaWalletController();
         $checkout = $vitawallet->payin($deposit_id, $amount, $currency);
         return $checkout;
+    }
+
+    private function khipu()
+    {
+        return ['error' => 'Deposit method is currently unavailable'];
     }
 
     /**

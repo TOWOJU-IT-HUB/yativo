@@ -17,10 +17,15 @@ class PayinMethodsController extends Controller
     {
         $query = PayinMethods::query();
 
+        // Get the table columns
+        $columns = Schema::getColumnListing((new PayinMethods)->getTable());
+
         // Apply filters if query parameters exist
         if ($request->query()) {
             foreach ($request->query() as $key => $value) {
-                $query->where($key, 'like', '%' . $value . '%');
+                if (in_array($key, $columns)) {
+                    $query->where($key, 'like', '%' . $value . '%');
+                }
             }
         }
 
@@ -29,6 +34,7 @@ class PayinMethodsController extends Controller
         // Return the view with the paginated results
         return view('admin.payin_methods.index', compact('payinMethods'));
     }
+
 
 
     public function create()
