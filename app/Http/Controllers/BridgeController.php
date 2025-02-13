@@ -78,26 +78,23 @@ class BridgeController extends Controller
                         $endpoint = "v0/customers/".$v['id'];
                         // update customer on bridge
                         $data = $this->sendRequest($endpoint, "PUT", $payload);
+
+                        if(isset($data['status'])) {
+                            return get_success_response([
+                                "first_name" => $data['first_name'],
+                                "last_name" => $data['last_name'],
+                                "status" => $data['status'],
+                                "rejection_reasons" => $data['rejection_reasons'],
+                                "requirements_due" => $data['requirements_due'],
+                                "future_requirements_due" => $data['future_requirements_due'],
+                                "raw" => $data
+                            ]);
+                        }
                     }
                 }
             }
         }
-
-        if(isset($data['status'])) {
-            return get_success_response([
-                "first_name" => $data['first_name'],
-                "last_name" => $data['last_name'],
-                "status" => $data['status'],
-                "rejection_reasons" => $data['rejection_reasons'],
-                "requirements_due" => $data['requirements_due'],
-                "future_requirements_due" => $data['future_requirements_due'],
-                "raw" => $data
-            ]);
-        }
-        if(isset($data['code'])) {
-            return get_error_response(['error' => $data]);
-        }
-        return get_error_response(['error' => $data]);
+        return get_error_response(['error' => "Please contact support for manual verification"]);
     }
 
     public function selfUpdateCustomer(Request $request) 
