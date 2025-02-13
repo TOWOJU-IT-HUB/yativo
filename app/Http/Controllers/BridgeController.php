@@ -101,8 +101,18 @@ class BridgeController extends Controller
 
     public function selfUpdateCustomer(Request $request) 
     {
+        $curl = Http::post("https://monorail.onrender.com/dashboard/generate_signed_agreement_id", [
+            'customer_id' => NULL,
+            'email' => NULL,
+            'token' => NULL,
+            'type' => 'tos',
+            'version' => 'v5',
+        ]);
+        $response = $curl->json();
+        
         $request->merge([
-            'residential_address' => $request->address
+            'residential_address' => $request->address,
+            "signed_agreement_id" => $response['signed_agreement_id']
         ]);
         return $this->autoUpdateCustomer($request);
     }
