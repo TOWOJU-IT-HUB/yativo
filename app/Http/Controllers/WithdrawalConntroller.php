@@ -148,9 +148,7 @@ class WithdrawalConntroller extends Controller
             
             if (!in_array($request->currency, $allowedCurrencies)) {
                 return get_error_response([
-                    'error' => [
-                        'currencies' => $allowedCurrencies,
-                        "message" => "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payoutMethod->base_currency]
+                    'error' =>  "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payoutMethod->base_currency
                 ], 400);
             }
             

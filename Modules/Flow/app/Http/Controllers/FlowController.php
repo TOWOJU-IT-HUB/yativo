@@ -106,13 +106,8 @@ class FlowController extends Controller
     public function callback(Request $request)
     {
         $rawInput = file_get_contents('php://input');
-        Log::info('Raw request input:', ['data' => $rawInput]);
-
-
-        Log::info("Floid request and response data", ['request' => $request->getContent()]);
-
         $requestBody = $request->all();
         Log::info('Floid callback request body:', $requestBody);
-
+        
     }
 }
