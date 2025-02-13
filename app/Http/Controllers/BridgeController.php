@@ -487,7 +487,7 @@ class BridgeController extends Controller
             "Accept" => "application/json",
         ];
 
-        if ($method !== 'get') {
+        if ($method === 'post') {
             $headers["Idempotency-Key"] = generate_uuid();
         }
 
