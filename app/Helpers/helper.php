@@ -1111,7 +1111,7 @@ if (!function_exists('get_transaction_fee')) {
 
         // Calculate the fee
         $exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-        $fee = $xchange_rate * $fixed_charge;
+        $fee = $exchange_rate * $fixed_charge;
         $rate = $float_charge;
         $rate_floated_amount = ($amount * $rate) / 100;
 
