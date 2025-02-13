@@ -54,12 +54,14 @@ class BridgeController extends Controller
                         ]);    
 
                         $endpoint = 'v0/customers/'.$v['id'].'/kyc_link?endorsement=sepa';
-                        $kycResponse = $this->sendRequest($endpoint, 'POST', $payload);
-                        return $kycResponse;
+                        $bridgeData = $this->sendRequest($endpoint, 'POST', $payload);
+                        return $bridgeData;
                     }
                 }
             }  
         }
+
+        return $bridgeData;
     }
         /**
          * Check if any API response field contains "technical difficulties".
