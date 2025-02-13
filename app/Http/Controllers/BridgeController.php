@@ -39,13 +39,46 @@ class BridgeController extends Controller
             $customer->update(["bridge_customer_id" => $bridgeData['id']]);
         }
 
-        // Ensure bridgeData is checked correctly for the "technical" keyword
-        if (is_array($bridgeData) && str_contains(json_encode($bridgeData), 'technical difficulties')) {
-            $bridgeData = $this->selfUpdateCustomer($payload);
-        }
+        if (is_array($bridgeData) && $this->containsTechnicalDifficulties($bridgeData)) {
+            // since the KYC failed we don't have the customer ID. we have to loop through and find the customer's ID via email
 
-        return $bridgeData;
+            $endpoint = "v0/customers?limit=100";
+            $data = $this->sendRequest($endpoint);
+    
+            if(is_array($data) && isset($data['count'])) {
+                // customer bridge ID is empty so check if it exists
+                foreach ($data['data'] as $k => $v) {
+                    if($payload['email'] == $v['email']) {
+                        $update = $customer->update([
+                            'bridge_customer_id' => $v['id']
+                        ]);    
+
+                        $endpoint = 'v0/customers/'.$v['id'].'/kyc_link?endorsement=sepa';
+                        $kycResponse = $this->sendRequest($endpoint, 'POST', $payload);
+                        return $kycResponse;
+                    }
+                }
+            }  
+        }
     }
+        /**
+         * Check if any API response field contains "technical difficulties".
+         */
+        private function containsTechnicalDifficulties(array $data): bool
+        {
+            foreach ($data as $key => $value) {
+                if (is_string($value) && str_contains($value, 'technical difficulties')) {
+                    return true;
+                } elseif (is_array($value)) {
+                    if ($this->containsTechnicalDifficulties($value)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+
 
 
     // if KYC returns a technical error auto initiat customer update process
