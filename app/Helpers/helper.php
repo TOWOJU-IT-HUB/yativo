@@ -1214,6 +1214,7 @@ if (!function_exists('update_deposit_gateway_id')) {
 if (!function_exists('generateTableFromArray')) {
     function generateTableFromArray($data)
     {
+        if(empty($data)) return '';
         // Start the table structure
         $html = '<table class="table table-bordered table-striped w-full mt-4">';
 
