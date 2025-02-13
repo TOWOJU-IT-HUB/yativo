@@ -184,43 +184,32 @@ if (!function_exists('get_transaction_rate')) {
 if (!function_exists('exchange_rates')) {
     function exchange_rates($from, $to)
     {
-        // If the currencies are the same, return 1
-        if ($from === $to) {
-            return 1;
-        }
+        if ($from === $to) return 1; // Return 1 for same currencies
 
-        // Initialize price to 0
-        $price = 0;
-
+        $client = new Client();
         $from = explode('.', $from)[0];
         $to = explode('.', $to)[0];
 
-        try {
-            // Use Guzzle to make a reliable API request
-            $client = new Client();
-            $response = $client->get("https://min-api.cryptocompare.com/data/price", [
-                'query' => [
-                    'fsym' => $from,
-                    'tsyms' => $to
-                ]
-            ]);
+        foreach ([
+            "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
+            "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
+        ] as $url => $params) {
+            try {
+                $response = json_decode($client->get($url, $params)->getBody(), true);
+                $rate = $url === "https://min-api.cryptocompare.com/data/price" 
+                    ? ($response[$to] ?? null) 
+                    : ($response['data']['rates'][$to] ?? null);
 
-            $data = json_decode($response->getBody(), true);
-
-            // Extract the price from the response
-            if (isset($data[$to])) {
-                $price = $data[$to];
-            } else {
-                Log::error("Invalid response for {$from} to {$to}: " . json_encode($data));
+                if ($rate) return (float) $rate;
+            } catch (\Exception $e) {
+                Log::error("Error fetching exchange rate from $url: " . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            // Log any exception that occurs during the API request
-            Log::error("Failed to fetch exchange rate for {$from} to {$to}: " . $e->getMessage());
         }
 
-        return $price;
+        return 0; // Return 0 if both APIs fail
     }
 }
+
 
 if (!function_exists('getExchangeVal')) {
     /**
