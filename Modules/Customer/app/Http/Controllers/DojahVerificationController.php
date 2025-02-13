@@ -50,10 +50,10 @@ class DojahVerificationController extends Controller
             'email' => 'required|email',
             'address' => 'required|array',
             'documents' => ['required', 'array'],
-            'documents.*.purposes' => ['sometimes', 'array'],
+            'documents.*.purposes' => ['required', 'array'],
             'documents.*.purposes.*' => ['string'], 
             'documents.*.file' => ['required', 'string'],
-            'documents.*.description' => ['sometimes', 'string'],
+            'documents.*.description' => ['required', 'string'],
         ];
     
         if ($request->input('type') === 'individual') {
