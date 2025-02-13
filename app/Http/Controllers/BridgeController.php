@@ -51,7 +51,7 @@ class BridgeController extends Controller
     // if KYC returns a technical error auto initiat customer update process
     public function autoUpdateCustomer($payload)
     {
-        $customer = Customer::where('customer_id', request()->customer_id)->first();
+        return $customer = Customer::where('customer_id', request()->customer_id)->first();
         if(!$customer) {
             echo json_encode([
                 "status" => false,
