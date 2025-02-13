@@ -49,7 +49,7 @@ class DojahVerificationController extends Controller
             'type' => 'required|in:individual,business',
             'email' => 'required|email',
             'address' => 'required|array',
-            'documents' => ['required', 'array'],
+            'documents' => ['required', 'array', 'min:1'],
             'documents.*.purposes' => ['required', 'array'],
             'documents.*.purposes.*' => ['string'], 
             'documents.*.file' => ['required', 'string'],
