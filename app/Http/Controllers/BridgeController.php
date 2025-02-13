@@ -63,12 +63,12 @@ class BridgeController extends Controller
 
         if(isset($bridgeData['id']) && isset($bridgeData['status'])) {
             $bridgeData = [
-                "first_name" => $data['first_name'],
-                "last_name" => $data['last_name'],
-                "status" => $data['status'],
-                "rejection_reasons" => $data['rejection_reasons'],
-                "requirements_due" => $data['requirements_due'],
-                "future_requirements_due" => $data['future_requirements_due'],
+                "first_name" => $bridgeData['first_name'],
+                "last_name" => $bridgeData['last_name'],
+                "status" => $bridgeData['status'],
+                "rejection_reasons" => $bridgeData['rejection_reasons'],
+                "requirements_due" => $bridgeData['requirements_due'],
+                "future_requirements_due" => $bridgeData['future_requirements_due'],
             ];
         }
 
