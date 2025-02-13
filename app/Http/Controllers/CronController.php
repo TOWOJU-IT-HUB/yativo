@@ -158,7 +158,7 @@ class CronController extends Controller
                 'pen' => $floid->getPenPaymentStatus($deposit->gateway_deposit_id),
             };
 
-            if ($order && strtolower($order['status']) == "success") {
+            if (isset($order['status']) && strtolower($order['status']) == "success") {
                 $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
                 if ($txn) {
                     $where = [

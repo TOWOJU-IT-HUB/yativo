@@ -31,19 +31,70 @@ class BridgeController extends Controller
      */
     public function addCustomerV1(array|object $payload = [])
     {
-        $customer = Customer::where('customer_id', request()->customer_id)->first();
+        $customer = Customer::where('customer_id', request()->input('customer_id'))->first();
         $bridgeData = $this->sendRequest("/v0/customers", 'POST', array_filter($payload));
-        if(isset($bridgeData['id'])) {
-            // update the customer with the bridge customer ID
-            $customer->update([
-                "bridge_customer_id" => $bridgeData['id'],
-            ]);
+
+        if (isset($bridgeData['id']) && $customer) {
+            // Update customer with bridge customer ID
+            $customer->update(["bridge_customer_id" => $bridgeData['id']]);
         }
-        // if(isset($bridgeData['code']) && $bridgeData['code'] == 'invalid_parameters') {
-        //     return $bridgeData['source'];
-        // }
+
+        // Ensure bridgeData is checked correctly for the "technical" keyword
+        if (is_array($bridgeData) && str_contains(json_encode($bridgeData), 'technical difficulties')) {
+            $bridgeData = $this->selfUpdateCustomer($payload);
+        }
+
         return $bridgeData;
     }
+
+
+    // if KYC returns a technical error auto initiat customer update process
+    public function autoUpdateCustomer($payload)
+    {
+        $customer = Customer::where('customer_id', request()->customer_id)->first();
+        abort(404, "Customer not found");
+
+        $endpoint = "v0/customers?limit=100";
+        $data = $this->sendRequest($endpoint);
+
+        if(is_array($data) && isset($data['count'])) {
+            // customer bridge ID is empty so check if it exists
+            foreach ($data['data'] as $k => $v) {
+                if($customer->customer_email == $v['email']) {
+                    $update = $customer->update([
+                        'bridge_customer_id' => $v['id']
+                    ]);  
+                    
+                    if($update) {
+                        $endpoint = "v0/customers/".$v['id'];
+                        // update customer on bridge
+                        $data = $this->sendRequest($endpoint, "PUT", $payload);
+                    }
+                }
+            }
+        }
+
+        if(isset($data['status'])) {
+            return ([
+                "first_name" => $data['first_name'],
+                "last_name" => $data['last_name'],
+                "status" => $data['status'],
+                "rejection_reasons" => $data['rejection_reasons'],
+                "requirements_due" => $data['requirements_due'],
+                "future_requirements_due" => $data['future_requirements_due']
+            ]);
+        }
+        if(isset($data['code'])) {
+            return (array)$data;
+        }
+        return (array)$data;
+    }
+
+    public function selfUpdateCustomer(Request $request) 
+    {
+        return $this->autoUpdateCustomer($request);
+    }
+    
 
     public function getCustomerRegistrationCountries(Request $request)
     {
@@ -94,8 +145,8 @@ class BridgeController extends Controller
         if (!$customer) {
             return ['error' => 'Failed to save customer'];
         }
+        
         return $customer;
-
     }
 
     public function getKycStatus()

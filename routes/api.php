@@ -113,6 +113,7 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
     Route::group([], function () {
         Route::put('profile', [AuthController::class, 'update']);
         Route::get('customer/kyc/{customerId}', [BridgeController::class, 'getCustomer']);
+        Route::put('customer/kyc/update', [BridgeController::class, 'selfUpdateCustomer']);
         Route::get('user-meta', [UserMetaController::class, 'index']);
         Route::get('user-meta/{id}', [UserMetaController::class, 'show']);
         Route::post('user-meta', [UserMetaController::class, 'store']);

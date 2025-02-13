@@ -91,7 +91,7 @@ Route::group([], function () {
     Route::any('callback/webhook/deposit/vitawallet/{quoteId}', [VitaWalletController::class, 'deposit_callback'])->name('vitawallet.deposit.callback.success');
 
     Route::any('callback/webhook/floid', [FlowController::class, 'callback'])->name('floid.callback.success');
-    Route::any('callback/webhook/floid-redirect', [FlowController::class, 'getPaymentStatus'])->name('floid.callback.redirect');
+    Route::any('callback/webhook/floid-redirect', [FlowController::class, 'callback'])->name('floid.callback.redirect');
 
     Route::post("callback/webhook/virtual-account-webhook", [VirtualAccountsController::class, 'virtualAccountWebhook'])->name('business.virtual-account.virtualAccountWebhook');
     Route::any('callback/wallet/webhook/{userId}/{currency}', [CryptoWalletsController::class, 'walletWebhook'])->name('crypto.wallet.address.callback');
