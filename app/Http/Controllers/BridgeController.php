@@ -39,7 +39,7 @@ class BridgeController extends Controller
             $customer->update(["bridge_customer_id" => $bridgeData['id']]);
         }
 
-        if (is_array($bridgeData) && $this->containsTechnicalDifficulties($bridgeData)) {
+        if ($this->containsTechnicalDifficulties($bridgeData)) {
             // since the KYC failed we don't have the customer ID. we have to loop through and find the customer's ID via email
 
             $endpoint = "v0/customers?limit=100";
