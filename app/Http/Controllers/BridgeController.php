@@ -101,7 +101,9 @@ class BridgeController extends Controller
 
     public function selfUpdateCustomer(Request $request) 
     {
-        $payload['residential_address'] = $request->address;
+        $request->merge([
+            'residential_address' => $request->address
+        ]);
         return $this->autoUpdateCustomer($request);
     }
     
