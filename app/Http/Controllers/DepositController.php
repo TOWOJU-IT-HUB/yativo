@@ -104,11 +104,11 @@ class DepositController extends Controller
             }
             
             if ($payin->minimum_deposit > ($amount * $exchange_rate)) {
-                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is ". floatval($payin->minimum_deposit / $exchange_rate], 400);
+                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is ". floatval($payin->minimum_deposit / $exchange_rate)], 400);
             }
             
             if ($payin->maximum_deposit < ($amount * $exchange_rate)) {
-                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is ". floatval($payin->maximum_deposit / $exchange_rate], 400);
+                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is ". floatval($payin->maximum_deposit / $exchange_rate)], 400);
             }
             
 

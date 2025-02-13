@@ -170,7 +170,7 @@ class WithdrawalConntroller extends Controller
             }
 
             if(($exchange_rate * $request->amount) > $payoutMethod->maximum_withdrawal) {
-                return get_error_response(['error' => "Amount can not be greater than ". floatval($payoutMethod->maximum_withdrawal / $exchange_rate]);
+                return get_error_response(['error' => "Amount can not be greater than ". floatval($payoutMethod->maximum_withdrawal / $exchange_rate)]);
             }
 
             if (!$payoutMethod) {
