@@ -76,7 +76,7 @@ class DepositController extends Controller
                 return get_error_response(['error' => 'Invalid payment gateway selected.'], 400);
             }
             $allowedCurrencies = [];
-            $allowedCurrencies[] = explode(',', $payin->base_currency);
+            $allowedCurrencies = explode(',', $payin->base_currency);
             
             if (($request->currency || !in_array($request->currency, $allowedCurrencies))) {
                 return get_error_response([
