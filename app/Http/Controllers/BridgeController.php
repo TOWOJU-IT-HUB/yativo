@@ -257,25 +257,34 @@ class BridgeController extends Controller
                     $update = $customer->update([
                         'bridge_customer_id' => $v['id']
                     ]);  
+
+                    if($data['status'] == 'active') {
+                        $update = $customer->update([
+                            'customer_status' => 'active',
+                            'customer_kyc_status' => "approved"
+                        ]);
+                    }
                     
                     if($update) {
                         $endpoint = "v0/customers/".$v['id'];
                         $data = $this->sendRequest($endpoint);
+
+                        if(isset($data['status'])) {
+                            return get_success_response([
+                                "first_name" => $data['first_name'],
+                                "last_name" => $data['last_name'],
+                                "status" => $data['status'],
+                                "rejection_reasons" => $data['rejection_reasons'],
+                                "requirements_due" => $data['requirements_due'],
+                                "future_requirements_due" => $data['future_requirements_due'],
+                                'other_info' => $customer
+                            ]);
+                        }
                     }
                 }
             }
         }
 
-        if(isset($data['status'])) {
-            return get_success_response([
-                "first_name" => $data['first_name'],
-                "last_name" => $data['last_name'],
-                "status" => $data['status'],
-                "rejection_reasons" => $data['rejection_reasons'],
-                "requirements_due" => $data['requirements_due'],
-                "future_requirements_due" => $data['future_requirements_due']
-            ]);
-        }
         if(isset($data['code'])) {
             return get_error_response($data);
         }
