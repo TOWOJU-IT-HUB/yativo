@@ -92,7 +92,12 @@ class DepositController extends Controller
                 return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
             }
             $exchange_rate = floatval($exchange_rate);
-            
+            $deposit_float = floatval($payin->exchange_rate_float ?? 0);
+
+            // Calculate percentage and add to exchange rate
+            $exchange_rate += ($exchange_rate * $deposit_float / 100);
+
+
             $amount = floatval($request->amount ?? 0);
             if ($amount <= 0) {
                 return get_error_response(['error' => 'Invalid deposit amount.'], 400);
