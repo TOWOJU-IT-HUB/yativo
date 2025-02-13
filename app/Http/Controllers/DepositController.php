@@ -80,8 +80,9 @@ class DepositController extends Controller
             
             if (($request->currency || !in_array($request->currency, $allowedCurrencies))) {
                 return get_error_response([
-                    'currencies' => $allowedCurrencies,
-                    'error' => "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payin->base_currency
+                    'error' => [
+                        'currencies' => $allowedCurrencies,
+                        "message" => "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payin->base_currency]
                 ], 400);
             }
             
