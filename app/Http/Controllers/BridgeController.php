@@ -64,7 +64,7 @@ class BridgeController extends Controller
         }
 
         $endpoint = "v0/customers?limit=100";
-        $data = $this->sendRequest($endpoint);
+        $data = (array)$this->sendRequest($endpoint);
 
         if(is_array($data) && isset($data['count'])) {
             // customer bridge ID is empty so check if it exists
@@ -87,7 +87,7 @@ class BridgeController extends Controller
                                 "rejection_reasons" => $data['rejection_reasons'],
                                 "requirements_due" => $data['requirements_due'],
                                 "future_requirements_due" => $data['future_requirements_due'],
-                                "raw" => $data
+                                // "raw" => $data
                             ]);
                         }
                     }
