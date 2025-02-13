@@ -102,21 +102,34 @@ class BridgeController extends Controller
 
     public function selfUpdateCustomer(Request $request) 
     {
+        // Send request to external API
         $curl = Http::post("https://monorail.onrender.com/dashboard/generate_signed_agreement_id", [
-            'customer_id' => NULL,
-            'email' => NULL,
-            'token' => NULL,
+            'customer_id' => null,
+            'email' => null,
+            'token' => null,
             'type' => 'tos',
             'version' => 'v5',
         ]);
+    
+        // Check if the request failed
+        if ($curl->failed()) {
+            return response()->json(['error' => 'Failed to generate signed agreement ID'], 500);
+        }
+    
+        // Get response safely
         $response = $curl->json();
-        
-        $request->merge([
-            'residential_address' => $request->address,
-            "signed_agreement_id" => $response['signed_agreement_id']
+        $signedAgreementId = $response['signed_agreement_id'] ?? null;
+    
+        // Convert request to array and merge new data
+        $payload = array_merge($request->all(), [
+            'residential_address' => $request->address ?? null,
+            "signed_agreement_id" => $signedAgreementId
         ]);
-        return $this->autoUpdateCustomer($request);
+    
+        // Call autoUpdateCustomer with the array
+        return $this->autoUpdateCustomer($payload);
     }
+    
     
 
     public function getCustomerRegistrationCountries(Request $request)
