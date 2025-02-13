@@ -166,11 +166,11 @@ class WithdrawalConntroller extends Controller
             $exchange_rate -= ($exchange_rate * $deposit_float / 100);
             
             if(($exchange_rate * $request->amount) < $payoutMethod->minimum_withdrawal) {
-                return get_error_response(['error' => "Amount can not be less than ". floatval($payoutMethod->minimum_withdrawal / $exchange_rate)]);
+                return get_error_response(['error' => "Amount can not be less than ". floatval($payoutMethod->minimum_withdrawal * $exchange_rate)]);
             }
 
             if(($exchange_rate * $request->amount) > $payoutMethod->maximum_withdrawal) {
-                return get_error_response(['error' => "Amount can not be greater than ". floatval($payoutMethod->maximum_withdrawal / $exchange_rate)]);
+                return get_error_response(['error' => "Amount can not be greater than ". floatval($payoutMethod->maximum_withdrawal * $exchange_rate)]);
             }
 
             if (!$payoutMethod) {
