@@ -52,7 +52,16 @@ class BridgeController extends Controller
     public function autoUpdateCustomer($payload)
     {
         $customer = Customer::where('customer_id', request()->customer_id)->first();
-        abort(404, "Customer not found");
+        if(!$customer) {
+            echo json_encode([
+                "status" => false,
+                "status_code" => 404,
+                "message" => "Customer not found!",
+                "error" => [
+                    "error" => "Csutomer not found"
+                ]
+            ]); exit;
+        }
 
         $endpoint = "v0/customers?limit=100";
         $data = $this->sendRequest($endpoint);
