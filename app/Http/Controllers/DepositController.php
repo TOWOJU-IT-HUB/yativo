@@ -78,7 +78,7 @@ class DepositController extends Controller
             $allowedCurrencies = [];
             $allowedCurrencies = explode(',', $payin->base_currency);
             
-            if (($request->currency || !in_array($request->currency, $allowedCurrencies))) {
+            if (!in_array($request->currency, $allowedCurrencies)) {
                 return get_error_response([
                     'error' => [
                         'currencies' => $allowedCurrencies,
