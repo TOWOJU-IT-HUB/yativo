@@ -53,14 +53,13 @@ class DepositController extends Controller
             $validate = Validator::make(
                 $request->all(),
                 [
-                    'gateway' => 'required|exists:payin_methods,id',
+                    'gateway' => 'required|numeric|min:1',
                     'amount' => 'required|numeric',
                     'currency' => 'required_without:credit_wallet',
                     'credit_wallet' => 'required_without:currency'
                 ]
             );
             
-
             if ($validate->fails()) {
                 return get_error_response($validate->errors()->toArray());
             }
