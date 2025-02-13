@@ -100,6 +100,9 @@ class FlowController extends Controller
                 ]);
 
         $result = $response->json();
+        if (isset($result['status'])) {
+            // complete deposit process.
+        }
         return $result;
     }
 
@@ -108,6 +111,20 @@ class FlowController extends Controller
         $rawInput = file_get_contents('php://input');
         $requestBody = $request->all();
         Log::info('Floid callback request body:', $requestBody);
-        
+        if(isset($request->id) && !empty($request->id)) {
+            $deposit = Deposit::where('gateway_deposit_id', $request->id)->first();
+            if($deposit) {
+                // get the deposit then process it.
+                if(strtoupper($deposit->currency) == "PEN") {
+                    return $this->getPenPaymentStatus($request->id);
+                } else if(strtoupper($deposit->currency) == "CLP") {
+                    return $this->getChlPaymentStatus($request->id);
+                } else {
+                    //
+                }
+            }
+
+            return rediret()->away('https://app.yativo.com');
+        }
     }
 }
