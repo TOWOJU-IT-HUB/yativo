@@ -51,7 +51,7 @@ class BridgeController extends Controller
     // if KYC returns a technical error auto initiat customer update process
     public function autoUpdateCustomer($payload)
     {
-        return $customer = Customer::where('customer_id', request()->customer_id)->first();
+        $customer = Customer::where('customer_id', request()->customer_id)->first();
         if(!$customer) {
             echo json_encode([
                 "status" => false,
@@ -91,8 +91,9 @@ class BridgeController extends Controller
                             ]);
                         }
                     }
-                }
+                } 
             }
+            return get_error_response(['error' => 'Unmatched customer data provided']);
         }
         return get_error_response(['error' => "Please contact support for manual verification"]);
     }
