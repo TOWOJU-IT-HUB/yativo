@@ -84,19 +84,20 @@ class BridgeController extends Controller
         }
 
         if(isset($data['status'])) {
-            return ([
+            return get_success_response([
                 "first_name" => $data['first_name'],
                 "last_name" => $data['last_name'],
                 "status" => $data['status'],
                 "rejection_reasons" => $data['rejection_reasons'],
                 "requirements_due" => $data['requirements_due'],
-                "future_requirements_due" => $data['future_requirements_due']
+                "future_requirements_due" => $data['future_requirements_due'],
+                "raw" => $data
             ]);
         }
         if(isset($data['code'])) {
-            return (array)$data;
+            return get_error_response(['error' => $data]);
         }
-        return (array)$data;
+        return get_error_response(['error' => $data]);
     }
 
     public function selfUpdateCustomer(Request $request) 
