@@ -142,17 +142,34 @@ class WithdrawalConntroller extends Controller
 
             // Get beneficiary payout method
             $payoutMethod = payoutMethods::where('id', $is_beneficiary->gateway_id)->first();
+
+            $allowedCurrencies = [];
+            $allowedCurrencies = explode(',', $payoutMethod->base_currency);
             
-            $currencyArray = array_map('trim', explode(',', $payoutMethod->base_currency)); // Split and trim whitespace
-            if (!in_array($request->currency, $currencyArray)) {
-                return get_error_response['error' => "Sorry the selected currency pair are not allowed: allowed currency pairs are: {$payin->base_currency}", "allowed_pairs" => $payin->base_currency]
-            } 
+            if (!in_array($request->currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' => [
+                        'currencies' => $allowedCurrencies,
+                        "message" => "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payoutMethod->base_currency]
+                ], 400);
+            }
             
-            if($request->amount < $payoutMethod->minimum_withdrawal) {
+            $exchange_rate = get_transaction_rate($payoutMethod->currency, $request->credit_wallet ?? $request->currency, $payoutMethod->id, "payoutMethod");
+            
+            if (!$exchange_rate || $exchange_rate <= 0) {
+                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
+            }
+            $exchange_rate = floatval($exchange_rate);
+            $deposit_float = floatval($payoutMethod->exchange_rate_float ?? 0);
+
+            // Calculate percentage and add to exchange rate
+            $exchange_rate -= ($exchange_rate * $deposit_float / 100);
+            
+            if(($exchange_rate * $request->amount) < $payoutMethod->minimum_withdrawal) {
                 return get_error_response(['error' => "Amount can not be less than {$payoutMethod->minimum_withdrawal}"]);
             }
 
-            if($request->amount > $payoutMethod->maximum_withdrawal) {
+            if(($exchange_rate * $request->amount) > $payoutMethod->maximum_withdrawal) {
                 return get_error_response(['error' => "Amount can not be greater than {$payoutMethod->maximum_withdrawal}"]);
             }
 
