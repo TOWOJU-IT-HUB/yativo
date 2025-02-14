@@ -316,7 +316,8 @@ class BridgeController extends Controller
     public function createVirtualAccount($customerId)
     {
         $request = request();
-        if(!auth()->user()->bridge_customer_id) {
+        $customer = Customer::where('customer_id', $customerId)->first();
+        if(!$customer->bridge_customer_id) {
             return ['error' => 'Customer not enrolled for service or KYC not complete'];
         }
         $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
