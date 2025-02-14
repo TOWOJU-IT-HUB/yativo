@@ -220,7 +220,7 @@ class VirtualAccountsController extends Controller
 
         $payload = [
             "amount" => floatval(0),
-            "referenceLabel" => $request->customer_id
+            "referenceLabel" => \Str::random(16)
         ];
 
         $user = auth()->user();
