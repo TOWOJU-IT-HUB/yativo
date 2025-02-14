@@ -243,54 +243,50 @@ class BridgeController extends Controller
     public function getCustomer($customerId)
     {
         $customer = Customer::where('customer_id', $customerId)->first();
-        if(!$customer) {
+        if (!$customer) {
             return get_error_response(['error' => 'Customer ID is invalid']);
         }
-
+    
         $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
-
-        if(is_array($data) && isset($data['count'])) {
-            // customer bridge ID is empty so check if it exists
-            foreach ($data['data'] as $k => $v) {
-                if($customer->customer_email == $v['email']) {
-                    $update = $customer->update([
-                        'bridge_customer_id' => $v['id']
-                    ]);  
-
-                    if($data['status'] == 'active') {
-                        $update = $customer->update([
-                            'customer_status' => 'active',
-                            'customer_kyc_status' => "approved"
-                        ]);
-                    }
-                    
-                    if($update) {
-                        $endpoint = "v0/customers/".$v['id'];
-                        $data = $this->sendRequest($endpoint);
-
-                        if(isset($data['status'])) {
-                            return get_success_response([
-                                "first_name" => $data['first_name'],
-                                "last_name" => $data['last_name'],
-                                "status" => $data['status'],
-                                "rejection_reasons" => $data['rejection_reasons'],
-                                "requirements_due" => $data['requirements_due'],
-                                "future_requirements_due" => $data['future_requirements_due'],
-                                'other_info' => $customer
-                            ]);
-                        }
-                    }
+    
+        if (!is_array($data) || !isset($data['count']) || !isset($data['data']) || empty($data['data'])) {
+            return get_error_response(['error' => 'Invalid response from API', 'data' => $data]);
+        }
+    
+        // Check if bridge_customer_id exists
+        foreach ($data['data'] as $entry) {
+            if ($customer->customer_email == $entry['email']) {
+                $customer->update(['bridge_customer_id' => $entry['id']]);
+    
+                if (isset($entry['status']) && $entry['status'] == 'active') {
+                    $customer->update([
+                        'customer_status' => 'active',
+                        'customer_kyc_status' => 'approved'
+                    ]);
+                }
+    
+                // Fetch updated customer data
+                $endpoint = "v0/customers/{$entry['id']}";
+                $data = $this->sendRequest($endpoint);
+    
+                if (is_array($data) && isset($data['status'])) {
+                    return get_success_response([
+                        "first_name" => $data['first_name'] ?? '',
+                        "last_name" => $data['last_name'] ?? '',
+                        "status" => $data['status'],
+                        "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
+                        "kyc_requirements_due" => $data['requirements_due'] ?? [],
+                        "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
+                        'bio_data' => $customer
+                    ]);
                 }
             }
         }
-
-        if(isset($data['code'])) {
-            return get_error_response($data);
-        }
-        return $data;
-        // return get_error_response(['error' => "please contact support", "data" => $data]);
+    
+        return get_error_response(['error' => 'Customer not found in response', 'data' => $data]);
     }
+    
 
     public function createCustomerBridgeWallet($customerId)
     {
