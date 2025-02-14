@@ -211,7 +211,7 @@ class VirtualAccountsController extends Controller
     private function createUSDVirtualAccount($request)
     {
         $bridge = new BridgeController();
-        return $bridge->createVirtualAccount($request);
+        return $bridge->createVirtualAccount($request->customer_id);
     }
 
     private function createBRLVirtualAccount($request)
