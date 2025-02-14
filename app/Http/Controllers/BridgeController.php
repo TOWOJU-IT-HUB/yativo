@@ -364,7 +364,7 @@ class BridgeController extends Controller
                     "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
                     "bank_name" => $data['source_deposit_instructions']['bank_name'] ?? null,
                     "routing_number" => $data['source_deposit_instructions']['bank_routing_number'] ?? null,
-                    "account_name" => auth()->user()->name,
+                    "account_name" => $customer->customer_name,
                 ],
                 "extra_data" => $data
             ]);
