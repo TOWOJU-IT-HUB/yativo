@@ -91,7 +91,7 @@ class ShuftiProServices
 
         return $response;
     }
-    
+
     public function businessVerification($businessName, $businessRegistrationNumber, $businessJurisdictionCode, $businessCountry = null)
     {
         try {
