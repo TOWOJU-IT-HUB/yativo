@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use Modules\Customer\app\Models\Customer;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -17,28 +16,35 @@ class CustomerKycMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Skip validation if the request is for the KYC verification URL
+        // Skip validation for KYC verification route
         if ($request->is('api/v1/verification/verify-customer')) {
             return $next($request);
         }
 
-        // Proceed with validation if 'customer_id' is present in the request
-        if ($request->has('customer_id')) {
-            $customerId = $request->customer_id;
-
-            // Validate customer existence and KYC status
-            $customer = Customer::where('customer_id', $customerId)
-                            ->where('customer_status', 'active')
-                            ->where('customer_kyc_status', 'approved')
-                            ->first();
-
-            // If no valid customer is found, return a response with an error
-            if (!$customer) {
-                return get_error_response(['error' => 'Invalid or unapproved customer'], 403);
-            }
+        // Ensure 'customer_id' is in the request
+        if (!$request->has('customer_id')) {
+            return get_error_response(['error' => 'Customer ID is required'], 400);
         }
 
-        // Continue with the request processing
-        return $next($request);
+        $customerId = $request->input('customer_id');
+
+        // Retrieve customer record
+        $customer = Customer::where('customer_id', $customerId)->first();
+
+        if (!$customer) {
+            return get_error_response(['error' => 'Invalid or unapproved customer'], 403);
+        }
+
+        // Check if customer is suspended
+        if ($customer->customer_status !== 'active') {
+            return get_error_response(['message' => 'Customer is suspended'], 403);
+        }
+
+        // Validate KYC status or bridge ID
+        if (in_array($customer->customer_kyc_status, ['active', 'approved', 'completed']) || !empty($customer->bridge_customer_id)) {
+            return $next($request);
+        }
+
+        return get_error_response(['message' => 'Customer not allowed'], 403);
     }
 }
