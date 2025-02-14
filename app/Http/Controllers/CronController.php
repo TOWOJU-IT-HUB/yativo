@@ -181,7 +181,7 @@ class CronController extends Controller
                     }
                 }
             }
-            $this->updateTracking($deposit->id, $order['status'], $order);
+            // $this->updateTracking($deposit->id, $order['status'], $order);
         }
     }
 
