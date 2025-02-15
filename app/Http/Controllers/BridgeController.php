@@ -239,7 +239,6 @@ class BridgeController extends Controller
 
         return $data;
     }
-
     public function getCustomer($customerId)
     {
         $customer = Customer::where('customer_id', $customerId)->first();
@@ -247,64 +246,63 @@ class BridgeController extends Controller
             return get_error_response(['error' => 'Customer ID is invalid']);
         }
     
+        // Fetch customer data from API using bridge_customer_id if available
+        if (!empty($customer->bridge_customer_id)) {
+            return $this->fetchAndReturnCustomerData($customer->bridge_customer_id, $customer);
+        }
+    
+        // Fetch potential matches from API
         $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
     
-        if (!empty($customer->bridge_customer_id) && (!is_array($data) || !isset($data['count']) || !isset($data['data']) || empty($data['data']))) {
+        // Validate API response
+        if (!is_array($data) || empty($data['data'])) {
             return get_error_response(['error' => 'Invalid response from API', 'data' => $data]);
         }
-
-        if(isset($customer->bridge_customer_id) && !empty($customer->bridge_customer_id)) {
-        
-            // Fetch updated customer data
-            $endpoint = "v0/customers/{$entry['id']}";
-            $data = $this->sendRequest($endpoint);
-
-            if (is_array($data) && isset($data['status'])) {
-                return get_success_response([
-                    "first_name" => $data['first_name'] ?? '',
-                    "last_name" => $data['last_name'] ?? '',
-                    "status" => $data['status'],
-                    "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
-                    "kyc_requirements_due" => $data['requirements_due'] ?? [],
-                    "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
-                    'bio_data' => $customer
-                ]);
-            }
-        }
     
-        // Check if bridge_customer_id exists
+        // Find a match in API response
         foreach ($data['data'] as $entry) {
-            if ($customer->customer_email == $entry['email']) {
+            if ($customer->customer_email === $entry['email']) {
                 $customer->update(['bridge_customer_id' => $entry['id']]);
     
-                if (isset($entry['status']) && $entry['status'] == 'active') {
+                // Update customer status if active
+                if ($entry['status'] === 'active') {
                     $customer->update([
                         'customer_status' => 'active',
                         'customer_kyc_status' => 'approved'
                     ]);
                 }
     
-                // Fetch updated customer data
-                $endpoint = "v0/customers/{$entry['id']}";
-                $data = $this->sendRequest($endpoint);
-    
-                if (is_array($data) && isset($data['status'])) {
-                    return get_success_response([
-                        "first_name" => $data['first_name'] ?? '',
-                        "last_name" => $data['last_name'] ?? '',
-                        "status" => $data['status'],
-                        "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
-                        "kyc_requirements_due" => $data['requirements_due'] ?? [],
-                        "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
-                        'bio_data' => $customer
-                    ]);
-                }
+                return $this->fetchAndReturnCustomerData($entry['id'], $customer);
             }
         }
     
         return get_error_response(['error' => 'Customer not found in response', 'data' => $data]);
     }
+    
+    /**
+     * Fetch customer details from API and return a structured response.
+     */
+    private function fetchAndReturnCustomerData($bridgeCustomerId, $customer)
+    {
+        $endpoint = "v0/customers/{$bridgeCustomerId}";
+        $data = $this->sendRequest($endpoint);
+    
+        if (!is_array($data) || !isset($data['status'])) {
+            return get_error_response(['error' => 'Failed to retrieve customer details', 'data' => $data]);
+        }
+    
+        return get_success_response([
+            "first_name" => $data['first_name'] ?? '',
+            "last_name" => $data['last_name'] ?? '',
+            "status" => $data['status'],
+            "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
+            "kyc_requirements_due" => $data['requirements_due'] ?? [],
+            "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
+            'bio_data' => $customer
+        ]);
+    }
+    
     
 
     public function createCustomerBridgeWallet($customerId)
