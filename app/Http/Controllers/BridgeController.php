@@ -257,7 +257,7 @@ class BridgeController extends Controller
     
         // Validate API response
         if (!is_array($data) || empty($data['data'])) {
-            return get_error_response(['error' => 'Invalid response from API', 'data' => $data]);
+            return get_error_response(['error' => 'Error on our end, Please contact support']);
         }
     
         // Find a match in API response

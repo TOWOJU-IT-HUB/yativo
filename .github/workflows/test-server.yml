@@ -21,9 +21,9 @@ jobs:
               uses: SamKirkland/FTP-Deploy-Action@v4.3.4
               with:
                     server: zinar.io
-                    username: ${{ secrets.USER_NAME }}
-                    password: ${{ secrets.PASSWORD }}
-                    server-dir: /public_html/
+                    username: ${{ secrets.FTP_USERNAME }}
+                    password: ${{ secrets.FTP_PASSWORD }}
+                    server-dir: /home/admin/domains/smtp.yativo.com/
                     exclude: |
                         .env
                         .git*
