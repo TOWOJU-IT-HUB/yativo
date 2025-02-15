@@ -250,8 +250,27 @@ class BridgeController extends Controller
         $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
     
-        if (!is_array($data) || !isset($data['count']) || !isset($data['data']) || empty($data['data'])) {
+        if (!empty($customer->bridge_customer_id) && (!is_array($data) || !isset($data['count']) || !isset($data['data']) || empty($data['data']))) {
             return get_error_response(['error' => 'Invalid response from API', 'data' => $data]);
+        }
+
+        if(isset($customer->bridge_customer_id) && !empty($customer->bridge_customer_id)) {
+        
+            // Fetch updated customer data
+            $endpoint = "v0/customers/{$entry['id']}";
+            $data = $this->sendRequest($endpoint);
+
+            if (is_array($data) && isset($data['status'])) {
+                return get_success_response([
+                    "first_name" => $data['first_name'] ?? '',
+                    "last_name" => $data['last_name'] ?? '',
+                    "status" => $data['status'],
+                    "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
+                    "kyc_requirements_due" => $data['requirements_due'] ?? [],
+                    "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
+                    'bio_data' => $customer
+                ]);
+            }
         }
     
         // Check if bridge_customer_id exists

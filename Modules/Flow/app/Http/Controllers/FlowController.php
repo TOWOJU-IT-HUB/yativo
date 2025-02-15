@@ -55,14 +55,10 @@ class FlowController extends Controller
     public function getChlPaymentStatus($token = null)
     {
         $request = request();
-        Log::info("Floid request and response data", ['request' => $request->getContent()]);
-
         $url = "https://api.floid.app/cl/payments/check";
-
         $token = $token ?? $request->payment_token;
-
         $result = $this->getPaymentStatus($url, $token);
-
+        Log::info("Floid request and response data", ['request' => $request->getContent()]);
         if (isset($result['status'])) {
             return $result;
         }

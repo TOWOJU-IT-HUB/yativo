@@ -41,7 +41,6 @@ class CustomerKycMiddleware
             if (in_array($customer->customer_kyc_status, ['active', 'approved', 'completed']) || !empty($customer->bridge_customer_id)) {
                 return $next($request);
             }
-    
         }
 
         // Continue with the request processing
