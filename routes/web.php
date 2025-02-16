@@ -96,7 +96,7 @@ Route::get('mi', function () {
                 continue;
             }
 
-            $gateway = PayoutMethods::where([
+            $gateway = payoutMethods::where([
                 'gateway' => 'transfi',
                 'currency' => $currency,
                 'payment_method_code' => $method['paymentCode'],
