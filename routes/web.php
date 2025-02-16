@@ -43,6 +43,71 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 |
 */
 
+Route::get('mi', function () {
+    // Corrected allowed arrays format
+    $allowed_arrays = [
+        ['country' => 'gbr', 'currency' => 'gbp', 'w_key' => 'gb'],
+        ['country' => 'gbr', 'currency' => 'usd', 'w_key' => 'gbusd'],
+        ['country' => 'hkg', 'currency' => 'usd', 'w_key' => 'hkusd'],
+        ['country' => 'ven', 'currency' => 'ves', 'w_key' => 've'],
+        ['country' => 'per', 'currency' => 'usd', 'w_key' => 'peusd'],
+        ['country' => 'can', 'currency' => 'usd', 'w_key' => 'causd'],
+        ['country' => 'chn', 'currency' => 'usd', 'w_key' => 'cnusd'],
+        ['country' => 'gbp', 'currency' => 'eur', 'w_key' => 'gbeur'],
+        ['country' => 'arg', 'currency' => 'ars', 'w_key' => 'ar'],
+        ['country' => 'aus', 'currency' => 'aud', 'w_key' => 'au'],
+        ['country' => 'bol', 'currency' => 'bob', 'w_key' => 'bo'],
+        ['country' => 'cri', 'currency' => 'crc', 'w_key' => 'cr'],
+        ['country' => 'dom', 'currency' => 'dop', 'w_key' => 'do'],
+        ['country' => 'ecu', 'currency' => 'usd', 'w_key' => 'ec'],
+        ['country' => 'pan', 'currency' => 'usd', 'w_key' => 'pa'],
+        ['country' => 'per', 'currency' => 'pen', 'w_key' => 'pe'],
+        ['country' => 'pry', 'currency' => 'pyg', 'w_key' => 'py'],
+        ['country' => 'ury', 'currency' => 'pyg', 'w_key' => 'gb'],
+        ['country' => 'chl', 'currency' => 'clp', 'w_key' => 'cl']
+    ];
+
+    // Initialize Vitawallet Service and get withdrawal rules
+    $vita = new VitaWalletController();
+    $get_rules = $vita->withdrawal_rules();
+    $rules = $get_rules['rules'] ?? [];
+
+    // Fetch Vitawallet payout methods with matching country & currency
+    $gateways = PayoutMethods::where('gateway', 'vitawallet')
+        ->whereIn('currency', collect($allowed_arrays)->pluck('currency'))
+        ->whereIn('country', collect($allowed_arrays)->pluck('country'))
+        ->get();
+
+    foreach ($gateways as $gateway) {
+        // Find the matching entry from allowed_arrays
+        $matchedEntry = collect($allowed_arrays)->firstWhere(function ($item) use ($gateway) {
+            return $item['currency'] === $gateway->currency && $item['country'] === $gateway->country;
+        });
+
+        if (!$matchedEntry) {
+            continue; // Skip if no match found
+        }
+
+        $w_key = $matchedEntry['w_key'];
+
+        // Find matching withdrawal rule
+        $matchingFields = $rules[$w_key]['fields'] ?? [];
+
+        // Insert or update
+        $arr = [
+            "gateway_id" => $gateway->id,
+            "currency" => $gateway->currency,
+            "form_data" => [
+                "payment_data" => $matchingFields // Store matched fields
+            ]
+        ];
+
+        BeneficiaryForms::updateOrCreate(
+            ["gateway_id" => $gateway->id],
+            $arr
+        );
+    }
+});
 
 
 
