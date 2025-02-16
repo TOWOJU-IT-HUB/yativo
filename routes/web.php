@@ -45,9 +45,9 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 
 
-Route::group(['prefix' => 'mi'], function () {
+Route::get('mi', function () {
     \DB::statement('SET FOREIGN_KEY_CHECKS=0;'); 
-    BeneficiaryForms::truncate();
+    BeneficiaryFoems::truncate();
     $currencies = ['PHP', 'IDR', 'VND', 'MYR'];
     foreach ($currencies as $currency) {
         $curl = curl_init();
@@ -133,7 +133,7 @@ Route::group(['prefix' => 'mi'], function () {
                 ]
             ];
 
-            BeneficiaryForms::updateOrCreate(
+            BeneficiaryFoems::updateOrCreate(
                 ["gateway_id" => $gateway->id],
                 $arr
             );
