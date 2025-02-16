@@ -91,6 +91,7 @@ class DojahVerificationController extends Controller
         $validatedData = $request->all();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
         $validatedData['residential_address'] = $request->address;
+        $validatedData['expected_monthly_payments_usd'] = $request->expected_monthly_payments;
     
         try {
             unset($validatedData['customer_id']);
