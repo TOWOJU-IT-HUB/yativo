@@ -418,16 +418,35 @@ class BridgeController extends Controller
 
     public function makePayout($quoteId)
     {
-        $payout = Withdraw::with('user', 'transactions', 'payoutGateway', 'beneficiary')->findOrFail($quoteId);
-        if (isset($payout->raw_data['customer_id']) && !empty($payout->raw_data['customer_id'])) {
+        try {
+            $payout = Withdraw::with('user', 'transactions', 'payoutGateway', 'beneficiary')->findOrFail($quoteId);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ['error' => 'Payout not found'];
+        }
+
+        if (isset($payout->raw_data) && isset($payout->raw_data['customer_id']) && !empty($payout->raw_data['customer_id'])) {
             $payout['customer'] = Customer::whereCustomerId($payout->raw_data['customer_id'])->first();
         }
 
-        $to_payment_rail = strtolower($payout->payoutGateway->payment_mode);
         $to_currency = strtolower($payout->payoutGateway->currency);
-        if ($to_currency == "eur") {
+
+        $to_payment_rail = "ach";
+        if ($to_currency == "usd") {
+            if ($payout->payoutGateway->method_name == 'Fedwire') {
+                $to_payment_rail = 'wire';
+            }
+            if ($payout->payoutGateway->method_name == 'ach') {
+                $to_payment_rail = "ach";
+            }
+        } elseif ($to_currency == "eur") {
             $to_payment_rail = "sepa";
         }
+
+        if (!$payout->beneficiary || !$payout->beneficiary->bridge_customer_id || !$payout->beneficiary->bridge_id) {
+            return ['error' => 'Beneficiary details are incomplete'];
+        }
+
+        $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; 
 
         $payload = [
             "client_reference_id" => $quoteId,
@@ -436,10 +455,10 @@ class BridgeController extends Controller
             "source" => [
                 "currency" => "usdc",
                 "payment_rail" => "bridge_wallet",
-                "bridge_wallet_id" => "xoxo" // Zee Technology SPA wallet ID
+                "bridge_wallet_id" => $destinationAddress
             ],
             "destination" => [
-                "currency" => $to_currency, // eur and usd
+                "currency" => $to_currency,
                 "payment_rail" => $to_payment_rail,
                 "external_account_id" => $payout->beneficiary->bridge_id
             ]
@@ -448,11 +467,13 @@ class BridgeController extends Controller
         $endpoint = "v0/transfers";
         $curl = $this->sendRequest($endpoint, 'POST', $payload);
 
-        if (isset($curl['code'])) {
-            return ["error" => $curl["message"]];
+        if (isset($curl['code']) && $curl['code'] !== 200) {
+            return ["error" => $curl['message'] ?? 'Unknown error'];
         }
+
         return $curl;
     }
+
 
     public function getPayout($payoutId)
     {
