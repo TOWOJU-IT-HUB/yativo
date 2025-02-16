@@ -55,7 +55,7 @@ Route::get('mi', function () {
         $arr = [
             "gateway_id" => $gateway->id,
             "currency" => $gateway->currency,
-            "form_data" => json_encode([ // Ensure form_data is stored as JSON
+            "form_data" => [ // Ensure form_data is stored as JSON
                 "payment_data" => [
                     [
                         "key" => "accountNumber",
@@ -65,7 +65,7 @@ Route::get('mi', function () {
                         "required" => true
                     ]
                 ]
-            ])
+            ]
         ];
     
         BeneficiaryForms::updateOrCreate(
