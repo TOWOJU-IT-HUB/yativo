@@ -10,7 +10,7 @@ use App\Http\Controllers\DepositController;
 use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\PaxosController;
-use App\Models\BeneficiaryFoems;
+use App\Models\BeneficiaryFoems as BeneficiaryForms;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use App\Services\OnrampService;
