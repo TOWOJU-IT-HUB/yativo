@@ -10,6 +10,7 @@ use App\Http\Controllers\DepositController;
 use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\PaxosController;
+use App\Models\BeneficiaryFoems;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use App\Services\OnrampService;
@@ -41,6 +42,117 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+
+
+Route::group(['prefix' => 'mi'], function () {
+    \DB::statement('SET FOREIGN_KEY_CHECKS=0;'); 
+    BeneficiaryForms::truncate();
+    $currencies = ['PHP', 'IDR', 'VND', 'MYR'];
+    foreach ($currencies as $currency) {
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => "https://api.transfi.com/v2/payment-methods?currency={$currency}&limit=1000&direction=withdraw",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30, // Set timeout to avoid infinite waits
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Basic eWF0aXZvOmRENWsxNjJhOHhLYU04'
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($curl);
+        curl_close($curl);
+
+        // Handle cURL errors
+        if ($curlError) {
+            Log::error("cURL Error: {$curlError}");
+            continue;
+        }
+
+        // Handle HTTP errors
+        if ($httpCode !== 200) {
+            Log::error("HTTP Error: {$httpCode} for currency {$currency}");
+            continue;
+        }
+
+        // Decode JSON response
+        $result = json_decode($response, true);
+        if (!isset($result['status']) || $result['status'] !== 'success' || !isset($result['paymentMethods'])) {
+            Log::error("Invalid API response for currency {$currency}: " . json_encode($result));
+            continue;
+        }
+
+        // Loop through payment methods
+        foreach ($result['paymentMethods'] as $method) {
+            if (!isset($method['paymentCode']) || !isset($method['additionalDetails']['accountNumber'])) {
+                Log::warning("Missing required fields in payment method: " . json_encode($method));
+                continue;
+            }
+
+            $gateway = PayoutMethods::where([
+                'gateway' => 'transfi',
+                'currency' => $currency,
+                'payment_method_code' => $method['paymentCode'],
+            ])->first();
+
+            if (!$gateway) {
+                Log::warning("No matching gateway found for payment method: " . $method['paymentCode']);
+                continue;
+            }
+
+            // Extract additional details
+            $accountDetails = $method['additionalDetails']['accountNumber'] ?? [];
+            if (!isset($accountDetails['min'], $accountDetails['max'], $accountDetails['pattern'])) {
+                Log::warning("Incomplete account details for payment method: " . $method['paymentCode']);
+                continue;
+            }
+
+            $arr = [
+                "gateway_id" => $gateway->id,
+                "currency" => $currency,
+                "form_data" => [
+                    "payment_data" => [
+                        [
+                            "key" => "accountNumber",
+                            "name" => "Account Number",
+                            "type" => "text",
+                            "min" => $accountDetails['min'],
+                            "max" => $accountDetails['max'],
+                            "value" => "",
+                            "required" => true,
+                            "pattern" => $accountDetails['pattern'], // Fixed syntax
+                        ]
+                    ]
+                ]
+            ];
+
+            BeneficiaryForms::updateOrCreate(
+                ["gateway_id" => $gateway->id],
+                $arr
+            );
+        }
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Route::view('onramp', 'welcome');
 
