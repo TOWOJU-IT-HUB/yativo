@@ -44,12 +44,8 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 */
 
 Route::get('mi', function () {
-    \DB::statement('SET FOREIGN_KEY_CHECKS=0;'); 
-    // Ensure `BeneficiaryForms` is correctly referenced
-    BeneficiaryForms::truncate();
-
     // Fetch all payout methods for 'transfi'
-    $gateways = PayoutMethods::where('gateway', 'transfi')->get();
+    $gateways = PayoutMethods::where('gateway', 'paypal')->get();
 
     foreach ($gateways as $gateway) {
         $arr = [
@@ -58,9 +54,9 @@ Route::get('mi', function () {
             "form_data" => [ // Ensure form_data is stored as JSON
                 "payment_data" => [
                     [
-                        "key" => "accountNumber",
-                        "name" => "Account Number",
-                        "type" => "text",
+                        "key" => "email",
+                        "name" => "Email",
+                        "type" => "email",
                         "value" => "",
                         "required" => true
                     ]
