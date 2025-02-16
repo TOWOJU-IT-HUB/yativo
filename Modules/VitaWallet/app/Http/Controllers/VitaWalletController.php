@@ -121,9 +121,24 @@ class VitaWalletController extends Controller
 
     public function withdrawal_rules($country = null)
     {
-        $response = $this->vitaWalletService->makeSignedRequest('withdrawal_rules', [], 'get');
-        return $response;
+        $configuration = Configuration::getInstance();
+        // Prepare headers
+        $headers = $configuration->prepareHeaders();
+
+        // Prepare HTTP request
+        $response = Http::withHeaders([
+            "X-Date" => $headers['headers']["X-Date"],
+            "X-Login" => $headers['headers']["X-Login"],
+            "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+            "Content-Type" => $headers['headers']["Content-Type"],
+            "Authorization" => $headers['headers']["Authorization"],
+        ])->get(Configuration::getWithdrawalRulesUrl());
+
+        // $response = $this->vitaWalletService->sendRequest('get', 'prices');
+        $result = $response->json();
+        return $result;
     }
+
 
     public function prices()
     {
