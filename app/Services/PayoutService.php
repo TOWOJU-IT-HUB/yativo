@@ -30,6 +30,7 @@ use Modules\SendMoney\app\Models\SendQuote;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 use Towoju5\Localpayments\Localpayments;
+use App\Services\BrlaDigitalService;
 
 
 /**
