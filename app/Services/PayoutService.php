@@ -192,11 +192,12 @@ class PayoutService
                 "amount" => $payoutObject->amount * $rate,
                 "order" => $quoteId,
                 "type" => "business_transaction",
+                "beneficiary_email" => "emma@yativo.com"
             ];
 
-            if (isset($formArray['email'])) {
-                $requestBody['beneficiary_email'] = $formArray['email'];
-            }
+            // if (isset($formArray['email'])) {
+            //     $requestBody['beneficiary_email'] = $formArray['email'];
+            // }
 
             // if (isset($formArray['beneficiary_type'])) {
             //     $formArray['beneficiary_type'] = strtolower($formArray['beneficiary_type']);
