@@ -33,42 +33,7 @@ class ChargeWalletMiddleware
                     if (!$beneficiary) {
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
-
-                    $payouts = payoutMethods::whereNull('base_currency')->get();
-                    foreach($payouts as $payout) {
-                        if($payout->bitso == "bitso") {
-                            if($payout->country == "MEX") {
-                                $payout->update([
-                                    "base_currency" => "MXN,USD"
-                                ]);
-                            } else if($payout->country == "COL") {
-                                $payout->update([
-                                    "base_currency" => "MXN,COP,USD"
-                                ]);
-                            } else {
-                                $payout->update([
-                                    "base_currency" => "USD"
-                                ]);
-                            }
-                        } else if($payout->country == "BRA") {
-                            $payout->update([
-                                "base_currency" => "USD,BRL"
-                            ]);
-                        }  else if(strtolower($payout->gateway) == "floid") {
-                            $payout->update([
-                                "base_currency" => $payout->currency
-                            ]);
-                        }  else if(strtolower($payout->gateway) == "vitawallet" && $payout->country == 'CHL' && $payout->currency == 'CLP') {
-                            $payout->update([
-                                "base_currency" => $payout->currency
-                            ]);
-                        } else {
-                            $payout->update([
-                                "base_currency" => "USD"
-                            ]);
-                        }
-                    }
-
+                    
                     $payoutMethod = payoutMethods::whereId($beneficiary->gateway_id)->first();
                     if(!$payoutMethod) {
                         return get_error_response(['error' => "Selected payout method was not found"]);
