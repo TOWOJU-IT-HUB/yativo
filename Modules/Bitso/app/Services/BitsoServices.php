@@ -81,7 +81,7 @@ class BitsoServices
             if (isset($responseBody["success"]) && $responseBody["success"] == true) {
                 return $responseBody['payload'];
             }
-
+            Log::info("Bitso transaction result: ", ['response' => $responseBody]);
             return $responseBody;
         } catch (\GuzzleHttp\Exception\RequestException $e) {
             Log::error($e->getMessage());
