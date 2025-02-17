@@ -29,16 +29,33 @@ class ChargeWalletMiddleware
                 if ($request->has('payment_method_id')) {
                     // transaction is withdrawal to beneficiary
                     $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
-                    var_dump($beneficiary); exit;
                     if (!$beneficiary) {
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
+
+
+                    $payoutMethod = payoutMethods::whereId($beneficiary->gateway_id)->first();
+                    if(!$payoutMethod) {
+                        return get_error_response(['error' => "Selected payout method was not found"]);
+                    }
+                    $allowedCurrencies = [];
+                    $allowedCurrencies = explode(',', $payoutMethod->base_currency);
+                    
+                    if (!in_array($request->debit_wallet, $allowedCurrencies)) {
+                        return get_error_response([
+                            'error' =>  "The selected wallet is not supported for selected gateway. Allowed currencies: " . $payoutMethod->base_currency
+                        ], 400);
+                    }
+
+
                     //    response()->json($beneficiary->toArray());
                     $chargeNow = debit_user_wallet($finalAmount, $beneficiary->currency);
-                } else {
-                    // for endpoints like Yativo to Yativo transfer
-                    $chargeNow = debit_user_wallet($finalAmount, $request->currency);
-                }
+                } 
+                
+                // else {
+                //     // for endpoints like Yativo to Yativo transfer
+                //     $chargeNow = debit_user_wallet($finalAmount, $request->currency);
+                // }
 
                 if (isset($chargeNow['error'])) {
                     return get_error_response(['error' => $chargeNow['error']]);
