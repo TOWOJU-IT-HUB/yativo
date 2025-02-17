@@ -117,79 +117,85 @@ class WithdrawalConntroller extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                // 'beneficiary_id' => 'sometimes',
-                'amount' => 'required',
-                'payment_method_id' => 'required',
+                'amount' => 'required|numeric|min:1',
+                'payment_method_id' => 'required|exists:beneficiary_payment_methods,id',
                 'customer_id' => 'sometimes|exists:customers,customer_id',
-                'debit_wallet' => 'required'
+                'debit_wallet' => 'required|string'
             ]);
 
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
-            $validate = $validate->validated();
+            $validated = $validate->validated(); // Corrected variable name
 
-            $is_beneficiary = BeneficiaryPaymentMethod::with('user')->where(['id' => $request->payment_method_id])->first();
+            $is_beneficiary = BeneficiaryPaymentMethod::with('user')->find($validated['payment_method_id']);
 
             if (!$is_beneficiary) {
                 return get_error_response(['error' => "Payment method not found"]);
             }
 
-            // check if beneficiary is has a payout method
-            if (!isset($is_beneficiary->gateway_id) or (!is_numeric($is_beneficiary->gateway_id))) {
+            // Check if the beneficiary has a valid payout method
+            if (empty($is_beneficiary->gateway_id) || !is_numeric($is_beneficiary->gateway_id)) {
                 return get_error_response(['error' => "The selected beneficiary has no valid payout method"]);
             }
 
-            // Get beneficiary payout method
-            $payoutMethod = payoutMethods::where('id', $is_beneficiary->gateway_id)->first();
+            // Get the payout method
+            $payoutMethod = payoutMethods::find($is_beneficiary->gateway_id);
 
-            $allowedCurrencies = [];
-            $allowedCurrencies = explode(',', $payoutMethod->base_currency);
-            
-            if (!in_array($request->debit_wallet, $allowedCurrencies)) {
+            if (!$payoutMethod) {
+                return get_error_response(['error' => "The chosen withdrawal method is invalid or currently unavailable"]);
+            }
+
+            // Validate allowed currencies
+            $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
+            if (!in_array($validated['debit_wallet'], $allowedCurrencies)) {
                 return get_error_response([
-                    'error' =>  "Allowed debit currencies: " . $payoutMethod->base_currency
+                    'error' => "Allowed debit currencies: " . implode(', ', $allowedCurrencies)
                 ], 400);
             }
-            
-            $exchange_rate = get_transaction_rate($payoutMethod->currency, $request->debit_wallet, $payoutMethod->id, "payout");
-            
+
+            // Get the exchange rate
+            $exchange_rate = get_transaction_rate($payoutMethod->currency, $validated['debit_wallet'], $payoutMethod->id, "payout");
+
             if (!$exchange_rate || $exchange_rate <= 0) {
                 return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
             }
+
             $exchange_rate = floatval($exchange_rate);
             $deposit_float = floatval($payoutMethod->exchange_rate_float ?? 0);
 
-            // Calculate percentage and add to exchange rate
+            // Corrected calculation for payout (Subtracting the float percentage)
             $exchange_rate -= ($exchange_rate * $deposit_float / 100);
-            
-            if(($exchange_rate * $request->amount) < $payoutMethod->minimum_withdrawal) {
-                return get_error_response(['error' => "Amount can not be less than ". floatval($payoutMethod->minimum_withdrawal * $exchange_rate)]);
+
+            // Check withdrawal limits
+            $convertedAmount = $exchange_rate * $validated['amount'];
+
+            if ($convertedAmount < floatval($payoutMethod->minimum_withdrawal)) {
+                return get_error_response([
+                    'error' => "Amount cannot be less than " . number_format($payoutMethod->minimum_withdrawal * $exchange_rate, 2)
+                ]);
             }
 
-            if(($exchange_rate * $request->amount) > $payoutMethod->maximum_withdrawal) {
-                return get_error_response(['error' => "Amount can not be greater than ". floatval($payoutMethod->maximum_withdrawal * $exchange_rate)]);
+            if ($convertedAmount > floatval($payoutMethod->maximum_withdrawal)) {
+                return get_error_response([
+                    'error' => "Amount cannot be greater than " . number_format($payoutMethod->maximum_withdrawal * $exchange_rate, 2)
+                ]);
             }
 
-            if (!$payoutMethod) {
-                return get_error_response(['error' => "The choosen withdrawal method is invalid or currently unavailable", "gateway" => $payoutMethod->gateway]);
-            }
+            // Prepare withdrawal data
+            $validated['user_id'] = auth()->id();
+            $validated['raw_data'] = $request->all();
+            $validated['gateway'] = $payoutMethod->gateway;
+            $validated['gateway_id'] = $is_beneficiary->gateway_id;
+            $validated['currency'] = $payoutMethod->currency;
+            $validated['beneficiary_id'] = $validated['payment_method_id'];
+            unset($validated['payment_method_id']);
 
+            // Create withdrawal
+            $create = Withdraw::create($validated);
 
-            $validate['user_id'] = auth()->id();
-            $validate['raw_data'] = $request->all();
-            $validate['gateway'] = $payoutMethod->gateway;
-            $validate['gateway_id'] = $is_beneficiary->gateway_id;
-            $validate['currency'] = $payoutMethod->currency;
-            $validate['beneficiary_id'] = $validate['payment_method_id'];
-            unset($validate['payment_method_id']);
-            $create = Withdraw::create($validate);
-
-            return get_success_response($create, 201, "Withdrawal request received and will be processed shortlly.");
-
-
-            return get_error_response(['error' => 'Unable to create withdrawal, Please contact support']);
+            return get_success_response($create, 201, "Withdrawal request received and will be processed shortly.");
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
