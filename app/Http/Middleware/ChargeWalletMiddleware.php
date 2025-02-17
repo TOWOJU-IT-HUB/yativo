@@ -28,7 +28,8 @@ class ChargeWalletMiddleware
                 $finalAmount = $amount + $fees;
                 if ($request->has('payment_method_id')) {
                     // transaction is withdrawal to beneficiary
-                    return $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
+                    $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
+                    var_dump($beneficiary); exit;
                     if (!$beneficiary) {
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
