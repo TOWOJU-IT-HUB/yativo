@@ -33,7 +33,7 @@ class ChargeWalletMiddleware
                     if (!$beneficiary) {
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
-                    
+
                     $payoutMethod = payoutMethods::whereId($beneficiary->gateway_id)->first();
                     if(!$payoutMethod) {
                         return get_error_response(['error' => "Selected payout method was not found"]);
@@ -47,15 +47,10 @@ class ChargeWalletMiddleware
                         ], 400);
                     }
 
-
                     //    response()->json($beneficiary->toArray());
-                    $chargeNow = debit_user_wallet($finalAmount, $beneficiary->currency);
+                    $chargeNow = debit_user_wallet($finalAmount, $request->debit_wallet);
                 } 
                 
-                // else {
-                //     // for endpoints like Yativo to Yativo transfer
-                //     $chargeNow = debit_user_wallet($finalAmount, $request->currency);
-                // }
 
                 if (isset($chargeNow['error'])) {
                     return get_error_response(['error' => $chargeNow['error']]);

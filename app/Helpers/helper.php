@@ -934,11 +934,6 @@ if (!function_exists('convertToUSD')) {
 if (!function_exists('debit_user_wallet')) {
     function debit_user_wallet($amount, $currency = "USD", $description = 'Charge for service')
     {
-        if (!$currency or empty($currency)) {
-            // return ['error' => 'Invalid currency provided'];
-            $currency = "USD";
-        }
-
         $request = request();
         $user = $request->user();
         // Find or create wallet for the user
