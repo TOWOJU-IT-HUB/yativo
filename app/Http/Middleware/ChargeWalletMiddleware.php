@@ -28,7 +28,7 @@ class ChargeWalletMiddleware
                 $finalAmount = $amount + $fees;
                 if ($request->has('payment_method_id')) {
                     // transaction is withdrawal to beneficiary
-                    $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
+                    return $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
                     if (!$beneficiary) {
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
@@ -43,7 +43,7 @@ class ChargeWalletMiddleware
                     return get_error_response(['error' => $chargeNow['error']]);
                 }
 
-                if ($chargeNow) {
+                if ($chargeNow && !isset($chargeNow['error'])) {
                     return $next($request);
                 } else {
                     return get_error_response(['error' => 'Insufficient wallet balance']);
