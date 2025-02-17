@@ -172,13 +172,13 @@ class WithdrawalConntroller extends Controller
              $convertedAmount = $exchange_rate * $validated['amount'];
              if ($convertedAmount < floatval($payoutMethod->minimum_withdrawal)) {
                  return get_error_response([
-                     'error' => "Amount cannot be less than " . number_format($payoutMethod->minimum_withdrawal * $exchange_rate, 2)
+                     'error' => "Amount cannot be less than " . number_format($payoutMethod->minimum_withdrawal * $exchange_rate, 2).$payoutMethod->currency
                  ]);
              }
      
              if ($convertedAmount > floatval($payoutMethod->maximum_withdrawal)) {
                  return get_error_response([
-                     'error' => "Amount cannot be greater than " . number_format($payoutMethod->maximum_withdrawal * $exchange_rate, 2)
+                     'error' => "Amount cannot be greater than " . number_format($payoutMethod->maximum_withdrawal * $exchange_rate, 2).$payoutMethod->currency
                  ]);
              }
      

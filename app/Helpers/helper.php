@@ -946,7 +946,7 @@ if (!function_exists('convertToUSD')) {
 }
 
 if (!function_exists('debit_user_wallet')) {
-    function debit_user_wallet($amount, $currency = "USD", $description = 'Charge for service')
+    function debit_user_wallet($amount, $currency, $description = 'Charge for service')
     {
         $request = request();
         $user = $request->user();
@@ -954,32 +954,32 @@ if (!function_exists('debit_user_wallet')) {
         $wallet = $user->getWallet($currency);
 
         try {
-            if (!$wallet) { // wallet not found
-                $usdWallet = $user->getWallet('USD');
+            // if (!$wallet) { // wallet not found
+            //     $usdWallet = $user->getWallet('USD');
 
 
 
-                // Convert the amount to USD
-                $convertedAmount = convertToUSD($currency, $amount);
-                // var_dump($convertedAmount); exit;
+            //     // Convert the amount to USD
+            //     $convertedAmount = convertToUSD($currency, $amount);
+            //     // var_dump($convertedAmount); exit;
 
-                if ($convertedAmount === null || $convertedAmount <= 0) {
-                    return ['error' => 'Currency conversion failed or insufficient balance: '];
-                }
+            //     if ($convertedAmount === null || $convertedAmount <= 0) {
+            //         return ['error' => 'Currency conversion failed or insufficient balance: '];
+            //     }
 
-                if ($usdWallet && $usdWallet->balance >= $convertedAmount) {
-                    // Charge the USD wallet
-                    $usdWallet->withdraw($convertedAmount, [
-                        'description' => $description,
-                    ]);
+            //     if ($usdWallet && $usdWallet->balance >= $convertedAmount) {
+            //         // Charge the USD wallet
+            //         $usdWallet->withdraw($convertedAmount, [
+            //             'description' => $description,
+            //         ]);
 
-                    $currency = 'USD'; // Log the transaction in USD
-                    $amount = $convertedAmount; // Update amount to converted USD value
-                    $wallet = $usdWallet; // Update wallet to USD wallet for further processing
-                } else {
-                    return ['error' => 'Insufficient balance in USD wallet'];
-                }
-            }
+            //         $currency = 'USD'; // Log the transaction in USD
+            //         $amount = $convertedAmount; // Update amount to converted USD value
+            //         $wallet = $usdWallet; // Update wallet to USD wallet for further processing
+            //     } else {
+            //         return ['error' => 'Insufficient balance in USD wallet'];
+            //     }
+            // }
 
             // Try to charge the wallet
             $charge = $wallet->withdraw($amount, [
