@@ -118,7 +118,7 @@ class WithdrawalConntroller extends Controller
         try {
             $validate = Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:1',
-                'payment_method_id' => 'required|exists:beneficiary_payment_methods,id',
+                'payment_method_id' => 'required', //|exists:beneficiary_payment_methods,id',
                 'customer_id' => 'sometimes|exists:customers,customer_id',
                 'debit_wallet' => 'required|string'
             ]);
