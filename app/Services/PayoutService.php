@@ -267,7 +267,7 @@ class PayoutService
 
             $formArray = (array) $beneficiary->payment_data;
 
-            $payload = [
+            $payload = array_filter([
                 'pixKey' => $formArray['pixKey'] ?? null,
                 'taxId' => $formArray['taxId'] ?? null,
                 'amount' => $amount,
@@ -276,7 +276,7 @@ class PayoutService
                 'ispb' => $formArray['ispb'] ?? null,
                 'branchCode' => $formArray['branchCode'] ?? null,
                 'accountNumber' => $formArray['accountNumber'] ?? null,
-            ];
+            ]);
             $brla = new BrlaDigitalService();
             $process = $brla->createPayOutOrder($payload);
             return $process;
