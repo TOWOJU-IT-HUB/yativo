@@ -153,7 +153,7 @@ class WithdrawalConntroller extends Controller
                 ], 400);
             }
             
-            $exchange_rate = get_transaction_rate($payoutMethod->currency, $request->credit_wallet ?? $request->currency, $payoutMethod->id, "payoutMethod");
+            $exchange_rate = get_transaction_rate($payoutMethod->currency, $request->debit_wallet, $payoutMethod->id, "payout");
             
             if (!$exchange_rate || $exchange_rate <= 0) {
                 return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);

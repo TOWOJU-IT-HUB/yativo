@@ -148,38 +148,52 @@ if (!function_exists('get_current_balance')) {
 }
 
 if (!function_exists('get_transaction_rate')) {
-    function get_transaction_rate($send_currency, $receive_currency, $gateway, $type)
+    function get_transaction_rate($send_currency, $receive_currency, $Id, $type)
     {
-        Log::info(json_encode([$send_currency, $receive_currency, $gateway, $type]));
+        Log::info(json_encode([$send_currency, $receive_currency, $Id, $type]));
+
         $result = 0;
+        $rate = 0; // Default rate
+        $gatewayId = $Id; // Define $gatewayId
 
         // Fetch exchange rate details based on gateway and type
-        $rates = ExchangeRate::where('gateway_id', $gateway)
-            ->where('rate_type', $type)
-            ->first();
+        if ($type == "payout" || $type == "payoutMethod") {
+            // Get the payout method
+            $gateway = payoutMethods::whereId($gatewayId)->first();
+            if ($gateway) {
+                $rate = $gateway->exchange_rate_float ?? 0;
+            }
+        } else {
+            // get the payin data
+            $gateway = PayinMethods::whereId($gatewayId)->first();
+            if ($gateway) {
+                $rate = $gateway->exchange_rate_float ?? 0;
+            }
+        }
 
         // Fetch base rate from external service or function
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
 
-        if ($rates) {
-            if ($baseRate > 0) {
-                // Calculate floated amount if float percentage is set
-                $rate_floated_amount = ($rates->float_percentage ?? 0) / 100 * $baseRate;
-                $result = $baseRate + $rate_floated_amount;
+        if ($rate > 0 && $baseRate > 0) {
+            // Calculate floated amount
+            $rate_floated_amount = ($rate / 100) * $baseRate;
+
+            // Adjust calculation based on type
+            if ($type == "payout" || $type == "payoutMethod") {
+                $result = $baseRate - $rate_floated_amount; // Subtract for payouts
             } else {
-                Log::error("Base rate is 0 for {$send_currency} to {$receive_currency}");
+                $result = $baseRate + $rate_floated_amount; // Add for others
             }
+        } elseif ($baseRate > 0) {
+            $result = $baseRate;
         } else {
-            if ($baseRate > 0) {
-                $result = $baseRate;
-            } else {
-                Log::error("No exchange rate found for gateway ID: {$gateway}, type: {$type}");
-            }
+            Log::error("No exchange rate found for gateway ID: {$gatewayId}, type: {$type}");
         }
 
         return floatval($result);
     }
 }
+
 
 if (!function_exists('exchange_rates')) {
     function exchange_rates($from, $to)
