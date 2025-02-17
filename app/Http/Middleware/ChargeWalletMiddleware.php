@@ -6,6 +6,7 @@ use App\Models\BeneficiaryFoems;
 use Closure;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\Beneficiary;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
