@@ -952,7 +952,9 @@ if (!function_exists('debit_user_wallet')) {
         $user = $request->user();
         // Find or create wallet for the user
         $wallet = $user->getWallet($currency);
-
+        if(!$wallet) {
+            return ['error' => "Insufficient balance or invalid debit wallet."];
+        }
         try {
             // if (!$wallet) { // wallet not found
             //     $usdWallet = $user->getWallet('USD');
