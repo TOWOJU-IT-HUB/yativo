@@ -59,9 +59,12 @@ class PayoutController extends Controller
             $payout = new PayoutService();
             $checkout = $payout->makePayment($id, $payoutMethod);
 
-            if(isset($checkout['error'])) {
+            if(is_array($checkout) && isset($checkout['error'])) {
                 return redirect()->back()->with('error', $checkout['error']);
             }
+
+            return $checkout;
+
             return back()->with('success', 'Payout approved successfully');
             // return response()->json($checkout);
             // if (!is_array($checkout)) {
