@@ -243,10 +243,11 @@ class PayoutService
         }
     }
 
-    public function brla($quoteId, $amount, $currency, $payoutObject)
+    public function brla($quoteId, $currency, $payoutObject)
     {
         $request = request();
         try {
+            $amount = $payoutObject->amount;
             $beneficiaryId = $request->payment_method_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
