@@ -152,7 +152,7 @@ class DepositService
         return $checkout;
     }
 
-    public function brla_qr($deposit_id, $amount, $currency, $txn_type, $gateway)
+    public function brla($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $request = request();
         $checkout_id = rand(102930, 9999999);
