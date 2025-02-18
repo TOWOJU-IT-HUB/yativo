@@ -67,6 +67,7 @@
                 <div id="tab-transactions" class="tab" onclick="toggleTab('transactions')">Transactions</div>
                 <div id="tab-deposits" class="tab" onclick="toggleTab('deposits')">Deposits</div>
                 <div id="tab-withdrawals" class="tab" onclick="toggleTab('withdrawals')">Withdrawals</div>
+                <div id="tab-balance" class="tab" onclick="toggleTab('balance')">Wallet Balance</div>
             </div>
 
             <!-- Tab Content: Overview -->
@@ -596,6 +597,33 @@
                 </div>
             </div>
             
+
+            <!-- Tab Content: Overview -->
+            <div id="balance" class="tab-content">
+                <h2 class="mb-4">Wallet Balances</h2>
+                <table class="table table-bordered">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Wallet Slug</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($wallets as $index => $wallet)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ $wallet->slug }}</td>
+                                <td>{{ number_format($wallet->balanceFloat, 2) }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="text-center">No wallets found</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 @endsection
