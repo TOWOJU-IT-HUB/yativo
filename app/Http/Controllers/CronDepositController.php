@@ -18,7 +18,11 @@ class CronDepositController extends Controller
 {
     public function brla()
     {
-        // $deposits = Deposit::where()
+        $gateways = PayinMethods::where('method_name', 'brla')->get()->pluck('id');
+        $deposits = Deposit::whereIn('id', $gateways)->get();
+        foreach ($deposits as $key => $deposit) {
+            // retrive the deposit status and update the deposit
+        }
     }
 
     public function floid()

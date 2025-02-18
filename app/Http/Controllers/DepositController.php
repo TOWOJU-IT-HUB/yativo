@@ -59,6 +59,18 @@ class DepositController extends Controller
                     'credit_wallet' => 'required_without:currency'
                 ]
             );
+
+            if(!$request->has('credit_wallet') && $request->has('currency')) {
+                $request->merge([
+                    'credit_wallet' => $request->currency
+                ]);
+            }
+
+            if(!$request->has('currency') && $request->has('credit_wallet')) {
+                $request->merge([
+                    'currency' => $request->credit_wallet
+                ]);
+            }
             
             if ($validate->fails()) {
                 return get_error_response($validate->errors()->toArray());
