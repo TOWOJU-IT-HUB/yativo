@@ -49,7 +49,7 @@ class PayinMethodsController extends Controller
         $validatedData = $request->validate([
             'method_name' => 'required|string|max:255',
             'gateway' => 'required|string|max:255',
-            'country' => 'sometimes|string|max:255',
+            'country' => 'required|string|max:255',
             'currency' => 'required|string|max:10',
             'payment_mode' => 'nullable|string|max:50',
             'charges_type' => 'required|string|in:fixed,percentage,combined',
@@ -77,7 +77,7 @@ class PayinMethodsController extends Controller
             $validatedData['country'] = 'global';
         }
         
-        PayinMethods::create($validatedData);
+        PayinMethods::create(array_filter($validatedData));
         return redirect()->route('admin.payin_methods.index')->with('success', 'Payment method created successfully.');
     }
 
@@ -99,7 +99,7 @@ class PayinMethodsController extends Controller
             'method_name' => 'required|string|max:255',
             'gateway' => 'required|string|max:255',
             'country' => 'required|string|max:255',
-            'currency' => 'required|string|max:10',
+            'currency' => 'sometimes|string|max:10',
             'payment_mode' => 'nullable|string|max:50',
             'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
@@ -122,7 +122,7 @@ class PayinMethodsController extends Controller
             $validatedData['payment_mode'] = 'bankTransfer';
         }
 
-        $payinMethod->update($validatedData);
+        $payinMethod->update(array_filter($validatedData));
         return redirect()->route('admin.payin_methods.index')->with('success', 'Payment method updated successfully.');
     }
 
