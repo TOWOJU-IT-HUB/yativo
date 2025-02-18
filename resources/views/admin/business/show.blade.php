@@ -601,28 +601,40 @@
             <!-- Tab Content: Overview -->
             <div id="balance" class="tab-content">
                 <h2 class="mb-4">Wallet Balances</h2>
-                <table class="table table-bordered">
-                    <thead class="thead-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Wallet Slug</th>
-                            <th>Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($wallets as $index => $wallet)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>{{ $wallet->slug }}</td>
-                                <td>{{ number_format($wallet->balanceFloat, 2) }}</td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="text-center">No wallets found</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                <div class="container mx-auto p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-6">
+                        Wallet Balances for {{ $user->name }}
+                    </h2>
+
+                    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-800 text-white uppercase text-sm leading-normal">
+                                    <th class="py-3 px-6">#</th>
+                                    <th class="py-3 px-6">Wallet Slug</th>
+                                    <th class="py-3 px-6">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700 text-sm font-light">
+                                @forelse($wallets as $index => $wallet)
+                                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                                        <td class="py-3 px-6">{{ $index + 1 }}</td>
+                                        <td class="py-3 px-6 font-medium">{{ $wallet->slug }}</td>
+                                        <td class="py-3 px-6 font-semibold text-green-600">
+                                            ${{ number_format($wallet->balanceFloat, 2) }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="py-4 px-6 text-center text-gray-500">
+                                            No wallets found
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
