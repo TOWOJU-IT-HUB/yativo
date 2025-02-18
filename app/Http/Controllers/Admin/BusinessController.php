@@ -54,10 +54,8 @@ class BusinessController extends Controller
     {
         $user = User::findOrFail($userId);
         $wallets = $user->wallets; // Get all wallets of the user
-
-        return view('wallets.index', compact('user', 'wallets'));
+        return $wallets;
     }
-
 
     public function show($id)
     {
