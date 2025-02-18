@@ -112,7 +112,7 @@ class payoutMethodsController extends Controller
             'cutoff_hrs_start' => 'nullable',
             'cutoff_hrs_end' => 'nullable',
             'exchange_rate_float' => 'sometimes',
-            'base_currency' => 'sometimes'
+            'base_currency' => 'sometimes',
         ]);
 
         $payoutMethod->update($request->all());
