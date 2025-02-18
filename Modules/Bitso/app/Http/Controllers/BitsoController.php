@@ -113,7 +113,7 @@ class BitsoController extends Controller
             $clabe = $beneficiary->payment_data->clabe;
         }
 
-        if (null == $clabe) {
+        if (null == $clabe || empty($clabe)) {
             return ['error' => 'Error retreieveing clabe number'];
         }
 

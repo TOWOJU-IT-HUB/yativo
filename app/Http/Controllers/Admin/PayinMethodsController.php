@@ -66,6 +66,8 @@ class PayinMethodsController extends Controller
             'cutoff_hrs_end' => 'nullable|string|max:10',
             'Working_hours_start' => 'nullable|string|max:10',
             'Working_hours_end' => 'nullable|string|max:10',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes'
         ]);
         if ($request->payment_mode == null) {
             $validatedData['payment_mode'] = 'bankTransfer';
@@ -113,6 +115,8 @@ class PayinMethodsController extends Controller
             'cutoff_hrs_end' => 'nullable|string|max:10',
             'Working_hours_start' => 'nullable|string|max:10',
             'Working_hours_end' => 'nullable|string|max:10',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes'
         ]);
         if ($request->payment_mode == null) {
             $validatedData['payment_mode'] = 'bankTransfer';

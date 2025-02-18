@@ -64,7 +64,7 @@ class BitsoServices
             $responseBody = json_decode($response->getBody()->getContents(), true);
             $httpCode = $response->getStatusCode();
 
-            Log::info(json_encode($responseBody));
+            Log::info('Bitso response body: ', $responseBody);
 
             if ($httpCode !== 200) {
                 if (isset($responseBody['error'])) {
@@ -81,6 +81,7 @@ class BitsoServices
             if (isset($responseBody["success"]) && $responseBody["success"] == true) {
                 return $responseBody['payload'];
             }
+
             Log::info("Bitso transaction result: ", ['response' => $responseBody]);
             return $responseBody;
         } catch (\GuzzleHttp\Exception\RequestException $e) {

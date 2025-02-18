@@ -58,6 +58,7 @@ class PayoutController extends Controller
 
             $payout = new PayoutService();
             $checkout = $payout->makePayment($id, $payoutMethod);
+            Log::info('Checkout final response', ['response' => $checkout]);
 
             return response()->json($checkout); exit;
 
