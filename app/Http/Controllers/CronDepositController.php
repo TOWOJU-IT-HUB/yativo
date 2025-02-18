@@ -17,7 +17,9 @@ use Modules\Flow\app\Http\Controllers\FlowController;
 class CronDepositController extends Controller
 {
     public function brla()
-    {}
+    {
+        // $deposits = Deposit::where()
+    }
 
     public function floid()
     {
