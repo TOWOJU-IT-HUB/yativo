@@ -157,7 +157,7 @@ class DepositService
         $request = request();
         $checkout_id = rand(102930, 9999999);
         session()->put("checkout_id", $checkout_id);
-        $payload['amount'] = $amount;
+        $payload['amount'] = round($amount, 2);
         $payload['referenceLabel'] = $checkout_id;
         if ($request->has('customer_id')) {
             $customer = Customer::where('customer_id', $request->customer_id)->first();
@@ -166,6 +166,7 @@ class DepositService
             }
             //retrieve the customer sub_account_id
             $payload['subaccountId'] = $customer->brla_subaccount_id;
+            Log::info('Brla qr pix data', ['brla_subaccount_id' => $customer->brla_subaccount_id, 'referenceLabel' => $checkout_id]);
         }
         update_deposit_gateway_id($deposit_id, $checkout_id);
         Log::info('Brla qr pix data', ['brla_subaccount_id' => $customer->brla_subaccount_id, 'referenceLabel' => $checkout_id]);
