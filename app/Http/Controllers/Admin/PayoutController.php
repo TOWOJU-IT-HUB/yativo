@@ -21,7 +21,7 @@ class PayoutController extends Controller
         });
 
         $query->orderBy('created_at', 'desc');
-        $payouts = $query->cursorPaginate(10)->withQueryString();;
+        $payouts = $query->cursorPaginate(10)->withQueryString();
 
 
         return view('admin.payouts.index', compact('payouts'));
@@ -69,29 +69,28 @@ class PayoutController extends Controller
             return $checkout;
 
             return back()->with('success', 'Payout approved successfully');
-            // return response()->json($checkout);
-            // if (!is_array($checkout)) {
-            //     $checkout = (array)$checkout; 
-            // }
-
-            // if (isset($checkout['error'])) {
-            //     return get_error_response(['error' => $checkout['error']]);
-            // }
-            // $create->raw_data = $checkout;
-            // $create->save();
-            // // user()->notify(new WithdrawalNotification($create));
-            // $payout = Withdraw::whereId($create->id)->with('beneficiary')->first();
-
-
-            // $webhook_url = Webhook::whereUserId($payout->user_id)->first();
-            // if ($webhook_url) {
-            //     WebhookCall::create()->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
-            //         "event.type" => "withdrawal",
-            //         "payload" => $payout
-            //     ])->dispatchSync();
-            // }
-
-            // return redirect()->back()->with('success', 'Payout approved successfully');
         }
     }
+
+    public function manual(Request $request, $id) 
+    {
+        try {
+            $payout = Withdraw::findOrFail($id);
+            $payout->status = $request->status;
+            $payout->save();
+
+            // update transaction record also
+            $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payin'])->first();
+            if($txn) {
+                $txn->transaction_status = $request->status;
+                $txn->save();
+            }
+
+            if($payout->save() && $txn->save()) {
+                return back()->with('success', 'Transaction updated successfully');
+            }
+        } catch(\Throwable $th) {
+            return back()->with('error', $th->getMessage());
+        }
+    } 
 }
