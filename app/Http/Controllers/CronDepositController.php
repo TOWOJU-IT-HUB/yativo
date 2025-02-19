@@ -52,11 +52,7 @@ class CronDepositController extends Controller
         $floid = new FlowController();
 
         foreach ($deposits as $deposit) {
-            $order = match (strtolower($deposit->deposit_currency) || strtolower($deposit->currency)) {
-                'clp' => $floid->getChlPaymentStatus($deposit->gateway_deposit_id),
-                'pen' => $floid->getPenPaymentStatus($deposit->gateway_deposit_id),
-                default => null,
-            };
+            $order = $this->getfloid($deposit->currency ?? $deposit->deposit_currency, $deposit->gateway_deposit_id);
 
             Log::info("Log the floid deposit API status", ['deposit_log_status' => $order]);
 
@@ -247,5 +243,39 @@ class CronDepositController extends Controller
     private function getGatewayPayinMethods($gateway)
     {
         return PayinMethods::where('gateway', $gateway)->pluck('id')->toArray();
+    }
+
+    private function getfloid($currency = "clp", $id)
+    {
+        $curl = curl_init();
+        if($currency == "clp") {
+            $cur = "cl";
+        } else {
+            $cur = "pe";
+        }
+
+        curl_setopt_array($curl, array(
+        CURLOPT_URL => "https://api.floid.app/{$cur}/payments/check",
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_POSTFIELDS =>'{
+            "payment_token": $ID
+        }',
+        CURLOPT_HTTPHEADER => array(
+            'Content-Type: application/json',
+            'Authorization: Bearer '. env("FLOID_AUTH_TOKEN"),
+            'Cookie: PHPSESSID=qnk8ed45jodkg7rqlr9oum38ud'
+        ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        return json_decode($response, true);
     }
 }
