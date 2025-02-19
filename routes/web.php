@@ -31,7 +31,6 @@ use App\Http\Controllers\TransFiController;
 use App\Models\Business;
 use App\Models\User;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
-use DB;
 
 /*
 |--------------------------------------------------------------------------
