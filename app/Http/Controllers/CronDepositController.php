@@ -245,21 +245,23 @@ class CronDepositController extends Controller
         return PayinMethods::where('gateway', $gateway)->pluck('id')->toArray();
     }
 
-    private function getfloid(string $id, string $currency = "cl")
+    private function getfloid(string $id, string $currency)
     {
         // Determine currency code
-        // $cur = $currency === "clp" ? "cl" : "pe";
+        $cur = $currency === "clp" ? "cl" : "pe";
     
         // Prepare request payload
         $payload = [
             'payment_token' => $id
         ];
+
+        Log::info("Passed payment token is: ". $payload);
     
         // Make the HTTP request using Laravel's HTTP client
         $response = Http::withHeaders([
             'Content-Type'  => 'application/json',
             'Authorization' => 'Bearer ' . env('FLOID_AUTH_TOKEN'),
-        ])->post("https://api.floid.app/cl/payments/check", $payload);
+        ])->post("https://api.floid.app/{$cur}/payments/check", $payload);
     
         // Return the decoded JSON response
         return $response->json();
