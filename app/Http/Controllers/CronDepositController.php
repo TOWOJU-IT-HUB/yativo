@@ -49,7 +49,7 @@ class CronDepositController extends Controller
     
                 $transactionStatus = strtolower($record['status']);
     
-                $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+                $txn = TransactionRecord::where('transaction_id', $deposit->id)->where('transaction_memo', 'payin')->first();
                 if (!$txn) {
                     Log::error("Transaction record not found", ['transaction_id' => $deposit->id]);
                     continue;
