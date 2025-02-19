@@ -175,7 +175,7 @@ class VitaWalletController extends Controller
             "Authorization" => $headers['headers']["Authorization"],
         ])->get(Configuration::getTransactionsUrl($txn_id));
 
-        // $response = $this->vitaWalletService->sendRequest('get', 'prices');
+        Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
         $result = $response->json();
         return $result;
     }

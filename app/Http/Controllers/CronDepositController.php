@@ -54,9 +54,11 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $curl = $vitawallet->getTransaction($deposit->gateway_deposit_id);
+            Log::info('Vitawallet_001', ['response' => $curl]);
             if (is_array($curl) && isset($curl['transaction'])) {
                 $record = $curl['transaction'];
                 if (isset($record['status'])) {
+                    Log::info('Vitawallet_001', ['response' => $record]);
                     $transactionStatus = strtolower($record['status']);
                     
                     $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
@@ -281,7 +283,7 @@ class CronDepositController extends Controller
         }
     }
     
-   private function getfloid(string $currency, string $id)
+    private function getfloid(string $currency, string $id)
     {
         try {
             // Determine currency code
