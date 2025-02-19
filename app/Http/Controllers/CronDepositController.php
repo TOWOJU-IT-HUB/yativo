@@ -52,7 +52,7 @@ class CronDepositController extends Controller
         $floid = new FlowController();
 
         foreach ($deposits as $deposit) {
-            $order = match (strtolower($deposit->deposit_currency)) {
+            $order = match (strtolower($deposit->deposit_currency) || strtolower($deposit->currency)) {
                 'clp' => $floid->getChlPaymentStatus($deposit->gateway_deposit_id),
                 'pen' => $floid->getPenPaymentStatus($deposit->gateway_deposit_id),
                 default => null,
