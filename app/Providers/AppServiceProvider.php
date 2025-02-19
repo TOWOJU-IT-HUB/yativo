@@ -7,6 +7,9 @@ use DB;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Log;
+use App\Observers\DepositObserver;
+use App\Models\Deposit;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Artisan::call('route:clear');
+        Deposit::observe(DepositObserver::class);
         Paginator::useTailwind();
         if (!config('app.debug')) {
             DB::listen(function ($query) {

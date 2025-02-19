@@ -43,6 +43,10 @@
                             {{ ucfirst($deposit->status) }}
                         </span>
                     </div>
+                    <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Meta </h3>
+                        <p class="text-gray-600 dark:text-gray-300">{{ $deposit->meta }}</p>
+                    </div>
                 </div>
             </div>
 

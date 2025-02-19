@@ -30,6 +30,7 @@ use App\Http\Controllers\CoinbaseOnrampController;
 use App\Http\Controllers\TransFiController;
 use App\Models\Business;
 use App\Models\User;
+use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 /*
@@ -44,6 +45,12 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 */
 
 Route::view('onramp', 'welcome');
+
+
+
+Route::get('deposits', function (){
+    return Deposit::latest()->limit(10)->get();
+});
 
 
 Route::get('/', function () {
