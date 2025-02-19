@@ -13,6 +13,7 @@ use App\Services\BrlaDigitalService;
 use Modules\Bitso\app\Services\BitsoServices;
 use App\Services\OnrampService;
 use Log;
+use DB;
 use Illuminate\Support\Facades\Http;
 
 class CronDepositController extends Controller
