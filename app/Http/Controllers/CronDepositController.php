@@ -54,7 +54,7 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $order = $this->getfloid($deposit->currency ?? $deposit->deposit_currency, $deposit->gateway_deposit_id);
-            Log::info("Log the floid deposit API status", ['deposit_log_status' => $order]);
+            Log::info("Log the floid deposit API status", ['gateway_deposit_id' => $deposit->gateway_deposit_id, 'deposit_log_status' => $order]);
 
             if (!isset($order['status'])) continue;
 
