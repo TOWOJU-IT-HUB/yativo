@@ -98,6 +98,7 @@ class FlowController extends Controller
         $result = $response->json();
         if (isset($result['status'])) {
             $deposit = Deposit::where('gateway_deposit_id', $payment_token)->first();
+            if($deposit->status != 'pending') return false;
             $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
             if ($txn) {
                 $where = [
