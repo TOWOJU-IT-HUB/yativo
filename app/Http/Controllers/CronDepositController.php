@@ -48,9 +48,11 @@ class CronDepositController extends Controller
     {
         $ids = $this->getGatewayPayinMethods('floid');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
+        Log::info("Log the floid deposit", ['deposit_log' => $deposits]);
         $floid = new FlowController();
 
         foreach ($deposits as $deposit) {
+            Log::info("Log the floid deposit", ['deposit_log_1' => $deposit]);
             $order = match (strtolower($deposit->deposit_currency)) {
                 'clp' => $floid->getChlPaymentStatus($deposit->gateway_deposit_id),
                 'pen' => $floid->getPenPaymentStatus($deposit->gateway_deposit_id),
@@ -63,6 +65,7 @@ class CronDepositController extends Controller
             if (!$txn) continue;
 
             $transactionStatus = strtolower($order['status']);
+            Log::info("Log the floid deposit", ['deposit_log_status' => $transactionStatus]);
 
             if ($transactionStatus === "success") {
                 $depositService = new DepositService();
