@@ -616,7 +616,7 @@ class BridgeController extends Controller
 
         $data = $response->json();
 
-        Log::info("Bridge Api Response: ", ["payload" => $payload, "response" => $data]);
+        // Log::info("Bridge Api Response: ", ["payload" => $payload, "response" => $data]);
 
         if (!is_array($data)) {
             $data = json_decode($data, true);
