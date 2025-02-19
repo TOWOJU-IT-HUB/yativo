@@ -12,6 +12,7 @@ use Modules\Flow\app\Http\Controllers\FlowController;
 use App\Services\BrlaDigitalService;
 use Modules\Bitso\app\Services\BitsoServices;
 use App\Services\OnrampService;
+use Log;
 
 class CronDepositController extends Controller
 {
