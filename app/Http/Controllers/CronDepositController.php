@@ -55,14 +55,19 @@ class CronDepositController extends Controller
                     continue;
                 }
     
-                if ($transactionStatus === 'paid') {
-                    Log::info("Processing deposit completion", ['status' => $transactionStatus]);
-                    $depositService = new DepositService();
-                    $depositService->process_deposit($txn->transaction_id);
-                } else {
-                    Log::info("Updating deposit status", ['status' => $transactionStatus]);
-                    $txn->update(["transaction_status" => $transactionStatus]);
-                    $deposit->update(['status' => $transactionStatus]);
+                try {
+                    if ($transactionStatus === 'paid') {
+                        Log::info("Processing deposit completion", ['status' => $transactionStatus]);
+                        $depositService = new DepositService();
+                        $depositService->process_deposit($txn->transaction_id);
+                        Log::info("Processing deposit completed", ['status' => $transactionStatus]);
+                    } else {
+                        Log::info("Updating deposit status", ['status' => $transactionStatus]);
+                        $txn->update(["transaction_status" => $transactionStatus]);
+                        $deposit->update(['status' => $transactionStatus]);
+                    }
+                } catch (\Throwable $th) {
+                    Log::error("Error while completing Brla payin: ", ['msg' => $th->getMessage()]);
                 }
             }
         }
