@@ -228,7 +228,8 @@ class CronDepositController extends Controller
     
             foreach ($deposits as $deposit) {
                 try {
-                    $order = $this->getfloid($deposit->currency ?? $deposit->deposit_currency, $deposit->gateway_deposit_id);
+                    Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
+                    $order = $this->getfloid($deposit->deposit_currency, $deposit->gateway_deposit_id);
     
                     // Log the full API response
                     Log::info("Floid API Response", [
