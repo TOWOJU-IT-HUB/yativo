@@ -30,6 +30,7 @@ use App\Http\Controllers\CoinbaseOnrampController;
 use App\Http\Controllers\TransFiController;
 use App\Models\Business;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
@@ -49,6 +50,7 @@ Route::view('onramp', 'welcome');
 
 
 Route::get('deposits', function (){
+    $wallet = Wallet::where('slug', 'default')->delete();
     return Deposit::latest()->limit(10)->get();
 });
 
