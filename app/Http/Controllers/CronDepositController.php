@@ -24,8 +24,11 @@ class CronDepositController extends Controller
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $brla = new BrlaDigitalService();
 
+        Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
+
         foreach ($deposits as $deposit) {
             $curl = $brla->getPayInHistory(['referenceLabel' => $deposit->gateway_deposit_id]);
+            Log::info("Brla Payin Details: ", $curl);
             if (is_array($curl) && isset($curl['depositsLogs'])) {
                 foreach ($curl['depositsLogs'] as $record) {
                     if ($record['referenceLabel'] == $deposit->gateway_deposit_id) {
