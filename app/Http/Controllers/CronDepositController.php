@@ -23,36 +23,48 @@ class CronDepositController extends Controller
         $ids = $this->getGatewayPayinMethods('brla');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $brla = new BrlaDigitalService();
-
+    
         Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
-
+    
         foreach ($deposits as $deposit) {
-
             $curl = $brla->getPayInHistory(['referenceLabel' => $deposit->gateway_deposit_id]);
-            if(is_array($curl) && isset($curl[0])) {
-                $curl = $curl[0];
+    
+            // Ensure `$curl` is valid and contains `depositsLogs`
+            if (!is_array($curl) || empty($curl['depositsLogs'])) {
+                Log::warning("Brla Payin Response is empty or invalid", ['response' => $curl]);
+                continue;
             }
+    
             Log::info("Brla Payin Details: ", $curl);
-            if (is_array($curl) && isset($curl['depositsLogs'])) {
-                foreach ($curl['depositsLogs'] as $record) {
-                    if ($record['referenceLabel'] == $deposit->gateway_deposit_id) {
-                        $transactionStatus = strtolower($record['status']);
-
-                        $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-                        if (!$txn) continue;
-
-                        if ($transactionStatus === 'paid') {
-                            $depositService = new DepositService();
-                            $depositService->process_deposit($txn->transaction_id);
-                        } else {
-                            $txn->update(["transaction_status" => $transactionStatus]);
-                            $deposit->update(['status' => $transactionStatus]);
-                        }
+    
+            foreach ($curl['depositsLogs'] as $record) {
+                // Ensure necessary keys exist before processing
+                if (!isset($record['referenceLabel'], $record['status'])) {
+                    Log::warning("Skipping record due to missing keys", ['record' => $record]);
+                    continue;
+                }
+    
+                if ($record['referenceLabel'] == $deposit->gateway_deposit_id) {
+                    $transactionStatus = strtolower($record['status']);
+    
+                    $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+                    if (!$txn) {
+                        Log::warning("Transaction record not found", ['deposit_id' => $deposit->id]);
+                        continue;
+                    }
+    
+                    if ($transactionStatus === 'paid') {
+                        $depositService = new DepositService();
+                        $depositService->process_deposit($txn->transaction_id);
+                    } else {
+                        $txn->update(["transaction_status" => $transactionStatus]);
+                        $deposit->update(['status' => $transactionStatus]);
                     }
                 }
             }
         }
     }
+    
 
     public function vitawallet()
     {
