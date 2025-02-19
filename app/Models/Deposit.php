@@ -41,7 +41,7 @@ class Deposit extends Model
         'deleted_at',
         'exchange_rate',
         'payment_gateway_id',
-        'meta',
+        // 'meta',
         'credit_wallet',
     ];
 

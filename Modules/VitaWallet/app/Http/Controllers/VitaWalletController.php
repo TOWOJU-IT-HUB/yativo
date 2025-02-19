@@ -102,6 +102,16 @@ class VitaWalletController extends Controller
             $result = json_decode($result, true);
         }
 
+        $deposit = Deposit::where('id', $quoteId)->first();
+        if($deposit) {
+            $deposit->update([
+                'meta' => [
+                    'payload' => $payload,
+                    'response' => $result
+                ]
+            ]);
+        }
+
         if (isset($result['data']['attributes']['public_code'])) {
             update_deposit_gateway_id($quoteId, $result['data']['id']);
             return $result['data']['attributes']['url'];
