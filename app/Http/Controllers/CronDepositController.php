@@ -289,12 +289,19 @@ class CronDepositController extends Controller
             // Determine currency code
             $cur = $currency === "clp" ? "cl" : "pe";
             $authToken = env("FLOID_AUTH_TOKEN");
-            // Prepare the payload as a JSON string (to match cURL behavior)
             $payload = ['payment_token' => $id];
+            $url = 'https://api.floid.app/'.$cur.'/payments/check';
 
+            Log::info([
+                "url" => $url,
+                'payload' => $payload,
+                'token' => $authToken,
+                'currency' => $cur
+            ]);
+            
             $curl = curl_init();
             curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.floid.app/'.$cur.'/payments/check',
+            CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
