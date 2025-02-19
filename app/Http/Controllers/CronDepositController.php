@@ -255,7 +255,7 @@ class CronDepositController extends Controller
             'payment_token' => $id
         ];
 
-        Log::info("Passed payment token is: ". $payload);
+        Log::info("Passed payment token is: ", $payload);
     
         // Make the HTTP request using Laravel's HTTP client
         $response = Http::withHeaders([
