@@ -45,7 +45,7 @@ class CronDepositController extends Controller
                     continue;
                 }
     
-                if ($record['referenceLabel'] == $deposit->gateway_deposit_id) {
+                // if ($record['referenceLabel'] == $deposit->gateway_deposit_id) {
                     $transactionStatus = strtolower($record['status']);
     
                     $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
@@ -61,7 +61,7 @@ class CronDepositController extends Controller
                         $txn->update(["transaction_status" => $transactionStatus]);
                         $deposit->update(['status' => $transactionStatus]);
                     }
-                }
+                // }
             }
         }
     }
