@@ -43,11 +43,6 @@ class EventServiceProvider extends ServiceProvider
         ],
     ];
 
-    protected $observers = [
-        Deposit::class => [DepositObserver::class],
-    ];
-    
-
     /**
      * Register any events for your application.
      */
