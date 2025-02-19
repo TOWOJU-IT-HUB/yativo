@@ -19,10 +19,10 @@ class CronController extends Controller
     public function index(Request $request)
     {
         //update status for deposits
-        $this->getTransFiStatus();
-        $this->getBinancePayStatus();
-        $this->getFloidStatus();
-        $this->getBridgeStatus();
+        // $this->getTransFiStatus();
+        // $this->getBinancePayStatus();
+        // $this->getFloidStatus();
+        // $this->getBridgeStatus();
         // $this->getBinancePayStatus();
         // $this->getBinancePayStatus();
         // $this->getBinancePayStatus();
