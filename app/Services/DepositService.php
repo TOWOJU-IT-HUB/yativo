@@ -221,9 +221,7 @@ class DepositService
                     $order->update(['transaction_status' => SendMoneyController::SUCCESS]);
 
                     $deposit = Deposit::whereId($order['transaction_id'])->where('status', 'pending')->first();
-                    if($deposit->status !== 'pending') {
-                        return false;
-                    }
+                    
                     if ($deposit) {
                         $deposit->status = SendMoneyController::SUCCESS;
                         if ($deposit->save()) {
