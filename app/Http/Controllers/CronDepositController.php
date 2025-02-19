@@ -11,6 +11,7 @@ use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\Flow\app\Http\Controllers\FlowController;
 use App\Services\BrlaDigitalService;
 use Modules\Bitso\app\Services\BitsoServices;
+use App\Services\OnrampService;
 
 class CronDepositController extends Controller
 {
