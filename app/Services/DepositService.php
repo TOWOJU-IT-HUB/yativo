@@ -201,11 +201,9 @@ class DepositService
                     "transaction_id" => $tranxRecord
                 ];
                 $order = TransactionRecord::where($where)->first();
-            } else {
-                Log::channel('deposit_error')->info("Error processing transactions", [$order, $tranxRecord]);
-                die();
-            }
+            } 
 
+            Log::channel('deposit_error')->info("Log my incoming transaction data status: ", ['order' => $order]);
             $quoteId = $order['transaction_id'];
 
             switch ($order['transaction_status']) {
