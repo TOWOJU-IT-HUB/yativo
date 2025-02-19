@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Log;
+use App\Models\Deposit;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 
 class VitaWalletController extends Controller
