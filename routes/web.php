@@ -30,7 +30,7 @@ use App\Http\Controllers\CoinbaseOnrampController;
 use App\Http\Controllers\TransFiController;
 use App\Models\Business;
 use App\Models\User;
-use App\Models\Wallet;
+use Bavix\Wallet\Models\Wallet;
 use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
