@@ -222,6 +222,9 @@ class DepositService
                     $order->update(['transaction_status' => SendMoneyController::SUCCESS]);
 
                     $deposit = Deposit::whereId($order['transaction_id'])->where('status', 'pending')->first();
+                    if($deposit->status !== 'pending') {
+                        return false;
+                    }
                     if ($deposit) {
                         $deposit->status = SendMoneyController::SUCCESS;
                         if ($deposit->save()) {
@@ -256,24 +259,6 @@ class DepositService
 
         if ($wallet->deposit($credit_amount)) {
             Log::info("Deposit crediting completed for {$user->id}, Params: ", $order->toArray());
-
-            $webhook_url = Webhook::whereUserId($user->id)->first();
-
-            if ($webhook_url) {
-                WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
-                    "event.type" => "deposit_success",
-                    "payload" => array_merge($order->toArray(), [
-                        "deposit_amount" => $deposit->amount * 100,
-                        "credited_amount" => $credit_amount,
-                        "user_id" => $user->id,
-                        "wallet_type" => "credit",
-                        "transaction_type" => "deposit",
-                        "transaction_id" => $order['transaction_id'],
-                        "transaction_status" => "success",
-                        "transaction_reference" => $order['transaction_reference']
-                    ])
-                ])->dispatchSync();
-            }
         }
 
         Track::create([

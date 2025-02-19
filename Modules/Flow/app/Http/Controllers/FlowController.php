@@ -91,36 +91,11 @@ class FlowController extends Controller
 
         $response = Http::withToken($authToken)->withHeaders([
             'Content-Type' => 'application/json',
-        ])->get($url, [
+        ])->post($url, [
                     'payment_token' => $payment_token
                 ]);
 
         $result = $response->json();
-        if (isset($result['status'])) {
-            $deposit = Deposit::where('gateway_deposit_id', $payment_token)->first();
-            if($deposit->status != 'pending') return false;
-            $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-            if ($txn) {
-                $where = [
-                    "transaction_memo" => "payin",
-                    "transaction_id" => $deposit->id
-                ];
-                
-                $order = TransactionRecord::where($where)->first();
-                
-                if ($order) {
-                    $deposit_services = new DepositService();
-                    $deposit_services->process_deposit($txn->transaction_id);
-                } else {    
-                    $order->update([
-                        "transaction_status" => strtolower($order['status'])
-                    ]);
-                    $deposit->update([
-                        'status' => strtolower($order['status'])
-                    ]);
-                }
-            }
-        }
         return $result;
     }
 
