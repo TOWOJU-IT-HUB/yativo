@@ -8,6 +8,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Log;
 use App\Observers\DepositObserver;
+use App\Observers\CustomerObserver;
 use App\Models\Deposit;
 use Modules\Customer\app\Models\Customer;
 
