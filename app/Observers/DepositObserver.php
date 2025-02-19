@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\Deposit;
+use Modules\Webhook\app\Models\Webhook;
 
 class DepositObserver
 {
