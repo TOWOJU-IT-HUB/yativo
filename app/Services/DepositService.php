@@ -194,7 +194,7 @@ class DepositService
     {
         try {
             Log::channel('deposit_error')->info("initiating deposit for: $tranxRecord");
-            $order = TransactionRecord::whereId($tranxRecord)->first();
+            $order = TransactionRecord::whereId($tranxRecord)->orWhere('transaction_id', $tranxRecord)->first();
             if (!$order) {
                 $where = [
                     "transaction_memo" => "payin",
