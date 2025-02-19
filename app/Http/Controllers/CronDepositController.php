@@ -236,6 +236,10 @@ class CronDepositController extends Controller
                         'gateway_deposit_id' => $deposit->gateway_deposit_id,
                         'response' => $order
                     ]);
+
+                    if(is_array($order) && isset($order[0])) {
+                        $order = $order[0];
+                    }
     
                     // Check if response has a valid status
                     if (!isset($order['status'])) {
@@ -302,9 +306,7 @@ class CronDepositController extends Controller
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => '{
-                "payment_token": "2a816c77-d969-43a4-88bb-53839b72929b"
-            }',
+            CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
                 'Authorization: Bearer '.$authToken,
@@ -314,8 +316,10 @@ class CronDepositController extends Controller
             $response = curl_exec($curl);
 
             curl_close($curl);
-            $result = (array)$response;
-
+            $result = $response;
+            if(!is_array($result)) {
+                return json_decode($result, true);
+            }
             Log::info([
                 "url" => $url,
                 'payload' => $payload,
