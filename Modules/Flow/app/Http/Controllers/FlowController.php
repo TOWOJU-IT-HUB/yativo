@@ -96,6 +96,7 @@ class FlowController extends Controller
                 ]);
 
         $result = $response->json();
+        Log::info('Direct status from floid - getPaymentStatus: ', ['getPaymentStatus' => $result]);
         return $result;
     }
 
