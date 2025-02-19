@@ -28,7 +28,7 @@ class DepositCronCommand extends Command
      */
     public function handle()
     {
-        $deposit = new CronDepositController()
+        $deposit = new CronDepositController();
         info("Cron Job running at ". now());
 
         $deposit->brla();
