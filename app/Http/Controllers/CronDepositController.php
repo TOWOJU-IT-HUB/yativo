@@ -54,11 +54,11 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $curl = $vitawallet->getTransaction($deposit->gateway_deposit_id);
-            Log::info('Vitawallet_001', ['response' => $curl]);
+            Log::info('Vitawallet_001', ['deposit_id' => $deposit->gateway_deposit_id, 'response' => $curl]);
             if (is_array($curl) && isset($curl['transaction'])) {
                 $record = $curl['transaction'];
                 if (isset($record['status'])) {
-                    Log::info('Vitawallet_001', ['response' => $record]);
+                    Log::info('Vitawallet_002', ['response' => $record]);
                     $transactionStatus = strtolower($record['status']);
                     
                     $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
