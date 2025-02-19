@@ -169,7 +169,6 @@ class DepositService
             Log::info('Brla qr pix data', ['brla_subaccount_id' => $customer->brla_subaccount_id, 'referenceLabel' => $checkout_id]);
         }
         update_deposit_gateway_id($deposit_id, $checkout_id);
-        Log::info('Brla qr pix data', ['brla_subaccount_id' => $customer->brla_subaccount_id, 'referenceLabel' => $checkout_id]);
         $brla = new BrlaDigitalService();
         $checkout = $brla->generatePayInBRCode($payload);
         return $checkout;

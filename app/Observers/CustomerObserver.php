@@ -22,7 +22,7 @@ class CustomerObserver
                 "payload" => $customer
             ])->dispatchSync();
         }
-    }
+    } // 
 
     /**
      * Handle the Customer "updated" event.
