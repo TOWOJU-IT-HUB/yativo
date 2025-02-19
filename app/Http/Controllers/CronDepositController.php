@@ -13,6 +13,7 @@ use App\Services\BrlaDigitalService;
 use Modules\Bitso\app\Services\BitsoServices;
 use App\Services\OnrampService;
 use Log;
+use Illuminate\Support\Facades\Http;
 
 class CronDepositController extends Controller
 {
@@ -53,7 +54,6 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $order = $this->getfloid($deposit->currency ?? $deposit->deposit_currency, $deposit->gateway_deposit_id);
-
             Log::info("Log the floid deposit API status", ['deposit_log_status' => $order]);
 
             if (!isset($order['status'])) continue;
@@ -245,37 +245,24 @@ class CronDepositController extends Controller
         return PayinMethods::where('gateway', $gateway)->pluck('id')->toArray();
     }
 
-    private function getfloid($currency = "clp", $id)
+    private function getfloid(string $id, string $currency = "clp")
     {
-        $curl = curl_init();
-        if($currency == "clp") {
-            $cur = "cl";
-        } else {
-            $cur = "pe";
-        }
-
-        curl_setopt_array($curl, array(
-        CURLOPT_URL => "https://api.floid.app/{$cur}/payments/check",
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS =>'{
-            "payment_token": $ID
-        }',
-        CURLOPT_HTTPHEADER => array(
-            'Content-Type: application/json',
-            'Authorization: Bearer '. env("FLOID_AUTH_TOKEN"),
-            'Cookie: PHPSESSID=qnk8ed45jodkg7rqlr9oum38ud'
-        ),
-        ));
-
-        $response = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($response, true);
+        // Determine currency code
+        $cur = $currency === "clp" ? "cl" : "pe";
+    
+        // Prepare request payload
+        $payload = [
+            'payment_token' => $id
+        ];
+    
+        // Make the HTTP request using Laravel's HTTP client
+        $response = Http::withHeaders([
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . env('FLOID_AUTH_TOKEN'),
+        ])->post("https://api.floid.app/{$cur}/payments/check", $payload);
+    
+        // Return the decoded JSON response
+        return $response->json();
     }
+    
 }
