@@ -216,7 +216,7 @@ class CronDepositController extends Controller
     {
         return PayinMethods::where('gateway', $gateway)->pluck('id')->toArray();
     }
-    
+
     public function getFloidStatus()
     {
         try {
@@ -281,27 +281,28 @@ class CronDepositController extends Controller
         }
     }
     
-    private function getfloid(string $currency, string $id)
+   private function getfloid(string $currency, string $id)
     {
         try {
             // Determine currency code
             $cur = $currency === "clp" ? "cl" : "pe";
-    
-            // Prepare request payload
-            $payload = ['payment_token' => $id];
-    
+
+            // Prepare the payload as a JSON string (to match cURL behavior)
+            $payload = json_encode(['payment_token' => $id]);
+
             Log::info("Sending request to Floid API", [
                 'currency' => $currency,
                 'gateway_deposit_id' => $id,
                 'payload' => $payload
             ]);
-    
-            // Make the HTTP request using Laravel's HTTP client
+
+            // Make the HTTP request
             $response = Http::withHeaders([
                 'Content-Type'  => 'application/json',
                 'Authorization' => 'Bearer ' . env('FLOID_AUTH_TOKEN'),
-            ])->post("https://api.floid.app/{$cur}/payments/check", $payload);
-    
+            ])->withBody($payload, 'application/json')
+            ->post("https://api.floid.app/{$cur}/payments/check");
+
             if ($response->failed()) {
                 Log::error("Floid API request failed", [
                     'gateway_deposit_id' => $id,
@@ -309,7 +310,7 @@ class CronDepositController extends Controller
                 ]);
                 return null;
             }
-    
+
             return $response->json();
         } catch (\Exception $e) {
             Log::error("Error calling Floid API", [
@@ -319,5 +320,5 @@ class CronDepositController extends Controller
             return null;
         }
     }
-    
+
 }
