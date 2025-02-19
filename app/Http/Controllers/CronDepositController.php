@@ -248,7 +248,7 @@ class CronDepositController extends Controller
     private function getfloid(string $id, string $currency = "clp")
     {
         // Determine currency code
-        $cur = $currency === "clp" ? "cl" : "pe";
+        // $cur = $currency === "clp" ? "cl" : "pe";
     
         // Prepare request payload
         $payload = [
