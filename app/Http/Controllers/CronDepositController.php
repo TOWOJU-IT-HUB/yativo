@@ -245,7 +245,7 @@ class CronDepositController extends Controller
         return PayinMethods::where('gateway', $gateway)->pluck('id')->toArray();
     }
 
-    private function getfloid(string $id, string $currency)
+    private function getfloid(string $currency, string $id)
     {
         // Determine currency code
         $cur = $currency === "clp" ? "cl" : "pe";
