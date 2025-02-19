@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Event;
 use Modules\CoinPayments\app\Http\Controllers\CoinPaymentsController;
 use Spatie\WebhookServer\Events\WebhookCallFailedEvent;
 use Spatie\WebhookServer\Events\WebhookCallSucceededEvent;
+use App\Observers\DepositObserver;
+use App\Models\Deposit;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -40,6 +42,11 @@ class EventServiceProvider extends ServiceProvider
             'App\Listeners\LogFailedWebhook',
         ],
     ];
+
+    protected $observers = [
+        Deposit::class => [DepositObserver::class],
+    ];
+    
 
     /**
      * Register any events for your application.
