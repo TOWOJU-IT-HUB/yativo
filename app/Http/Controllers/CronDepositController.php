@@ -29,39 +29,41 @@ class CronDepositController extends Controller
         foreach ($deposits as $deposit) {
             $curl = $brla->getPayInHistory(['referenceLabel' => $deposit->gateway_deposit_id]);
     
-            // Ensure `$curl` is valid and contains `depositsLogs`
+            // Debug API response
+            Log::info("Raw API Response", ['response' => json_encode($curl)]);
+    
             if (!is_array($curl) || empty($curl['depositsLogs'])) {
-                Log::warning("Brla Payin Response is empty or invalid", ['response' => $curl]);
+                Log::warning("Brla Payin Response is empty or invalid", ['response' => json_encode($curl)]);
                 continue;
             }
     
-            Log::info("Brla Payin Details: ", $curl);
+            Log::info("Processing depositsLogs", ['count' => count($curl['depositsLogs'])]);
     
             foreach ($curl['depositsLogs'] as $record) {
-                // Ensure necessary keys exist before processing
-                Log::info("I am here", ['record' => $record]);
+                Log::info("I am here", ['record' => json_encode($record)]);
+    
                 if (!isset($record['referenceLabel'], $record['status'])) {
-                    Log::warning("Skipping record due to missing keys", ['record' => $record]);
+                    Log::error("Skipping record due to missing keys", ['record' => json_encode($record)]);
                     continue;
                 }
     
-                // if ($record['referenceLabel'] == $deposit->gateway_deposit_id) {
-                    $transactionStatus = strtolower($record['status']);
+                $transactionStatus = strtolower($record['status']);
     
-                    $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-                    if (!$txn) {
-                        Log::warning("Transaction record not found", ['deposit_id' => $deposit->id]);
-                        continue;
-                    }
+                $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+                if (!$txn) {
+                    Log::error("Transaction record not found", ['transaction_id' => $deposit->id]);
+                    continue;
+                }
     
-                    if ($transactionStatus === 'paid') {
-                        $depositService = new DepositService();
-                        $depositService->process_deposit($txn->transaction_id);
-                    } else {
-                        $txn->update(["transaction_status" => $transactionStatus]);
-                        $deposit->update(['status' => $transactionStatus]);
-                    }
-                // }
+                if ($transactionStatus === 'paid') {
+                    Log::info("Processing deposit completion", ['status' => $transactionStatus]);
+                    $depositService = new DepositService();
+                    $depositService->process_deposit($txn->transaction_id);
+                } else {
+                    Log::info("Updating deposit status", ['status' => $transactionStatus]);
+                    $txn->update(["transaction_status" => $transactionStatus]);
+                    $deposit->update(['status' => $transactionStatus]);
+                }
             }
         }
     }
