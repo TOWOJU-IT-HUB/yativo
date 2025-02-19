@@ -291,15 +291,7 @@ class CronDepositController extends Controller
             $cur = $currency === "clp" ? "cl" : "pe";
             $authToken = env("FLOID_AUTH_TOKEN");
             $payload = ['payment_token' => $id];
-            $url = 'https://api.floid.app/'.$cur.'/payments/check';
-
-            Log::info([
-                "url" => $url,
-                'payload' => $payload,
-                'token' => $authToken,
-                'currency' => $cur
-            ]);
-            
+            $url = 'https://api.floid.app/cl/payments/check/';
             $curl = curl_init();
             curl_setopt_array($curl, array(
             CURLOPT_URL => $url,
@@ -323,6 +315,15 @@ class CronDepositController extends Controller
 
             curl_close($curl);
             $result = (array)$response;
+
+            Log::info([
+                "url" => $url,
+                'payload' => $payload,
+                'token' => $authToken,
+                'currency' => $cur,
+                'response' => $response
+            ]);
+            
             Log::info("Response from Floid for {$id} status: ", $result);
             return $result;
         } catch (\Exception $e) {
