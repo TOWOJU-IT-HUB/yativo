@@ -288,32 +288,33 @@ class CronDepositController extends Controller
         try {
             // Determine currency code
             $cur = $currency === "clp" ? "cl" : "pe";
-
+            $authToken = env("FLOID_AUTH_TOKEN");
             // Prepare the payload as a JSON string (to match cURL behavior)
-            $payload = json_encode(['payment_token' => $id]);
+            $payload = ['payment_token' => $id];
 
-            Log::info("Sending request to Floid API", [
-                'currency' => $currency,
-                'gateway_deposit_id' => $id,
-                'payload' => $payload
-            ]);
+            $curl = curl_init();
+            curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.floid.app/'.$cur.'/payments/check',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json',
+                'Authorization: '.$authToken,
+            ),
+            ));
 
-            // Make the HTTP request
-            $response = Http::withHeaders([
-                'Content-Type'  => 'application/json',
-                'Authorization' => 'Bearer ' . env('FLOID_AUTH_TOKEN'),
-            ])->withBody($payload, 'application/json')
-            ->post("https://api.floid.app/{$cur}/payments/check");
+            $response = curl_exec($curl);
 
-            if ($response->failed()) {
-                Log::error("Floid API request failed", [
-                    'gateway_deposit_id' => $id,
-                    'response' => $response->body()
-                ]);
-                return null;
-            }
-
-            return $response->json();
+            curl_close($curl);
+            $result = (array)$response;
+            Log::info("Response from Floid for {$id} status: ", $result);
+            return $result;
         } catch (\Exception $e) {
             Log::error("Error calling Floid API", [
                 'gateway_deposit_id' => $id,
