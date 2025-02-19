@@ -310,10 +310,12 @@ class CronDepositController extends Controller
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_POSTFIELDS => '{
+                "payment_token": "2a816c77-d969-43a4-88bb-53839b72929b"
+            }',
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
-                'Authorization: '.$authToken,
+                'Authorization: 8bfd9be8809732c91ab13cf321cf4813f33cb64ed7cc13bec5aeb48ee05bdc3204c0625082ee690a9c54a91e5ffba67cb18eaa24bb041791dad2b99403bd587e',
             ),
             ));
 
