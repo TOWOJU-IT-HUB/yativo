@@ -39,6 +39,10 @@ class Deposit extends Model
      */
     protected $hidden = [
         'deleted_at'
+        'exchange_rate',
+        'payment_gateway_id',
+        'meta',
+        'credit_wallet',
     ];
 
     public function user()

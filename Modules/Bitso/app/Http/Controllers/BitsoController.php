@@ -32,29 +32,42 @@ class BitsoController extends Controller
      * @method post
      * GET sample response : {"success":true,"payload":{"total_items":"1","total_pages":"1","current_page":"1","page_size":"25","response":[{"clabe":"710969000035509567","type":"INTERNATIONAL","status":"ENABLED","created_at":"2024-04-08T19:06:19","updated_at":null}]}}
      */
-    public function deposit($amount, $currency, $customerId = null)
+    public function deposit($depositId, $amount, $currency)
     {
-        $user = auth()->id();
+        $user = auth()->user();
         $bitso = new BitsoServices();
         $payload = '';
         $result = [];
+        $request = request();
+
+        if($request->has('customer_id')) {
+            $customer = Customer::where('customer_id', $request->customer_id)->first();
+        } 
+
+        $phone = $customer->customer_phone ?? $user->phone;
+        $email = $customer->customer_email ?? $user->email;
+        $fullname = $customer->customer_name ?? $user->name ?? $user->business->business_legal_name;
+        $bank_code = $request->bank_code;
+        $documentType = $request->documentType;
+        $documentNumber = $request->documentNumber;
 
         if (strtolower($currency) == 'mxn') {
         } elseif (strtolower($currency) == 'cop') {
-            $result = $bitso->depositCop(100, "+573156289887", "mymail@bitso.com", "NIT", "9014977087", "Jane Doe", "006", "https://api.yativo.com");
+            $result = $bitso->depositCop($amount, $phone, $email, $documentType, $documentNumber, $fullname, $bank_code);
             if (!is_array($result)) {
-                $result = json_decode($result, true);
+                $result = json_decode($result->fid, true);
             }
+
+            update_deposit_gateway_id($depositId, $result['data']['id']);
             Log::info(json_encode(['response_cop' => $result]));
             // return $result;
             if (isset($result['success']) && $result['success'] == true) {
                 $payload = $result['payload'];
                 $account = new BitsoAccounts();
                 $account->customer_id = $customerId;
-                $account->user_id = $user;
+                $account->user_id = $user->id;
                 $account->account_number = $payload['clabe'];
                 $account->provider_response = $payload;
-
                 $account->save();
             } else {
                 return [
@@ -123,84 +136,102 @@ class BitsoController extends Controller
 
     public function deposit_webhook(Request $request)
     {
-        $input = $request->getContent();
-        $webhookData = json_decode($input, true);
-
-        // Check if the event is 'funding' and the status is 'complete'
-        if ($webhookData['event'] !== 'funding' || $webhookData['payload']['status'] !== 'complete') {
-            return response()->json(['error' => 'Invalid webhook event or status'], 400);
+        try {
+            $input = $request->getContent();
+            $webhookData = json_decode($input, true);
+    
+            if (!isset($webhookData['event'], $webhookData['payload'])) {
+                Log::error("Bitso: Invalid webhook payload received.", ['payload' => $input]);
+                return response()->json(['error' => 'Invalid webhook payload'], 400);
+            }
+    
+            $payload = $webhookData['payload'];
+    
+            // Check if the event is 'funding' and the status is 'complete'
+            if ($webhookData['event'] !== 'funding' || $payload['status'] !== 'complete') {
+                return response()->json(['error' => 'Invalid webhook event or status'], 400);
+            }
+    
+            // Prevent duplicate processing
+            if (BitsoWebhookLog::where('fid', $payload['fid'])->exists()) {
+                return response()->json(['error' => 'Deposit already processed'], 200);
+            }
+    
+            // Find deposit record
+            $deposit = Deposit::where('txn_id', $payload['fid'])->first();
+            if (!$deposit) {
+                Log::error("Bitso: Deposit record not found.", ['fid' => $payload['fid']]);
+                return response()->json(['error' => 'Deposit record not found'], 404);
+            }
+    
+            // Find user
+            $user = User::find($deposit->user_id);
+            if (!$user) {
+                Log::error("Bitso: User not found.", ['user_id' => $deposit->user_id]);
+                return response()->json(['error' => 'User not found'], 404);
+            }
+    
+            // Get deposit amount & currency
+            $amount = $payload['amount'];
+            $currency = strtolower($payload['currency']);
+    
+            // Update deposit status
+            $deposit->update([
+                'status' => 'completed',
+                'raw_data' => json_encode($webhookData),
+            ]);
+    
+            // Find user's wallet
+            $wallet = $user->getWallet($currency);
+            if (!$wallet) {
+                Log::error("Bitso: Wallet not found for user.", ['user_id' => $user->id, 'currency' => $currency]);
+                return response()->json(['error' => 'Wallet not found'], 404);
+            }
+    
+            // Deposit funds into wallet
+            $wallet->deposit($amount * 100, ['description' => 'Wallet deposit top-up']);
+    
+            // Log the webhook
+            BitsoWebhookLog::create([
+                'fid' => $payload['fid'],
+                'status' => $payload['status'],
+                'currency' => $payload['currency'],
+                'method' => $payload['method'],
+                'method_name' => $payload['method_name'],
+                'amount' => $amount,
+                'details' => json_encode($payload['details'] ?? []), // Ensure JSON storage
+            ]);
+    
+            // Create a transaction record
+            TransactionRecord::create([
+                'user_id' => $user->id,
+                'amount' => $amount,
+                'currency' => strtoupper($currency),
+                'type' => 'deposit',
+                'status' => 'completed',
+                'reference' => $payload['fid'],
+                'description' => 'Deposit via ' . $payload['method_name'],
+            ]);
+    
+            // Create tracking record
+            Track::create([
+                'quote_id' => $payload['fid'],
+                'tracking_status' => 'Deposit completed successfully',
+                'raw_data' => json_encode($webhookData),
+            ]);
+    
+            // Notify user
+            $user->notifyNow(new WalletNotification($amount, "Deposit", $currency));
+    
+            return response()->json(['success' => 'Deposit processed successfully'], 200);
+        } catch (\Exception $e) {
+            Log::error("Bitso: Error processing deposit webhook.", ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Internal server error'], 500);
         }
+    }
 
-        $payload = $webhookData['payload'];
-
-        // Ensure no duplicate processing of the deposit
-        if (BitsoWebhookLog::where('fid', $payload['fid'])->exists()) {
-            return response()->json(['error' => 'Deposit already processed'], 200);
-        }
-
-        // Find the corresponding deposit record
-        $deposit = Deposit::where('txn_id', $payload['fid'])->first();
-
-        if (!$deposit) {
-            return response()->json(['error' => 'Deposit record not found'], 404);
-        }
-
-        // Update deposit status and store raw webhook data
-        $deposit->status = 'completed';
-        $deposit->raw_data = json_encode($webhookData);
-        $deposit->save();
-
-        // Find the user associated with the deposit
-        $user = User::find($deposit->user_id);
-        if (!$user) {
-            Log::info("Bitso: User with ID: {$deposit->user_id} not found!");
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        $currency = $payload['currency'];
-        $amount = $payload['amount'];
-
-        // Find user's wallet for the specific currency
-        if ($wallet = $user->getWallet($currency)) {
-            // Deposit the amount into the wallet (amount * 100, assuming cents format)
-            $wallet->deposit($amount * 100, ['description' => 'wallet deposit topup']);
-        } else {
-            Log::info("Bitso: Wallet for currency {$currency} not found for user ID: {$deposit->user_id}.");
-            return response()->json(['error' => 'Wallet not found'], 404);
-        }
-
-        // Log the webhook in BitsoWebhookLog
-        BitsoWebhookLog::create([
-            'fid' => $payload['fid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'method' => $payload['method'],
-            'method_name' => $payload['method_name'],
-            'amount' => $payload['amount'],
-            'details' => $payload['details'],
-        ]);
-
-        // Create a transaction record
-        TransactionRecord::create([
-            'user_id' => $deposit->user_id,
-            'amount' => $amount,
-            'currency' => strtoupper($currency),
-            'type' => 'deposit',
-            'status' => 'completed',
-            'reference' => $payload['fid'],
-            'description' => 'Deposit via ' . $payload['method_name'],
-        ]);
-
-        // Create a tracking record
-        Track::create([
-            'quote_id' => $payload['fid'],
-            'tracking_status' => 'Deposit completed successfully',
-            'raw_data' => json_encode($webhookData),
-        ]);
-
-        // Notify user (optional, uncomment to enable notification)
-        $user->notifyNow(new WalletNotification($amount, "Withdrawal", $currency));
-
-        return response()->json(['success' => 'Deposit processed successfully'], 200);
+    public function getDepositStatus($fid)
+    {
+        //
     }
 }

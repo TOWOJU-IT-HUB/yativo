@@ -148,7 +148,7 @@ class DepositService
     {
         // return [];
         $bitso = new BitsoController();
-        $checkout = $bitso->deposit($amount, $currency);
+        $checkout = $bitso->deposit($deposit_id, $amount, $currency);
         return $checkout;
     }
 

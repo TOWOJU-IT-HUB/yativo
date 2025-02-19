@@ -19,6 +19,7 @@ class OnrampService
     public function __construct()
     {
         $this->apiKey = env('ONRAMP_API_KEY');
+        $this->apiSecret = env('ONRAMP_API_SECRET');
         $this->apiId = env('ONRAMP_APP_ID');
         $this->client = new Client();
     }
@@ -29,6 +30,7 @@ class OnrampService
     //         'error' => 'Currency not supported'
     //     ];
     // }
+    
     public function generateSignature($payload)
     {
         return hash_hmac('sha512', base64_encode(json_encode($payload)), $this->apiSecret);
@@ -118,4 +120,51 @@ class OnrampService
         Log::info('Webhook received', ['data' => $request->all()]);
         return response()->json(['message' => 'Received data :)'], 200);
     }
+    
+    public function orderStatus($orderId, $orderType = 1)
+    {
+        try {
+            $body = [
+                'orderId' => $orderId,
+                'type' => $orderType
+            ];
+    
+            $payload = [
+                "timestamp" => round(microtime(true) * 1000), // Convert to milliseconds
+                "body" => $body
+            ];
+    
+            $api_key = $this->apiKey;
+            $api_secret = $this->apiSecret;
+    
+            $encoded_payload = base64_encode(json_encode($payload));
+            $signature = hash_hmac('sha512', $encoded_payload, $api_secret);
+    
+            $headers = [
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json;charset=UTF-8',
+                'X-ONRAMP-SIGNATURE' => $signature,
+                'X-ONRAMP-APIKEY' => $api_key,
+                'X-ONRAMP-PAYLOAD' => $encoded_payload
+            ];
+    
+            $url = 'https://api.onramp.money/onramp/api/v2/common/transaction/orderStatus';
+    
+            $response = Http::withHeaders($headers)->post($url, $body);
+    
+            if ($response->failed()) {
+                Log::error('Order Status API Error:', [
+                    'status' => $response->status(),
+                    'response' => $response->body()
+                ]);
+                throw new \Exception('Failed to retrieve order status.');
+            }
+    
+            return $response->json(); 
+        } catch (\Exception $e) {
+            Log::error('Order Status Request Failed: ' . $e->getMessage());
+            return ['error' => $e->getMessage()];
+        }
+    }
+    
 }

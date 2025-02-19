@@ -31,7 +31,7 @@ class DepositController extends Controller
         try {
             $request = request();
             $per_page = $request->per_page ?? per_page();
-            $deposits = Deposit::whereUserId(active_user())->latest()->paginate($per_page);
+            $deposits = Deposit::whereUserId(active_user())->with(['depositGateway'])->latest()->paginate($per_page);
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
@@ -50,13 +50,17 @@ class DepositController extends Controller
     public function store(Request $request)
     {
         try {
+            if(!$request->has('redirect_url') || $request->redirect_url == null) {
+                $request->merge(['redirect_url' => 'https://app.yativo.com']);
+            }
             $validate = Validator::make(
                 $request->all(),
                 [
                     'gateway' => 'required|numeric|min:1',
                     'amount' => 'required|numeric',
                     'currency' => 'required_without:credit_wallet',
-                    'credit_wallet' => 'required_without:currency'
+                    'credit_wallet' => 'required_without:currency',
+                    'redirect_url' => 'required'
                 ]
             );
 
@@ -145,9 +149,9 @@ class DepositController extends Controller
                 $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
                 $arr['payment_info'] = [
                     "send_amount" => round($request->amount / $exchange_rate, 4)." $payin->currency",
-                    "receive_amount" => ($request->amount * $exchange_rate) .explode(".", $deposit->deposit_currency)[0],
+                    "receive_amount" => round($request->amount * $exchange_rate, 2) . explode(".", $deposit->deposit_currency)[0],
                     "exchange_rate" => "1" . strtoupper($payin->currency) . " ~ $exchange_rate" . strtoupper($request->credit_wallet ?? $request->currency),
-                    "transaction_fee" => "$transaction_fee $payin->currency",
+                    "transaction_fee" => round($transaction_fee * $exchange_rate, 2) .$payin->currency,
                     "payment_method" => $payin->method_name,
                     "estimate_delivery_time" => formatSettlementTime($payin['settlement_time']),
                     "total_amount_due" => "$total_amount_due $payin->currency"

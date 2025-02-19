@@ -111,7 +111,7 @@ class VitaWalletController extends Controller
         }
         // var_dump($result['data']['attributes']['public_code']); 
         if (isset($result['data']['attributes']['public_code'])) {
-            update_deposit_gateway_id($quoteId, $result['data']['attributes']['public_code']);
+            update_deposit_gateway_id($quoteId, $result['data']['id']);
             return $result['data']['attributes']['url'];
         }
         // var_dump($result['data']['attributes']['public_code']);
@@ -154,6 +154,26 @@ class VitaWalletController extends Controller
             "Content-Type" => $headers['headers']["Content-Type"],
             "Authorization" => $headers['headers']["Authorization"],
         ])->get(Configuration::getPricesUrl());
+
+        // $response = $this->vitaWalletService->sendRequest('get', 'prices');
+        $result = $response->json();
+        return $result;
+    }
+
+    public function getTransaction($txn_id)
+    {
+        $configuration = Configuration::getInstance();
+        // Prepare headers
+        $headers = $configuration->prepareHeaders();
+
+        // Prepare HTTP request
+        $response = Http::withHeaders([
+            "X-Date" => $headers['headers']["X-Date"],
+            "X-Login" => $headers['headers']["X-Login"],
+            "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+            "Content-Type" => $headers['headers']["Content-Type"],
+            "Authorization" => $headers['headers']["Authorization"],
+        ])->get(Configuration::getTransactionsUrl($txn_id));
 
         // $response = $this->vitaWalletService->sendRequest('get', 'prices');
         $result = $response->json();

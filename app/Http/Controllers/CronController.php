@@ -146,57 +146,6 @@ class CronController extends Controller
         }
     }
 
-    // get status of Floid transaction
-    private function getFloidStatus(): void
-    {
-        $ids = $this->getGatewayPayinMethods(method: 'floid');
-        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
-        $floid = new FlowController();
-    
-        foreach ($deposits as $deposit) {
-            $order = null;
-    
-            // Fetch payment status based on currency
-            switch (strtolower($deposit->currency)) {
-                case 'clp':
-                    $order = $floid->getChlPaymentStatus($deposit->gateway_deposit_id);
-                    break;
-                case 'pen':
-                    $order = $floid->getPenPaymentStatus($deposit->gateway_deposit_id);
-                    break;
-                default:
-                    continue; // Skip if currency is unsupported
-            }
-    
-            // Ensure we received a valid response
-            if (!isset($order['status'])) {
-                continue; // Skip processing if no status
-            }
-    
-            $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-            if (!$txn) {
-                continue; // Skip if no related transaction record
-            }
-    
-            $transactionStatus = strtolower($order['status']);
-    
-            if ($transactionStatus === "success") {
-                $depositService = new DepositService();
-                $depositService->process_deposit($txn->transaction_id);
-            } else {
-                $txn->update([
-                    "transaction_status" => $transactionStatus
-                ]);
-    
-                $deposit->update([
-                    'status' => $transactionStatus
-                ]);
-            }
-    
-            // $this->updateTracking($deposit->id, $order['status'], $order);
-        }
-    }
-    
 
     // get status of BinancePay transaction
     private function getBinancePayStatus(): void
