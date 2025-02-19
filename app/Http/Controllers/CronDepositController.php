@@ -46,34 +46,6 @@ class CronDepositController extends Controller
         }
     }
 
-    public function getFloidStatus()
-    {
-        $ids = $this->getGatewayPayinMethods('floid');
-        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
-        $floid = new FlowController();
-
-        foreach ($deposits as $deposit) {
-            $order = $this->getfloid($deposit->currency ?? $deposit->deposit_currency, $deposit->gateway_deposit_id);
-            Log::info("Log the floid deposit API status", ['gateway_deposit_id' => $deposit->gateway_deposit_id, 'deposit_log_status' => $order]);
-
-            if (!isset($order['status'])) continue;
-
-            $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-            if (!$txn) continue;
-
-            $transactionStatus = strtolower($order['status']);
-            Log::info("Log the floid deposit", ['deposit_log_status' => $transactionStatus]);
-
-            if ($transactionStatus === "success") {
-                $depositService = new DepositService();
-                $depositService->process_deposit($txn->transaction_id);
-            } else {
-                $txn->update(["transaction_status" => $transactionStatus]);
-                $deposit->update(['status' => $transactionStatus]);
-            }
-        }
-    }
-
     public function vitawallet()
     {
         $ids = $this->getGatewayPayinMethods('vitawallet');
@@ -244,27 +216,108 @@ class CronDepositController extends Controller
     {
         return PayinMethods::where('gateway', $gateway)->pluck('id')->toArray();
     }
-
+    
+    public function getFloidStatus()
+    {
+        try {
+            $ids = $this->getGatewayPayinMethods('floid');
+            $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
+            $floid = new FlowController();
+    
+            foreach ($deposits as $deposit) {
+                try {
+                    $order = $this->getfloid($deposit->currency ?? $deposit->deposit_currency, $deposit->gateway_deposit_id);
+    
+                    // Log the full API response
+                    Log::info("Floid API Response", [
+                        'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                        'response' => $order
+                    ]);
+    
+                    // Check if response has a valid status
+                    if (!isset($order['status'])) {
+                        Log::error("Floid API Response Missing Status", [
+                            'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                            'response' => $order
+                        ]);
+                        continue;
+                    }
+    
+                    $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+                    if (!$txn) {
+                        Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
+                        continue;
+                    }
+    
+                    $transactionStatus = strtolower($order['status']);
+    
+                    // Log transaction status
+                    Log::info("Processing Floid Deposit", [
+                        'deposit_id' => $deposit->id,
+                        'transaction_status' => $transactionStatus
+                    ]);
+    
+                    DB::beginTransaction();
+    
+                    if ($transactionStatus === "success") {
+                        $depositService = new DepositService();
+                        $depositService->process_deposit($txn->transaction_id);
+                    } else {
+                        $txn->update(["transaction_status" => $transactionStatus]);
+                        $deposit->update(['status' => $transactionStatus]);
+                    }
+    
+                    DB::commit();
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    Log::error("Error processing Floid deposit", [
+                        'deposit_id' => $deposit->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
+        }
+    }
+    
     private function getfloid(string $currency, string $id)
     {
-        // Determine currency code
-        $cur = $currency === "clp" ? "cl" : "pe";
+        try {
+            // Determine currency code
+            $cur = $currency === "clp" ? "cl" : "pe";
     
-        // Prepare request payload
-        $payload = [
-            'payment_token' => $id
-        ];
-
-        Log::info("Passed payment token is: ", $payload);
+            // Prepare request payload
+            $payload = ['payment_token' => $id];
     
-        // Make the HTTP request using Laravel's HTTP client
-        $response = Http::withHeaders([
-            'Content-Type'  => 'application/json',
-            'Authorization' => 'Bearer ' . env('FLOID_AUTH_TOKEN'),
-        ])->post("https://api.floid.app/{$cur}/payments/check", $payload);
+            Log::info("Sending request to Floid API", [
+                'currency' => $currency,
+                'gateway_deposit_id' => $id,
+                'payload' => $payload
+            ]);
     
-        // Return the decoded JSON response
-        return $response->json();
+            // Make the HTTP request using Laravel's HTTP client
+            $response = Http::withHeaders([
+                'Content-Type'  => 'application/json',
+                'Authorization' => 'Bearer ' . env('FLOID_AUTH_TOKEN'),
+            ])->post("https://api.floid.app/{$cur}/payments/check", $payload);
+    
+            if ($response->failed()) {
+                Log::error("Floid API request failed", [
+                    'gateway_deposit_id' => $id,
+                    'response' => $response->body()
+                ]);
+                return null;
+            }
+    
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error("Error calling Floid API", [
+                'gateway_deposit_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
     }
     
 }
