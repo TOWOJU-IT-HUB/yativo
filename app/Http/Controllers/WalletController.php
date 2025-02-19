@@ -86,7 +86,7 @@ class WalletController extends Controller
                 foreach ($wallets as $key => $wallet) {
                     // Ensure $wallets is defined or initialized before using it
                     $slug = strtoupper($wallet->slug);
-                    $usdRateResponse = getExchangeVal($slug, "USD");
+                    $usdRateResponse = $this->rates($slug);
 
                     if (isset($usdRateResponse['error'])) {
                         // Handle error from rates function
