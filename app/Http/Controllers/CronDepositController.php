@@ -27,7 +27,11 @@ class CronDepositController extends Controller
         Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
 
         foreach ($deposits as $deposit) {
+
             $curl = $brla->getPayInHistory(['referenceLabel' => $deposit->gateway_deposit_id]);
+            if(is_array($curl) && isset($curl[0])) {
+                $curl = $curl[0];
+            }
             Log::info("Brla Payin Details: ", $curl);
             if (is_array($curl) && isset($curl['depositsLogs'])) {
                 foreach ($curl['depositsLogs'] as $record) {
