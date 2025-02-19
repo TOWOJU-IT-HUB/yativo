@@ -291,7 +291,7 @@ class CronDepositController extends Controller
             $cur = $currency === "clp" ? "cl" : "pe";
             $authToken = env("FLOID_AUTH_TOKEN");
             $payload = ['payment_token' => $id];
-            $url = 'https://api.floid.app/cl/payments/check/';
+            $url = "https://api.floid.app/{$cur}/payments/check/";
             $curl = curl_init();
             curl_setopt_array($curl, array(
             CURLOPT_URL => $url,
@@ -307,7 +307,7 @@ class CronDepositController extends Controller
             }',
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
-                'Authorization: 8bfd9be8809732c91ab13cf321cf4813f33cb64ed7cc13bec5aeb48ee05bdc3204c0625082ee690a9c54a91e5ffba67cb18eaa24bb041791dad2b99403bd587e',
+                'Authorization: Bearer '.$authToken,
             ),
             ));
 
