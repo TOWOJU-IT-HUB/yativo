@@ -39,6 +39,7 @@ class CronDepositController extends Controller
     
             foreach ($curl['depositsLogs'] as $record) {
                 // Ensure necessary keys exist before processing
+                Log::info("I am here", ['record' => $record]);
                 if (!isset($record['referenceLabel'], $record['status'])) {
                     Log::warning("Skipping record due to missing keys", ['record' => $record]);
                     continue;
