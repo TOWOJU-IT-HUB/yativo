@@ -59,6 +59,7 @@ class CronDepositController extends Controller
                     if ($transactionStatus === 'paid') {
                         Log::info("Processing deposit completion", ['status' => $transactionStatus]);
                         $depositService = new DepositService();
+                        Log::info('Deposit service class instatiated');
                         $depositService->process_deposit($txn->transaction_id);
                         Log::info("Processing deposit completed", ['status' => $transactionStatus]);
                     } else {
