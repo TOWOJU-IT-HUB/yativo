@@ -43,7 +43,7 @@ class CronDepositController extends Controller
         }
     }
 
-    private function getFloidStatus()
+    public function getFloidStatus()
     {
         $ids = $this->getGatewayPayinMethods('floid');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
