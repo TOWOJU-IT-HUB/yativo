@@ -185,7 +185,7 @@ class MiscController extends Controller
             
             if (!in_array($request->currency, $allowedCurrencies)) {
                 return get_error_response([
-                    'error' =>  "Allowed to currencies: " . $payin->base_currency
+                    'error' =>  "Allowed to currencies: " . $method->base_currency
                 ], 400);
             }
 
