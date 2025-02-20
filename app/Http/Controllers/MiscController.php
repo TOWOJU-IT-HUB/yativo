@@ -207,13 +207,13 @@ class MiscController extends Controller
                 $from_currency = $to_currency;
                 $to_currency = $temp;
                 
-                if ($from_currency != $method->currency) {
+                if ($to_currency != $method->currency) {
                     return get_error_response(['error' => "From currency for selected gateway must be: {$to_currency}"]);
                 }
 
                 $allowedCurrencies = explode(',', $method->base_currency);
         
-                if (!in_array($to_currency, $allowedCurrencies)) {
+                if (!in_array($from_currency, $allowedCurrencies)) {
                     return get_error_response([
                         'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
                     ], 400);
