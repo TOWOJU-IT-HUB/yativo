@@ -188,12 +188,6 @@ class WithdrawalConntroller extends Controller
                 ]);
             }
 
-            $chargeNow = debit_user_wallet($finalAmount, $request->debit_wallet);
-            
-            if (isset($chargeNow['error'])) {
-                return get_error_response(['error' => $chargeNow['error']]);
-            }
-
             // Prepare withdrawal data transaction_fee - 
             $validated['user_id'] = auth()->id();
             $validated['gateway'] = $payoutMethod->gateway;
