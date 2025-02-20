@@ -185,11 +185,24 @@ class MiscController extends Controller
             $allowedCurrencies = [];
             $allowedCurrencies = explode(',', $method->base_currency);
             
-            if (!in_array($request->to_currency, $allowedCurrencies)) {
-                return get_error_response([
-                    'error' =>  "Allowed to currencies: " . $method->base_currency
-                ], 400);
-            }
+
+            if(($request->method_type == 'payout')) {
+                if (!in_array($request->from_currency, $allowedCurrencies)) {
+                    return get_error_response([
+                        'error' =>  "Allowed to currencies: " . $request->from_currency
+                    ], 400);
+                }
+            } 
+
+            if(($request->method_type == 'payin')) {
+                if (!in_array($request->to_currency, $allowedCurrencies)) {
+                    return get_error_response([
+                        'error' =>  "Allowed to currencies: " . $method->base_currency
+                    ], 400);
+                }
+            } 
+
+
 
             // float_percentage
             $ExchangeRate = $method->exchange_rate_float ?? 1;
