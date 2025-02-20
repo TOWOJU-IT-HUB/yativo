@@ -87,7 +87,7 @@ class WalletController extends Controller
                     // Ensure $wallets is defined or initialized before using it
                     $slug = strtoupper($wallet->slug);
                     $usdRateResponse = exchange_rates($from, "USD");
-                    $total_balance += ($wallet->balance * $usdRateResponse);
+                    $total_balance += floatval($wallet->balance * $usdRateResponse);
                 }
                 // Return total balance
                 return get_success_response(['total_balance' => $total_balance]);
@@ -97,9 +97,6 @@ class WalletController extends Controller
             // Return success response with wallets
             return get_success_response($wallets);
         } catch (\Throwable $th) {
-            // Log error
-            \Log::error($th);
-
             // Return error response
             return get_error_response(['error' => 'Unable to get wallets', 'info' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }

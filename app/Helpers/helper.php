@@ -195,15 +195,13 @@ if (!function_exists('get_transaction_rate')) {
 }
 
 if (!function_exists('exchange_rates')) {
-    function exchange_rates($from, $to)
+    function exchange_rates($from, $to) : int
     {
         if ($from === $to) return 1; // Return 1 for same currencies
 
         $cacheKey = "exchange_rate_{$from}_{$to}"; // Unique cache key for each currency pair
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
-            $from = explode('.', $from)[0];
-            $to = explode('.', $to)[0];
 
             $apis = [
                 "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
