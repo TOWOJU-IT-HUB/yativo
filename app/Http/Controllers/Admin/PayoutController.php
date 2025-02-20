@@ -72,6 +72,9 @@ class PayoutController extends Controller
         }
     }
 
+    /**
+     * Process manual payout update/approval
+     */
     public function manual(Request $request, $id) 
     {
         try {

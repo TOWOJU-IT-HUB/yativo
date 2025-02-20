@@ -186,7 +186,7 @@
                                         <p class="mb-10 font-medium">
                                             Are you sure you want to reject this payout? Please select a reason.
                                         </p>
-                                        <form action="{{ route('admin.payouts.custom', $payout->id) }}" method="POST">
+                                        <form action="{{ route('admin.payouts.process-manual', $payout->id) }}" method="POST">
                                             @csrf
                                             <div class="mb-4">
                                                 <label
