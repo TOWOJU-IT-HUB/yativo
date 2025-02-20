@@ -158,91 +158,72 @@ class MiscController extends Controller
                 'method_id' => 'required',
                 'method_type' => 'required|in:payin,payout',
             ]);
-    
+
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()], 422);
             }
-    
+
             $where = [
                 "gateway_id" => $request->method_id,
                 "rate_type" => $request->method_type,
             ];
-    
-            if ($request->method_type == 'payin') {
+
+            if($request->method_type == 'payin') {
                 $method = PayinMethods::whereId($request->method_id)->first();
-            } else {
+            } else if($request->method_type == 'payout') {
                 $method = payoutMethods::whereId($request->method_id)->first();
+            } else {
+                return get_error_response(['error' => 'Unknown transaction type']);
             }
-    
-            if (!$method) {
-                return get_error_response(['error' => 'Invalid gateway method.']);
-            }
-    
-            $from_currency = $request->from_currency;
-            $to_currency = $request->to_currency;
-    
-            // Ensure the FROM currency matches the method currency
-            if (($request->method_type == 'payin') && ($from_currency != $method->currency)) {
-                return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
-            } else if (($request->method_type == 'payout') && ($to_currency != $method->currency)) {
+
+            if(($request->method_type == 'payout') && ($request->to_currency != $method->currency)) {
                 return get_error_response(['error' => "To currency for selected gateway must be: {$method->currency}"]);
+            } else if($request->from_currency != $method->currency) {
+                return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
             }
-    
+
+            $allowedCurrencies = [];
             $allowedCurrencies = explode(',', $method->base_currency);
-    
-            if (($request->method_type == 'payout') && (!in_array($from_currency, $allowedCurrencies))) {
+            
+            if (!in_array($request->to_currency, $allowedCurrencies)) {
                 return get_error_response([
-                    'error' => "Allowed From currencies: {$to_currency}"
+                    'error' =>  "Allowed to currencies: " . $method->base_currency
                 ], 400);
-            } else if (!in_array($to_currency, $allowedCurrencies)) {
-                return get_error_response([
-                    'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
-                ], 400);
-            } 
-    
-            // Swap currencies for payouts
-            if ($request->method_type == 'payout') {
-                $temp = $from_currency;
-                $from_currency = $to_currency;
-                $to_currency = $temp;
             }
-    
-            // Fetch exchange rate float (Ensure proper handling)
-            $ExchangeRate = isset($method->exchange_rate_float) ? $method->exchange_rate_float : 0;
-    
+
+            // float_percentage
+            $ExchangeRate = $method->exchange_rate_float ?? 1;
+            
             if ($ExchangeRate) {
+                $from_currency = $request->from_currency;
+                $to_currency = $request->to_currency;
                 $rate = exchange_rates($from_currency, $to_currency);
                 $amount = 1;
-    
-                // Calculate float rate percentage
-                $floatRate = ($rate * $ExchangeRate) / 100;
-    
-                if ($request->method_type == 'payout') {
+                // calculate the float rate $rate + $floatRate percentage
+                $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
+                $converted_amount = ($amount * $rate) + $floatRate;
+
+                if($request->method_type == 'payout') {
                     $converted_amount = ($amount * $rate) - $floatRate;
-                } else {
-                    $converted_amount = ($amount * $rate) + $floatRate;
                 }
-    
+                
                 return get_success_response([
                     "from_currency" => $from_currency,
                     "to_currency" => $to_currency,
-                    "rate" => round($rate, 4),
+                    "rate" => round($converted_amount, 4),
                     "amount" => round($amount, 4),
-                    "converted_amount" => round($converted_amount, 4),
+                    // "converted_amount" => round($converted_amount, 4),
                 ]);
             }
-    
             return get_error_response(['error' => "Exchange is currently unavailable for this currency pair and payout method"], 422);
-    
+
         } catch (\Throwable $th) {
-            if (env('APP_ENV') == 'local') {
+            if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-    
-    
 
     public function getPayinMethods()
     {
