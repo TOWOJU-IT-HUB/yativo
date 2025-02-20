@@ -205,15 +205,15 @@ class MiscController extends Controller
 
 
             // float_percentage
-            $ExchangeRate = $method->exchange_rate_float ?? 1;
+            $ExchangeRate = $method->exchange_rate_float ?? 0;
             
-            if ($ExchangeRate) {
+            // if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
                 $to_currency = $request->to_currency;
                 $rate = exchange_rates($from_currency, $to_currency);
                 $amount = 1;
                 // calculate the float rate $rate + $floatRate percentage
-                $floatRate = ($rate * $ExchangeRate) * 100 ?? 0;
+                $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
                 $converted_amount = ($amount * $rate) + $floatRate;
 
                 if($request->method_type == 'payout') {
@@ -227,14 +227,14 @@ class MiscController extends Controller
                     "amount" => number_format($amount, 8),
                     "converted_amount" => $floatRate,
                 ]);
-            }
-            return get_error_response(['error' => "Exchange is currently unavailable for this currency pair and payout method"], 422);
+            // }
+            // return get_error_response(['error' => "Exchange is currently unavailable for this currency pair and payout method"], 422);
 
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
+            return get_error_response(['error' => 'Something went wrong, please contact support']);
         }
     }
 
