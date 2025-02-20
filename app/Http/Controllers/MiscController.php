@@ -190,7 +190,8 @@ class MiscController extends Controller
             }
 
             // float_percentage
-            $ExchangeRate = $method->exchange_rate_float;
+            $ExchangeRate = $method->exchange_rate_float ?? 1;
+            
             if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
                 $to_currency = $request->to_currency;
