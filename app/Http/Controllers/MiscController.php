@@ -172,11 +172,12 @@ class MiscController extends Controller
                 $method = PayinMethods::whereId($request->method_id)->first();
             } else if($request->method_type == 'payout') {
                 $method = payoutMethods::whereId($request->method_id)->first();
-            } else {
-                return get_error_response(['error' => 'Unknown transaction type']);
-            }
+            } 
+            
+            return $response()->json($method);
 
-            if(($request->method_type == 'payout') && ($request->to_currency != $method->currency)) {
+
+            if(($request->method_type == 'payout')) {
                 return get_error_response(['error' => "To currency for selected gateway must be: {$method->currency}"]);
             } else if($request->from_currency != $method->currency) {
                 return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
