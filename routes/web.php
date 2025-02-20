@@ -1487,8 +1487,8 @@ Route::get("payin-mm", function(){
             'pro_fixed_charge'    => $payin['pro_fixed_charge'],
             'pro_float_charge'    => $payin['pro_float_charge'],
         ])->update([
-            "base_currency" => $payout['base_currency'], 
-            "exchange_rate_float" => $payout["exchange_rate_float"]
+            "base_currency" => $payin['base_currency'], 
+            "exchange_rate_float" => $payin["exchange_rate_float"]
         ]);
     }
 });
@@ -1501,10 +1501,9 @@ Route::view('onramp', 'welcome');
 
 
 
-Route::get('deposits', function (){
-    $wallet = Wallet::where('slug', 'default')->delete();
-    return Deposit::latest()->limit(10)->get();
-});
+// Route::get('deposits', function (){
+//     $payouts = payoutMe
+// });
 
 
 Route::get('/', function () {

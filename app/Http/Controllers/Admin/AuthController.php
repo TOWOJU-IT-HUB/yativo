@@ -79,9 +79,9 @@ class AuthController extends Controller
                 "last_login" => now()
             ]);
             
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->to(route('admin.dashboard'));
         }
 
-        return back()->withInput($request->only('email', 'remember'));
+        return redirect()->to(route('admin.login'))->withInput($request->only('email', 'remember'));
     }
 }
