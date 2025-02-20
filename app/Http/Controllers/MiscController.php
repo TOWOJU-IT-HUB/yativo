@@ -182,7 +182,7 @@ class MiscController extends Controller
             $to_currency = $request->to_currency;
     
             // Ensure the FROM currency matches the method currency
-            if ($from_currency != $method->currency) {
+            if (($request->method_type == 'payin') && ($from_currency != $method->currency)) {
                 return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
             }
     
