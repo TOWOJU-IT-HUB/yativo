@@ -1484,7 +1484,6 @@ Route::get("payin-mm", function(){
             'charges_type'        => $payin['charges_type'],
             'fixed_charge'        => $payin['fixed_charge'],
             'float_charge'        => $payin['float_charge'],
-            'estimated_delivery'  => $payin['estimated_delivery'],
             'pro_fixed_charge'    => $payin['pro_fixed_charge'],
             'pro_float_charge'    => $payin['pro_float_charge'],
         ])->update([
