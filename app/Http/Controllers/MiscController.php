@@ -203,9 +203,9 @@ class MiscController extends Controller
                 return get_success_response([
                     "from_currency" => $from_currency,
                     "to_currency" => $to_currency,
-                    "rate" => $rate,
-                    "amount" => $amount,
-                    "converted_amount" => $converted_amount,
+                    "rate" => round($rate, 4),
+                    "amount" => round($amount, 4),
+                    "converted_amount" => round($converted_amount, 4),
                 ]);
             }
             return get_error_response(['error' => "Exchange is currently unavailable for this currency pair and payout method"], 422);
