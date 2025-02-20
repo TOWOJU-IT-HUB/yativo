@@ -184,15 +184,21 @@ class MiscController extends Controller
             // Ensure the FROM currency matches the method currency
             if (($request->method_type == 'payin') && ($from_currency != $method->currency)) {
                 return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
+            } else if (($request->method_type == 'payout') && ($to_currency != $method->currency)) {
+                return get_error_response(['error' => "To currency for selected gateway must be: {$method->currency}"]);
             }
     
             $allowedCurrencies = explode(',', $method->base_currency);
     
-            if (!in_array($to_currency, $allowedCurrencies)) {
+            if (($request->method_type == 'payout') && (!in_array($from_currency, $allowedCurrencies))) {
+                return get_error_response([
+                    'error' => "Allowed From currencies: {$to_currency}"
+                ], 400);
+            } else if (!in_array($to_currency, $allowedCurrencies)) {
                 return get_error_response([
                     'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
                 ], 400);
-            }
+            } 
     
             // Swap currencies for payouts
             if ($request->method_type == 'payout') {
