@@ -177,7 +177,7 @@ class MiscController extends Controller
             }
 
             if($request->from_currency != $method->currency) {
-                return get_error_response['error' => "From currency for selected gateway must be: {$method->currency}"]
+                return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
             }
 
             $allowedCurrencies = [];
