@@ -36,14 +36,14 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Invalid payout method selected']);
                     }
 
-                    $amount = $request->amount;
 
                     // convert fee to debit wallet current
                     $xchangeRate = exchange_rates($payoutMethod->currency, $request->debit_wallet);
+                    $amount = floatval($xchangeRate * $request->amount);
 
                     $fees = floatval($xchangeRate * get_transaction_fee($beneficiary->gateway_id, $amount, "payout", "payout"));
                     
-                    $finalAmount = floatval((($xchangeRate * $amount) + $fees) * 100);
+                    $finalAmount = floatval($amount + $fees);
                     
                     session(['transaction_fee' => $fees, "total_amount_charged" => $finalAmount]);
 
