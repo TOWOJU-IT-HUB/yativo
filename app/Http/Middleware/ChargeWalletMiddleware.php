@@ -26,7 +26,7 @@ class ChargeWalletMiddleware
 
                 $amount = $request->amount;
                 $fees = 0;
-                $finalAmount = $amount + $fees;
+                $finalAmount = floatval(($amount + $fees) * 100);
                 if ($request->has('payment_method_id')) {
                     // transaction is withdrawal to beneficiary
                     $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();

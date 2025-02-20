@@ -199,7 +199,7 @@ if (!function_exists('exchange_rates')) {
     {
         if ($from === $to) return 1; // Return 1 for same currencies
 
-        $cacheKey = "exchange_rate_{$from}_{$to}"; // Unique cache key for each currency pair
+        $cacheKey = "exchange_rate_{$from}_{$to}";
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
 
