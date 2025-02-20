@@ -86,16 +86,8 @@ class WalletController extends Controller
                 foreach ($wallets as $key => $wallet) {
                     // Ensure $wallets is defined or initialized before using it
                     $slug = strtoupper($wallet->slug);
-                    $usdRateResponse = $this->rates($slug);
-
-                    if (isset($usdRateResponse['error'])) {
-                        // Handle error from rates function
-                        return get_error_response(['error' => 'Error fetching exchange rates.', 'details' => $usdRateResponse['error']]);
-                    }
-                    // Fetch the exchange rate from the response
-                    $usdRate = $usdRateResponse['data'][$slug];
-                    // Calculate total balance
-                    $total_balance += ($wallet->balance * $usdRate);
+                    $usdRateResponse = exchange_rates($from, "USD");
+                    $total_balance += ($wallet->balance * $usdRateResponse);
                 }
                 // Return total balance
                 return get_success_response(['total_balance' => $total_balance]);
