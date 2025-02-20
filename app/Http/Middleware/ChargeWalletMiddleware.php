@@ -23,10 +23,6 @@ class ChargeWalletMiddleware
             if ($request->has('amount')) {
 
                 $user = $request->user();
-
-                $amount = $request->amount;
-                $fees = 0;
-                $finalAmount = floatval(($amount + $fees) * 100);
                 if ($request->has('payment_method_id')) {
                     // transaction is withdrawal to beneficiary
                     $beneficiary = BeneficiaryPaymentMethod::whereId($request->payment_method_id)->first();
@@ -35,6 +31,23 @@ class ChargeWalletMiddleware
                     }
 
                     $payoutMethod = payoutMethods::whereId($beneficiary->gateway_id)->first();
+
+                    if(!$payoutMethod) {
+                        return get_error_response(['error' => 'Invalid payout method selected']);
+                    }
+
+                    $amount = $request->amount;
+
+                    // convert fee to debit wallet current
+                    $xchangeRate = exchange_rates($payoutMethod->currency, $request->debit_wallet);
+
+                    $fees = floatval($xchangeRate * get_transaction_fee($beneficiary->gateway_id, $amount, "payout", "payout"));
+                    
+                    $finalAmount = floatval((($xchangeRate * $amount) + $fees) * 100);
+                    
+                    session(['transaction_fee' => $fees, "total_amount_charged" => $finalAmount]);
+
+
                     if(!$payoutMethod) {
                         return get_error_response(['error' => "Selected payout method was not found"]);
                     }

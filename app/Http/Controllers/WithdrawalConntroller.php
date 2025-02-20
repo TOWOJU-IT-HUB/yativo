@@ -188,13 +188,29 @@ class WithdrawalConntroller extends Controller
                 ]);
             }
 
-            // Prepare withdrawal data
+            $chargeNow = debit_user_wallet($finalAmount, $request->debit_wallet);
+            
+            if (isset($chargeNow['error'])) {
+                return get_error_response(['error' => $chargeNow['error']]);
+            }
+
+            // Prepare withdrawal data transaction_fee - 
             $validated['user_id'] = auth()->id();
-            $validated['raw_data'] = $request->all();
             $validated['gateway'] = $payoutMethod->gateway;
             $validated['gateway_id'] = $is_beneficiary->gateway_id;
             $validated['currency'] = $payoutMethod->currency;
             $validated['beneficiary_id'] = $validated['payment_method_id'];
+            $validated['raw_data'] = [
+                "incoming_request" => $request->all(),
+                "deposit_float" => $deposit_float,
+                "exchange_rate" => $exchange_rate,
+                "minWithdrawal" => $minWithdrawal,
+                "maxWithdrawal" => $maxWithdrawal,
+                "convertedAmount" => $convertedAmount,
+                "total_amount_charged" => session()->get('total_amount_charged'),
+                "transaction_fee" => session()->get('transaction_fee')
+            ];
+            session()->forget(['transaction_fee', 'total_amount_charged']);
             unset($validated['payment_method_id']);
 
             // Create withdrawal
