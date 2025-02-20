@@ -44,6 +44,7 @@ class payoutMethods extends Model
         "maximum_withdrawal",
         "minimum_charge",
         "maximum_charge",
+        "exchange_rate_float",
         "gateway",
         "created_at",
         "updated_at",
