@@ -198,7 +198,7 @@ class MiscController extends Controller
                 $rate = exchange_rates($from_currency, $to_currency);
                 $amount = 1;
                 // calculate the float rate $rate + $floatRate percentage
-                $floatRate = ($rate * $ExchangeRate->float_percentage) / 100 ?? 0;
+                $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
                 $converted_amount = ($amount * $rate) + $floatRate;
                 return get_success_response([
                     "from_currency" => $from_currency,
