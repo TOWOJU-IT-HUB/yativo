@@ -1094,6 +1094,8 @@ if (!function_exists('get_transaction_fee')) {
             return ['error' => "Invalid gateway selected"];
         }
 
+        Log::info("Exchange rate float is: {$gateway->exchange_rate_float}");
+
         // Default charges
         $fixed_charge = 0;
         $float_charge = 0;
