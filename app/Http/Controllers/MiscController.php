@@ -166,8 +166,18 @@ class MiscController extends Controller
                 "gateway_id" => $request->method_id,
                 "rate_type" => $request->method_type,
             ];
+
+            if($request->method_type == 'payin') {
+                $method = PayinMethods::whereId($request->method_id)->first();
+            } else if($request->method_type == 'payout') {
+                $method = payoutMethods::whereId($request->method_id)->first();
+            } else {
+                return get_error_response(['error' => 'Unknown transaction type']);
+            }
+
+
             // float_percentage
-            $ExchangeRate = ExchangeRate::where($where)->first();
+            $ExchangeRate = $method->exchange_rate_float;
             if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
                 $to_currency = $request->to_currency;

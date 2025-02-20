@@ -205,8 +205,8 @@ if (!function_exists('exchange_rates')) {
         $to = explode('.', $to)[0];
 
         foreach ([
-            "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
-            "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
+            "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]],
+            "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]]
         ] as $url => $params) {
             try {
                 $response = json_decode($client->get($url, $params)->getBody(), true);
