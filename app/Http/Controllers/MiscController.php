@@ -186,19 +186,12 @@ class MiscController extends Controller
                 return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
             }
     
-            if ($request->method_type == 'payin') {
-                $allowedCurrencies = explode(',', $method->base_currency);
-        
-                if (!in_array($to_currency, $allowedCurrencies)) {
-                    return get_error_response([
-                        'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
-                    ], 400);
-                }
-
-                if ($from_currency != $method->currency) {
-                    return get_error_response(['error' => "From currency for selected gateway must be: {$to_currency}"]);
-                }
-                
+            $allowedCurrencies = explode(',', $method->base_currency);
+    
+            if (!in_array($to_currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
+                ], 400);
             }
     
             // Swap currencies for payouts
@@ -206,18 +199,6 @@ class MiscController extends Controller
                 $temp = $from_currency;
                 $from_currency = $to_currency;
                 $to_currency = $temp;
-                
-                if ($to_currency != $method->currency) {
-                    return get_error_response(['error' => "From currency for selected gateway must be: {$to_currency}"]);
-                }
-
-                $allowedCurrencies = explode(',', $method->base_currency);
-        
-                if (!in_array($from_currency, $allowedCurrencies)) {
-                    return get_error_response([
-                        'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
-                    ], 400);
-                }
             }
     
             // Fetch exchange rate float (Ensure proper handling)
@@ -241,7 +222,7 @@ class MiscController extends Controller
                     "to_currency" => $to_currency,
                     "rate" => round($rate, 4),
                     "amount" => round($amount, 4),
-                    // "converted_amount" => round($converted_amount, 4),
+                    "converted_amount" => round($converted_amount, 4),
                 ]);
             }
     
@@ -254,6 +235,7 @@ class MiscController extends Controller
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+    
     
 
     public function getPayinMethods()
