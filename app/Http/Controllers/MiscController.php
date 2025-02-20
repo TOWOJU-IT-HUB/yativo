@@ -205,7 +205,7 @@ class MiscController extends Controller
 
 
             // float_percentage
-            $ExchangeRate = $method->exchange_rate_float ?? 1;
+            $ExchangeRate = $method->exchange_rate_float ?? 0;
             
             if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
@@ -213,7 +213,7 @@ class MiscController extends Controller
                 $rate = exchange_rates($from_currency, $to_currency);
                 $amount = 1;
                 // calculate the float rate $rate + $floatRate percentage
-                $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
+                $floatRate = ($rate * $ExchangeRate) * 100 ?? 0;
                 $converted_amount = ($amount * $rate) + $floatRate;
 
                 if($request->method_type == 'payout') {

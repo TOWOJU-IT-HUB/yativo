@@ -1067,7 +1067,7 @@ if (!function_exists('get_transaction_fee')) {
         $rate = 0;
         $rate_floated_amount = 0;
 
-        // get user pricing model
+        // Get user pricing model
         $user = auth()->user();
         if (!$user->hasActiveSubscription()) {
             $plan = PlanModel::where('price', 0)->latest()->first();
@@ -1080,23 +1080,32 @@ if (!function_exists('get_transaction_fee')) {
         $user_plan = (int) $subscription->plan_id;
 
         // Handle gateway logic
-        if (strtolower($gateway_type) == "payin"):
-            $gateway = PayinMethods::whereId($gateway)->first();
-        elseif (strtolower($gateway_type) == "payout"):
-            $gateway = payoutMethods::whereId($gateway)->first();
-        else:
+        if (strtolower($gateway_type) == "payin") {
+            $gateway = PayinMethods::whereId($gateway)->first();        
+            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+            $exchange_rate = $base_exchange_rate + (($base_exchange_rate * $exchange_rate_float) / 100);
+        } elseif (strtolower($gateway_type) == "payout") {
+            $gateway = PayoutMethods::whereId($gateway)->first();        
+            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+            $exchange_rate = $base_exchange_rate - (($base_exchange_rate * $exchange_rate_float) / 100);
+        } else {
             return ['error' => "Invalid gateway selected"];
-        endif;
+        }
+
+        // Default charges
+        $fixed_charge = 0;
+        $float_charge = 0;
 
         if ($user_plan === 3) {
-            // Handle custom pricing (Plan 3)
+            // Custom pricing (Plan 3)
             $customPricing = CustomPricing::where('user_id', $user->id)
                 ->where('gateway_id', $gateway->id)
                 ->first();
 
             if (!$customPricing) {
-                // If no custom pricing is found, fall back to Plan 2 pricing
-                $user_plan = 2;
+                $user_plan = 2; // Fallback to Plan 2 if no custom pricing
             } else {
                 $fixed_charge = $customPricing->fixed_charge;
                 $float_charge = $customPricing->float_charge;
@@ -1109,17 +1118,19 @@ if (!function_exists('get_transaction_fee')) {
             $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
         }
 
-        // Calculate the fee
-        $exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-        $fee = $exchange_rate * $fixed_charge;
-        $rate = $float_charge;
-        $rate_floated_amount = ($amount * $rate) / 100;
+        // Calculate fees properly
+        $fixed_fee_in_usd = $fixed_charge;  // Fixed charge is in USD
+        $rate = $float_charge;  // Float charge percentage
+        $float_fee_in_usd = ($amount * $rate) / 100; // Float charge in USD
 
-        $total_charge = $fee + $rate_floated_amount;
-        $minimum_charge = $gateway->minimum_charge;
-        $maximum_charge = $gateway->maximum_charge;
+        // Convert to local currency using exchange rate
+        $total_charge = ($fixed_fee_in_usd + $float_fee_in_usd) * $exchange_rate;
 
-        // Compare total charge with minimum and maximum charges
+        // Minimum & Maximum charge in local currency
+        $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
+        $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
+
+        // Apply charge limits
         if ($total_charge < $minimum_charge) {
             $total_charge = $minimum_charge;
         } elseif ($total_charge > $maximum_charge) {
@@ -1128,6 +1139,7 @@ if (!function_exists('get_transaction_fee')) {
 
         return $total_charge;
     }
+
 }
 
 if (!function_exists('formatSettlementTime')) {
