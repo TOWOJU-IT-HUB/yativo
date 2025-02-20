@@ -195,6 +195,7 @@ class WithdrawalConntroller extends Controller
             $validated['currency'] = $payoutMethod->currency;
             $validated['beneficiary_id'] = $validated['payment_method_id'];
             $validated['raw_data'] = [
+                "beneficiary" => $is_beneficiary,
                 "incoming_request" => $request->all(),
                 "deposit_float" => $deposit_float,
                 "exchange_rate" => $exchange_rate,
