@@ -98,9 +98,9 @@ Route::prefix('backoffice')->group(function () {
             Route::group([], function () {
                 Route::get('payouts', [PayoutController::class, 'index'])->name('payouts.index');
                 Route::get('payouts/{id}', [PayoutController::class, 'show'])->name('payouts.show');
-                Route::get('payouts/{id}/reject', [PayoutController::class, 'show'])->name('payouts.reject');
+                Route::post('payouts/{id}/reject', [PayoutController::class, 'show'])->name('payouts.reject');
                 Route::post('payouts/{id}/accept', [PayoutController::class, 'approvePayout'])->name('payouts.accept');
-                Route::get('payouts/{id}/process-manual', [PayoutController::class, 'manual'])->name('payouts.process-manual');
+                Route::post('payouts/{id}/process-manual', [PayoutController::class, 'manual'])->name('payouts.process-manual');
             });
 
             Route::resource('exchange_rates', ExchangeRateController::class);
