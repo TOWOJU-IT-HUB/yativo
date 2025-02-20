@@ -8,6 +8,7 @@ use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\JurisdictionCodes;
 use App\Models\PayinMethods;
+use App\Models\payoutMethods;
 use App\Models\State;
 use App\Models\User;
 use Illuminate\Http\Request;
