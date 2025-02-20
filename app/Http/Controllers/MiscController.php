@@ -186,12 +186,19 @@ class MiscController extends Controller
                 return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
             }
     
-            $allowedCurrencies = explode(',', $method->base_currency);
-    
-            if (!in_array($to_currency, $allowedCurrencies)) {
-                return get_error_response([
-                    'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
-                ], 400);
+            if ($request->method_type == 'payin') {
+                $allowedCurrencies = explode(',', $method->base_currency);
+        
+                if (!in_array($to_currency, $allowedCurrencies)) {
+                    return get_error_response([
+                        'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
+                    ], 400);
+                }
+
+                if ($from_currency != $method->currency) {
+                    return get_error_response(['error' => "From currency for selected gateway must be: {$to_currency}"]);
+                }
+                
             }
     
             // Swap currencies for payouts
@@ -200,8 +207,16 @@ class MiscController extends Controller
                 $from_currency = $to_currency;
                 $to_currency = $temp;
                 
-                if ($to_currency != $method->currency) {
+                if ($from_currency != $method->currency) {
                     return get_error_response(['error' => "From currency for selected gateway must be: {$to_currency}"]);
+                }
+
+                $allowedCurrencies = explode(',', $method->base_currency);
+        
+                if (!in_array($to_currency, $allowedCurrencies)) {
+                    return get_error_response([
+                        'error' => "Allowed to currencies: " . implode(', ', $allowedCurrencies)
+                    ], 400);
                 }
             }
     
