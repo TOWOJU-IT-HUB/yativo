@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'domain' => env('TELESCOPE_DOMAIN', 'office.yativo.com'),
+    'domain' => env('TELESCOPE_DOMAIN', 'https://office.yativo.com/'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,7 +42,7 @@ return [
     |
     */
 
-    'path' => env('TELESCOPE_PATH', 'monitor'),
+    'path' => env('TELESCOPE_PATH', 'backoffice/admin/monitor'),
 
     /*
     |--------------------------------------------------------------------------
@@ -94,7 +94,7 @@ return [
 
     'middleware' => [
         'auth:admin',
-        // Authorize::class,
+        Authorize::class,
     ],
 
     /*
