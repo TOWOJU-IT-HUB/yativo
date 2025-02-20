@@ -210,7 +210,7 @@ class MiscController extends Controller
             // if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
                 $to_currency = $request->to_currency;
-                $rate = exchange_rates($from_currency, $to_currency);
+                $rate = exchange_rates(strtoupper($from_currency), strtoupper($to_currency));
                 $amount = 1;
                 // calculate the float rate $rate + $floatRate percentage
                 $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
