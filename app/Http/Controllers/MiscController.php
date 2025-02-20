@@ -176,6 +176,18 @@ class MiscController extends Controller
                 return get_error_response(['error' => 'Unknown transaction type']);
             }
 
+            if($request->from_currency != $method->currency) {
+                return get_error_response['error' => "From currency for selected gateway must be: {$method->currency}"]
+            }
+
+            $allowedCurrencies = [];
+            $allowedCurrencies = explode(',', $method->base_currency);
+            
+            if (!in_array($request->currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' =>  "Allowed to currencies: " . $payin->base_currency
+                ], 400);
+            }
 
             // float_percentage
             $ExchangeRate = $method->exchange_rate_float;
