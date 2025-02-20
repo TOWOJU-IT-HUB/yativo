@@ -183,7 +183,7 @@ class MiscController extends Controller
             $allowedCurrencies = [];
             $allowedCurrencies = explode(',', $method->base_currency);
             
-            if (!in_array($request->currency, $allowedCurrencies)) {
+            if (!in_array($request->to_currency, $allowedCurrencies)) {
                 return get_error_response([
                     'error' =>  "Allowed to currencies: " . $method->base_currency
                 ], 400);
