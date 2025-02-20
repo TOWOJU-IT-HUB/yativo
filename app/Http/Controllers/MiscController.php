@@ -199,6 +199,10 @@ class MiscController extends Controller
                 $temp = $from_currency;
                 $from_currency = $to_currency;
                 $to_currency = $temp;
+                
+                if ($to_currency != $method->currency) {
+                    return get_error_response(['error' => "From currency for selected gateway must be: {$to_currency}"]);
+                }
             }
     
             // Fetch exchange rate float (Ensure proper handling)
