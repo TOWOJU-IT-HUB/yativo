@@ -126,6 +126,8 @@ class ChargeWalletMiddleware
         if (!$payoutMethod) {
             return get_error_response(['error' => 'Invalid payout method selected']);
         }
+
+        echo json_encode($payoutMethod); exit;
         
         // Get exchange rate
         echo $exchange_rate = get_transaction_rate($request['debit_wallet'], $beneficiary->currency, $payoutMethod->id, "payout");
