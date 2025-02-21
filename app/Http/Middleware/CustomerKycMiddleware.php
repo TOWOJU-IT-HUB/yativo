@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 use Modules\Customer\app\Models\Customer;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -43,7 +42,6 @@ class CustomerKycMiddleware
             }
         }
 
-        // Continue with the request processing
-        return $next($request);
+        return get_error_response(['message' => 'Customer not allowed'], 403);
     }
 }

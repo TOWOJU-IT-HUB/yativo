@@ -131,7 +131,6 @@ class DojahVerificationController extends Controller
             $tranfi = new TransFiController();
             $tranfi->kycForm($request);
             $userId = auth()->id();
-    
             return get_success_response($bridgeData);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()], 500);
