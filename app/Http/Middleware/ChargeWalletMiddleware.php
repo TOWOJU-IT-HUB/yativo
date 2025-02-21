@@ -76,12 +76,13 @@ class ChargeWalletMiddleware
                     ]);
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
-                        return get_error_response(['error' => $chargeNow['error'] ?? 'Insufficient wallet balance', "data" => [
+                        return get_error_response([
                             "exchange_rate" => $exchange_rate,
                             "transaction_fee" => $transaction_fee,
                             "payout_amount" => $convertedAmount,
-                            'total_amount_charged' => $xtotal
-                        ]]);
+                            'total_amount_charged' => $xtotal,
+                            'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
+                        ]); 
                     }
                 } 
 
