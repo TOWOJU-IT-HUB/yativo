@@ -35,7 +35,7 @@ class ChargeWalletMiddleware
                     }
     
                     // Convert amount using exchange rate
-                    $xchangeRate = exchange_rates($payoutMethod->currency, $request->debit_wallet);
+                    $xchangeRate = exchange_rates($request->debit_wallet, $payoutMethod->currency);
                     if (!$xchangeRate || $xchangeRate <= 0) {
                         return get_error_response(['error' => 'Exchange rate unavailable']);
                     }
