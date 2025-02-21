@@ -6,8 +6,6 @@ use App\Models\BeneficiaryFoems;
 use Closure;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Plan;
 use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\Beneficiary;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
@@ -41,9 +39,6 @@ class ChargeWalletMiddleware
                     if (!$exchange_rate || $exchange_rate <= 0) {
                         return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
                     }
-
-
-                    $new_total_fees = $this->calculateTotalFees();
 
                     $exchange_rate = floatval($exchange_rate);
                     $deposit_float = floatval($payoutMethod->exchange_rate_float ?? 0);
@@ -89,18 +84,15 @@ class ChargeWalletMiddleware
                         'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
-                    if($request->has('debug')) {
-                        var_dump([
-                            "exchange_rate" => $exchange_rate,
-                            "new_total_fees" => $new_total_fees['total_fees'],
-                            "transaction_fee" => $transaction_fee,
-                            "payout_amount" => $convertedAmount,
-                            'total_amount_charged' => $xtotal,
-                            'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                            "amount_to_be_charged" => $totalAmountInDebitCurrency,
-                            "feeInWalletCurrency" => $feeInWalletCurrency
-                        ]); exit;
-                    }
+                    var_dump([
+                        "exchange_rate" => $exchange_rate,
+                        "transaction_fee" => $transaction_fee,
+                        "payout_amount" => $convertedAmount,
+                        'total_amount_charged' => $xtotal,
+                        'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
+                        "amount_to_be_charged" => $totalAmountInDebitCurrency,
+                        "feeInWalletCurrency" => $feeInWalletCurrency
+                    ]); exit;
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
@@ -114,35 +106,5 @@ class ChargeWalletMiddleware
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
-    }
-
-
-    private function calculateTotalFees() {
-        $request = request();
-        $beneficiary = BeneficiaryPaymentMethod::whereId($request['payment_method_id'])->first();
-        if (!$beneficiary) {
-            return get_error_response(['error' => 'Beneficiary not found']);
-        }
-        
-        $payoutMethod = PayoutMethods::whereId($beneficiary->gateway_id)->first();
-        if (!$payoutMethod) {
-            return get_error_response(['error' => 'Invalid payout method selected']);
-        }
-        
-        // Get exchange rate
-        $exchange_rate = get_transaction_rate($request['debit_wallet'], $beneficiary->currency, $payoutMethod->id, "payout");
-        if (!$exchange_rate || $exchange_rate <= 0) {
-            return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
-        }
-        
-        // Calculate Fees
-        $amount = $request['amount'];
-        $float_fee = ($amount * ($payoutMethod->float_fee / 100)); // 0.2% of amount
-        $fixed_fee = $payoutMethod->fixed_fee; // Fixed fee in USD
-        
-        // Convert Fees to CLP
-        $total_fee = $float_fee + ($fixed_fee * $exchange_rate);
-        
-        return ['total_fees' => floatval($total_fee)];
     }
 }
