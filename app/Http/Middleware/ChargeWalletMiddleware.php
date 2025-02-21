@@ -101,6 +101,8 @@ class ChargeWalletMiddleware
                                 "maximum_charge" => session()->get("maximum_charge"),
                                 "fixed_charge" => session()->get("fixed_charge"),
                                 "float_charge" => session()->get("float_charge"),
+                                "base_exchange_rate" => session("base_exchange_rate"),
+                                "exchange_rate" => session("exchange_rate"),
                             ]
                         ]); exit;
                     }
