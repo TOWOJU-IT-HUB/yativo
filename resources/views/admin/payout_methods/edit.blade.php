@@ -50,13 +50,13 @@
             <!-- Fixed Charge -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Fixed Charge</label>
-                <input type="number" name="fixed_charge" value="{{ $payoutMethod->fixed_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="fixed_charge" value="{{ $payoutMethod->fixed_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Float Charge -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Float Charge</label>
-                <input type="number" name="float_charge" value="{{ $payoutMethod->float_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="float_charge" value="{{ $payoutMethod->float_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Estimated Delivery -->
@@ -68,49 +68,49 @@
             <!-- Pro Fixed Charge -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Pro Fixed Charge</label>
-                <input type="number" name="pro_fixed_charge" value="{{ $payoutMethod->pro_fixed_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="pro_fixed_charge" value="{{ $payoutMethod->pro_fixed_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Pro Float Charge -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Pro Float Charge</label>
-                <input type="number" name="pro_float_charge" value="{{ $payoutMethod->pro_float_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="pro_float_charge" value="{{ $payoutMethod->pro_float_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Minimum Withdrawal -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Minimum Withdrawal</label>
-                <input type="number" name="minimum_withdrawal" value="{{ $payoutMethod->minimum_withdrawal }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="minimum_withdrawal" value="{{ $payoutMethod->minimum_withdrawal }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Maximum Withdrawal -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Maximum Withdrawal</label>
-                <input type="number" name="maximum_withdrawal" value="{{ $payoutMethod->maximum_withdrawal }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="maximum_withdrawal" value="{{ $payoutMethod->maximum_withdrawal }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Minimum Charge -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Minimum Charge</label>
-                <input type="number" name="minimum_charge" value="{{ $payoutMethod->minimum_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="minimum_charge" value="{{ $payoutMethod->minimum_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Maximum Charge -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Maximum Charge</label>
-                <input type="number" name="maximum_charge" value="{{ $payoutMethod->maximum_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="maximum_charge" value="{{ $payoutMethod->maximum_charge }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Cutoff Hours Start -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Cutoff Hours Start</label>
-                <input type="time" name="cutoff_hrs_start" value="{{ $payoutMethod->cutoff_hrs_start }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="cutoff_hrs_start" value="{{ $payoutMethod->cutoff_hrs_start }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Cutoff Hours End -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Cutoff Hours End</label>
-                <input type="time" name="cutoff_hrs_end" value="{{ $payoutMethod->cutoff_hrs_end }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="cutoff_hrs_end" value="{{ $payoutMethod->cutoff_hrs_end }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
 
