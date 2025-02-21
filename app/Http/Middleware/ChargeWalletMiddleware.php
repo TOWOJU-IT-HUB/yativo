@@ -92,7 +92,7 @@ class ChargeWalletMiddleware
                             'total_amount_charged' => $xtotal,
                             'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
                             "amount_to_be_charged" => $totalAmountInDebitCurrency,
-                            "feeInWalletCurrency" => $feeInWalletCurrency
+                            "feeInWalletCurrency" => $feeInWalletCurrency,
                             "fee_breakdown" => [
                                 "fixed_fee_in_local_currency" => session()->get("fixed_fee_in_local_currency"),
                                 "floating_fee_in_local_currency" => session()->get("floating_fee_in_local_currency"),
