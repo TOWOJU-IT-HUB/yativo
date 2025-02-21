@@ -224,7 +224,7 @@ class WithdrawalConntroller extends Controller
 
             // Create withdrawal
             $create = Withdraw::create($validated);
-            return get_success_response(array_merge($create, ['payout_data' => $userData]), 201, "Withdrawal request received and will be processed shortly.");
+            return get_success_response(array_merge($create->toArray(), ['payout_data' => $userData]), 201, "Withdrawal request received and will be processed shortly.");
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
