@@ -104,7 +104,8 @@ class ChargeWalletMiddleware
                             "payout_amount" => $payoutAmount,
                             'amount_to_be_charged' => $amountToBeCharged,
                             'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                            "amount_to_be_charged_in_debit_currency" => $totalAmountInDebitCurrency
+                            "amount_to_be_charged_in_debit_currency" => $totalAmountInDebitCurrency,
+                            "gateway" => $payoutMethod
                         ]); exit;
                     }
     
