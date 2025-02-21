@@ -196,26 +196,30 @@ class WithdrawalConntroller extends Controller
             $validated['currency'] = $payoutMethod->currency;
             $validated['beneficiary_id'] = $validated['payment_method_id'];
             $validated['raw_data'] = [
-                // "beneficiary" => $is_beneficiary,
                 "incoming_request" => $request->all(),
                 "deposit_float" => $deposit_float,
                 "exchange_rate" => $exchange_rate,
                 "minWithdrawal" => $minWithdrawal,
                 "maxWithdrawal" => $maxWithdrawal,
                 "convertedAmount" => $convertedAmount,
-                "total_amount_charged" => session()->get('total_amount_charged'),
                 "transaction_fee" => session()->get('transaction_fee')
+                "total_amount_charged" => session()->get('total_amount_charged'),
+                'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
+                'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
+                'debit_currency' => $request->debit_wallet
             ];
-            session()->forget(['transaction_fee', 'total_amount_charged']);
+            session()->forget(['transaction_fee', 'total_amount_charged', 'transaction_fee_in_debit_currency', 'total_amount_charged_in_debit_currency']);
             unset($validated['payment_method_id']);
 
 
             $userData = [
                 "beneficiary" => $beneficiary,
                 "exchange_rate" => $exchange_rate,
-                "convertedAmount" => $convertedAmount,
-                "total_amount_charged" => session()->get('total_amount_charged'),
                 "transaction_fee" => session()->get('transaction_fee')
+                "total_amount_charged" => session()->get('total_amount_charged'),
+                'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
+                'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
+                'debit_currency' => $request->debit_wallet
             ];
 
             // Create withdrawal
