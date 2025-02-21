@@ -174,13 +174,20 @@ class MiscController extends Controller
                 $method = payoutMethods::whereId($request->method_id)->first();
             } 
             
-            if(($request->method_type == 'payout') && $request->to_currency != $method->currency) {
+            if (
+                strtolower($request->method_type) == 'payout' && 
+                strtolower($request->to_currency) != strtolower($method->currency)
+            ) {
                 return get_error_response(['error' => "To currency for selected gateway must be: {$method->currency}"]);
-            } 
+            }
             
-            if(($request->method_type == 'payin') && $request->from_currency != $method->currency) {
+            if (
+                strtolower($request->method_type) == 'payin' && 
+                strtolower($request->from_currency) != strtolower($method->currency)
+            ) {
                 return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
             }
+            
 
             $allowedCurrencies = [];
             $allowedCurrencies = explode(',', $method->base_currency);
