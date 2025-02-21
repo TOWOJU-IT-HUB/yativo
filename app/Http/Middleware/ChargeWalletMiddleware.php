@@ -8,7 +8,6 @@ use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Plan;
-use Creatydev\Plans\Models\PlanSubscriptionModel;
 use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\Beneficiary;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
@@ -23,10 +22,9 @@ class ChargeWalletMiddleware
     public function handle(Request $request, Closure $next)
     {
         // cancell all users subscriptions. 
-        foreach(PlanSubscriptionModel::all() as $u) {
-            $u->delete();
-            // $plan = Plan::whereId(1)->first();
-            // $subscription = $u->subscribeTo($plan, 30, false); // 30 days, non-recurrent
+        foreach(User::all() as $u) {
+            $plan = Plan::whereId(1)->first();
+            $subscription = $u->subscribeTo($plan, 30, false); // 30 days, non-recurrent
         }
 
         try {
