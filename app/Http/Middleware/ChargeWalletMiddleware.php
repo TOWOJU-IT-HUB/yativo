@@ -52,7 +52,7 @@ class ChargeWalletMiddleware
                     $feeInWalletCurrency = $transaction_fee * $exchange_rate;
 
                     // Calculate final amount
-                    $finalAmount = round($convertedAmount + $feeInWalletCurrency, 4);
+                    $finalAmount = round($feeInWalletCurrency, 4);
 
                     // Store values in session
                     session([
@@ -70,6 +70,7 @@ class ChargeWalletMiddleware
 
                     // Deduct from user's wallet
                     $chargeNow = debit_user_wallet($finalAmount, $request->debit_wallet);
+
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
                     }
@@ -79,7 +80,9 @@ class ChargeWalletMiddleware
                         "amount" => $request->amount,
                         "converted_amount" => $convertedAmount,
                         "final_amount" => $finalAmount,
-                        "fee" => $feeInWalletCurrency
+                        "fee" => $feeInWalletCurrency,
+                        "transaction_fee" => $transaction_fee,
+                        "chargeNow" => $chargeNow, 
                     ]);
                 } 
 
