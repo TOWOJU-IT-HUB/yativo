@@ -949,7 +949,7 @@ if (!function_exists('convertToUSD')) {
 }
 
 if (!function_exists('debit_user_wallet')) {
-    function debit_user_wallet($amount, $currency, $description = 'Charge for service')
+    function debit_user_wallet($amount, $currency, $description = 'Charge for service', $arr = [])
     {
         $request = request();
         $user = $request->user();

@@ -69,21 +69,24 @@ class ChargeWalletMiddleware
                     }
 
                     // Deduct from user's wallet
-                    $chargeNow = debit_user_wallet($finalAmount, $request->debit_wallet);
+                    $chargeNow = debit_user_wallet(floatval($convertedAmount + $transaction_fee), $request->debit_wallet, "Payout transaction", [
+                        "transaction_fee" => $transaction_fee,
+                        "payout_amount" => $convertedAmount
+                    ]);
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
                     }
 
-                    return response()->json([
-                        "rate" => $exchange_rate,
-                        "amount" => $request->amount,
-                        "converted_amount" => $convertedAmount,
-                        "final_amount" => $finalAmount,
-                        "fee" => $feeInWalletCurrency,
-                        "transaction_fee" => $transaction_fee,
-                        "chargeNow" => $chargeNow, 
-                    ]);
+                    // return response()->json([
+                    //     "rate" => $exchange_rate,
+                    //     "amount" => $request->amount,
+                    //     "converted_amount" => $convertedAmount,
+                    //     "final_amount" => $finalAmount,
+                    //     "fee" => $feeInWalletCurrency,
+                    //     "transaction_fee" => $transaction_fee,
+                    //     "chargeNow" => $chargeNow, 
+                    // ]);
                 } 
 
                 return $next($request);
