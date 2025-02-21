@@ -47,22 +47,34 @@ class ChargeWalletMiddleware
                     // Convert amount to beneficiary's currency (Payout Amount)
                     $payoutAmount = $exchange_rate * floatval($request->amount);
     
-                    // Calculate transaction fee
-                    $transaction_fee = get_transaction_fee($payoutMethod->id, $request->amount, "payout", "payout");
+                    // Get fee parameters
+                    $feeData = get_transaction_fee($payoutMethod->id, $request->amount, "payout", "payout");
     
-                    // Add fee to payout amount to get the total amount charged
-                    $totalAmountCharged = $payoutAmount + $transaction_fee;
+                    $floatFeePercentage = floatval($feeData['float_fee'] ?? 0);
+                    $fixedFee = floatval($feeData['fixed_fee'] ?? 0);
     
-                    // Convert the total amount charged back to the debit wallet currency
-                    $totalAmountInDebitCurrency = round($totalAmountCharged / $exchange_rate, 4);
-                    $transactionFeeInDebitCurrency = round($transaction_fee / $exchange_rate, 4);
+                    // Convert fixed fee to payout currency
+                    $fixedFeeInPayoutCurrency = $fixedFee * $exchange_rate;
+    
+                    // Calculate float fee
+                    $floatFee = ($floatFeePercentage / 100) * $payoutAmount;
+    
+                    // Calculate total transaction fee
+                    $transactionFee = $floatFee + $fixedFeeInPayoutCurrency;
+    
+                    // Calculate total amount to be charged
+                    $amountToBeCharged = $payoutAmount + $transactionFee;
+    
+                    // Convert the total charge back to the debit wallet currency
+                    $totalAmountInDebitCurrency = round($amountToBeCharged / $exchange_rate, 4);
+                    $transactionFeeInDebitCurrency = round($transactionFee / $exchange_rate, 4);
     
                     // Store values in session
                     session([
-                        'transaction_fee' => $transaction_fee,
+                        'transaction_fee' => $transactionFee,
                         'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
-                        'total_amount_charged' => $totalAmountCharged,
-                        'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
+                        'amount_to_be_charged' => $amountToBeCharged,
+                        'amount_to_be_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
     
                     // Validate allowed currencies
@@ -75,20 +87,24 @@ class ChargeWalletMiddleware
     
                     // Deduct from user's wallet
                     $chargeNow = debit_user_wallet(floatval($totalAmountInDebitCurrency * 100), $request->debit_wallet, "Payout transaction", [
-                        'transaction_fee' => $transaction_fee,
+                        'transaction_fee' => $transactionFee,
                         'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
-                        'total_amount_charged' => $totalAmountCharged,
-                        'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
+                        'amount_to_be_charged' => $amountToBeCharged,
+                        'amount_to_be_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
     
                     if ($request->has('debug')) {
                         var_dump([
                             "exchange_rate" => $exchange_rate,
-                            "transaction_fee" => $transaction_fee,
+                            "float_fee_percentage" => $floatFeePercentage,
+                            "fixed_fee" => $fixedFee,
+                            "fixed_fee_in_payout_currency" => $fixedFeeInPayoutCurrency,
+                            "float_fee" => $floatFee,
+                            "transaction_fee" => $transactionFee,
                             "payout_amount" => $payoutAmount,
-                            'total_amount_charged' => $totalAmountCharged,
+                            'amount_to_be_charged' => $amountToBeCharged,
                             'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                            "amount_to_be_charged" => $totalAmountInDebitCurrency
+                            "amount_to_be_charged_in_debit_currency" => $totalAmountInDebitCurrency
                         ]); exit;
                     }
     
@@ -105,6 +121,5 @@ class ChargeWalletMiddleware
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
-    
     
 }
