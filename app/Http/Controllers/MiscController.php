@@ -210,6 +210,7 @@ class MiscController extends Controller
 
             // float_percentage
             $ExchangeRate = $method->exchange_rate_float ?? 0;
+
             
             // if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
@@ -219,6 +220,12 @@ class MiscController extends Controller
                 // calculate the float rate $rate + $floatRate percentage
                 $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
                 $converted_amount = ($amount * $rate) + $floatRate;
+            return response()->json([
+                                    'rate_float' => $ExchangeRate,\
+                                    'rate' => $rate,
+                                    'floatRate' => $floatRate,
+                                    'converted_amount'
+                                ]);
 
                 if($request->method_type == 'payout') {
                     $converted_amount = ($amount * $rate) - $floatRate;
