@@ -40,11 +40,18 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Exchange rate unavailable']);
                     }
     
-                    $amount = round(floatval($request->amount) * $xchangeRate, 4);
-                    $fees = floatval(get_transaction_fee($beneficiary->gateway_id, $amount, "payout", "payout"));
-                    $finalAmount = round($amount + $fees, 4);
+                    $amountInWalletCurrency = round(floatval($request->amount) * $xchangeRate, 4);
+                    $transactionFee = floatval(get_transaction_fee($beneficiary->gateway_id, $request->amount, "payout", "payout"));
     
-                    session(['transaction_fee' => $fees, "total_amount_charged" => $finalAmount]);
+                    // Corrected total amount calculation
+                    $feeInWalletCurrency = round($transactionFee * $xchangeRate, 4);
+                    $finalAmount = round($amountInWalletCurrency + $feeInWalletCurrency, 4);
+    
+                    // Store values in session
+                    session([
+                        'transaction_fee' => $feeInWalletCurrency,
+                        'total_amount_charged' => $finalAmount
+                    ]);
     
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
                     if (!in_array($request->debit_wallet, $allowedCurrencies)) {
@@ -67,5 +74,6 @@ class ChargeWalletMiddleware
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
+    
     
 }
