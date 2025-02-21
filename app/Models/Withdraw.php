@@ -50,7 +50,7 @@ class Withdraw extends Model
     public function transactions()
     {
         return $this->hasMany(TransactionRecord::class, 'transaction_id', 'id')
-            ->where('transaction_type', 'deposit');
+            ->where('transaction_memo', 'payout');
     }
 
        /**

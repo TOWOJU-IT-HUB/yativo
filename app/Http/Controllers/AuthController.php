@@ -52,7 +52,7 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
 
             $token = auth()->attempt($credentials);
 
-            $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $email)->first();
 
             if ($token === false) {
                 return get_error_response(['error' => 'Invalid login credentials'], 401);

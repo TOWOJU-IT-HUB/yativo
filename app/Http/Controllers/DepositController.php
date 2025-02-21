@@ -31,7 +31,7 @@ class DepositController extends Controller
         try {
             $request = request();
             $per_page = $request->per_page ?? per_page();
-            $deposits = Deposit::whereUserId(active_user())->latest()->paginate($per_page);
+            $deposits = Deposit::whereUserId(active_user())->with(['depositGateway'])->latest()->paginate($per_page);
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
@@ -50,37 +50,81 @@ class DepositController extends Controller
     public function store(Request $request)
     {
         try {
+            if(!$request->has('redirect_url') || $request->redirect_url == null) {
+                $request->merge(['redirect_url' => 'https://app.yativo.com']);
+            }
             $validate = Validator::make(
                 $request->all(),
                 [
-                    'gateway' => 'required',
-                    'amount' => 'required',
-                    'currency' => 'sometimes',
-                    'credit_wallet' => 'sometimes'
+                    'gateway' => 'required|numeric|min:1',
+                    'amount' => 'required|numeric',
+                    'currency' => 'required_without:credit_wallet',
+                    'credit_wallet' => 'required_without:currency',
+                    'redirect_url' => 'required'
                 ]
             );
 
+            if(!$request->has('credit_wallet') && $request->has('currency')) {
+                $request->merge([
+                    'credit_wallet' => $request->currency
+                ]);
+            }
+
+            if(!$request->has('currency') && $request->has('credit_wallet')) {
+                $request->merge([
+                    'currency' => $request->credit_wallet
+                ]);
+            }
+            
             if ($validate->fails()) {
                 return get_error_response($validate->errors()->toArray());
             }
 
             $user = $request->user();
 
-            if (!$user->hasWallet($request->credit_wallet ?? $request->currency)) {
+            if (!$user->hasWallet($request->currency)) {
                 return get_error_response(['error' => "Invalid wallet selected"], 400);
             }
 
             $payin = PayinMethods::whereId($request->gateway)->first();
+
+            if (!$payin) {
+                return get_error_response(['error' => 'Invalid payment gateway selected.'], 400);
+            }
+            $allowedCurrencies = [];
+            $allowedCurrencies = explode(',', $payin->base_currency);
             
-            if($payin->minimum_deposit > $request->amount) {
-                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is {$payin->minimum_deposit}"], 400);
+            if (!in_array($request->currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' =>  "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payin->base_currency
+                ], 400);
             }
-
-            if($payin->maximum_deposit < $request->amount) {
-                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is {$payin->maximum_deposit}"], 400);
+            
+            $exchange_rate = get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin");
+            
+            if (!$exchange_rate || $exchange_rate <= 0) {
+                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
             }
+            $exchange_rate = floatval($exchange_rate);
+            $deposit_float = floatval($payin->exchange_rate_float ?? 0);
 
-            $exchange_rate = floatval(get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
+            // Calculate percentage and add to exchange rate
+            $exchange_rate += ($exchange_rate * $deposit_float / 100);
+
+
+            $amount = floatval($request->amount ?? 0);
+            if ($amount <= 0) {
+                return get_error_response(['error' => 'Invalid deposit amount.'], 400);
+            }
+            
+            if (($payin->minimum_deposit * $exchange_rate) > $amount) {
+                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is ". floatval($payin->minimum_deposit * $exchange_rate)], 400);
+            }
+            
+            if (($payin->maximum_deposit * $exchange_rate) < $amount) {
+                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is ". floatval($payin->maximum_deposit * $exchange_rate)], 400);
+            }
+            
 
             // record deposit info into the DB
             $deposit = new Deposit();
@@ -90,12 +134,11 @@ class DepositController extends Controller
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
             $deposit->receive_amount = floatval($request->amount * $exchange_rate);
-            $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+            $transaction_fee = floatval($exchange_rate * get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin"));
 
             if(is_array($transaction_fee) && isset($transaction_fee['error'])) {
                 return get_error_response($transaction_fee, 422);
             }
-            // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
 
             if (!$payin) {
                 return get_error_response(['error' => 'Invalid gateway, please contact support']);
@@ -106,9 +149,9 @@ class DepositController extends Controller
                 $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
                 $arr['payment_info'] = [
                     "send_amount" => round($request->amount / $exchange_rate, 4)." $payin->currency",
-                    "receive_amount" => ($request->amount * $exchange_rate) .explode(".", $deposit->deposit_currency)[0],
+                    "receive_amount" => round($request->amount * $exchange_rate, 2) . explode(".", $deposit->deposit_currency)[0],
                     "exchange_rate" => "1" . strtoupper($payin->currency) . " ~ $exchange_rate" . strtoupper($request->credit_wallet ?? $request->currency),
-                    "transaction_fee" => "$transaction_fee $payin->currency",
+                    "transaction_fee" => round($transaction_fee * $exchange_rate, 2) .$payin->currency,
                     "payment_method" => $payin->method_name,
                     "estimate_delivery_time" => formatSettlementTime($payin['settlement_time']),
                     "total_amount_due" => "$total_amount_due $payin->currency"
@@ -246,56 +289,66 @@ class DepositController extends Controller
             $validate = Validator::make($request->all(), [
                 'country' => 'required|min:3|max:3'
             ]);
-
+    
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
-
+    
             $where = [
                 'country' => $request->country
             ];
-
-
+    
             $currencies = PayinMethods::where($where)
                 ->join('currency_lists', 'currency_lists.currency_code', '=', 'payin_methods.currency')
-                ->groupBy('currency_lists.currency_code', 'currency_lists.currency_name', 'currency_lists.currency_symbol')
                 ->select('currency_lists.currency_code', 'currency_lists.currency_name', 'currency_lists.currency_symbol')
                 ->get();
-
+    
             return get_success_response($currencies);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+    
 
     public function payinMethods(Request $request)
     {
         try {
+            // Validation: country and currency can be nullable
             $validate = Validator::make($request->all(), [
-                'country' => 'required|min:3|max:3',
-                'currency' => 'required'
+                'country' => 'nullable|min:3|max:3',  // country can be null or 3 chars long
+                'currency' => 'nullable|min:3|max:3', // currency can be null or 3 chars long
             ]);
 
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
-            $where = [
-                'country' => $request->country,
-                'currency' => $request->currency
-            ];
+            // Initialize the query conditions based on which parameter is provided
+            $where = [];
+            if ($request->has('country')) {
+                $where['country'] = $request->country;
+            }
+
+            if ($request->has('currency')) {
+                $where['currency'] = $request->currency;
+            }
+
+            // Fetch the payin methods based on the query conditions
             $methods = PayinMethods::where($where)->get();
+
             return get_success_response($methods);
         } catch (\Throwable $th) {
+            // Handle errors
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+
 
     public function payinMethodsCountries()
     {

@@ -112,6 +112,33 @@
                 <label class="block text-gray-700 dark:text-gray-200">Cutoff Hours End</label>
                 <input type="time" name="cutoff_hrs_end" value="{{ $payoutMethod->cutoff_hrs_end }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
+
+
+            <!-- Operating Hours -->
+            <div class="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Working Hours Start -->
+                <div class="form-group">
+                    <label for="Working_hours_end" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Exchange Rate Float</label>
+                    <input type="tel" id="exchange_rate_float" name="exchange_rate_float"
+                        value="{{ old('exchange_rate_float', $payoutMethod->exchange_rate_float) }}"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                    @error('exchange_rate_float')
+                        <div class="text-sm text-red-500 mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <!-- Working Hours End -->
+                <div class="form-group">
+                    <label for="base_currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Base Currency</label>
+                    <input type="text" id="base_currency" name="base_currency"
+                        value="{{ old('base_currency', $payoutMethod->base_currency) }}"
+                        class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                    @error('base_currency')
+                        <div class="text-sm text-red-500 mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+            </div>
+
         </div>
 
         <div class="mt-6">

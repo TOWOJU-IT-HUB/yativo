@@ -69,7 +69,9 @@ class payoutMethodsController extends Controller
             'minimum_charge' => 'nullable|numeric',
             'maximum_charge' => 'nullable|numeric',
             'cutoff_hrs_start' => 'nullable',
-            'cutoff_hrs_end' => 'nullable'
+            'cutoff_hrs_end' => 'nullable',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes'
         ]);
 
         if (empty($request->country)) {
@@ -108,7 +110,9 @@ class payoutMethodsController extends Controller
             'minimum_charge' => 'nullable|numeric',
             'maximum_charge' => 'nullable|numeric',
             'cutoff_hrs_start' => 'nullable',
-            'cutoff_hrs_end' => 'nullable'
+            'cutoff_hrs_end' => 'nullable',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes',
         ]);
 
         $payoutMethod->update($request->all());

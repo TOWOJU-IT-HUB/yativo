@@ -40,4 +40,10 @@ class OnrampController extends Controller
         $response = $this->onrampService->payOut($data);
         return response()->json($response);
     }
+
+    public function orderStatus()
+    {
+        $response = $this->onrampService->orderStatus($data);
+        return $response;
+    }
 }

@@ -211,7 +211,7 @@ class VirtualAccountsController extends Controller
     private function createUSDVirtualAccount($request)
     {
         $bridge = new BridgeController();
-        return $bridge->createVirtualAccount($request);
+        return $bridge->createVirtualAccount($request->customer_id);
     }
 
     private function createBRLVirtualAccount($request)
@@ -220,7 +220,7 @@ class VirtualAccountsController extends Controller
 
         $payload = [
             "amount" => floatval(0),
-            "referenceLabel" => $request->customer_id
+            "referenceLabel" => \Str::random(16)
         ];
 
         $user = auth()->user();
@@ -353,21 +353,21 @@ class VirtualAccountsController extends Controller
 
     public function get_account_details($account_id, $isApi = true)
     {
-        try {
-            $local = new Localpayments();
-            $curl = $local->bank()->getVirtualAccount($account_id);
-            if ($isApi === false) {
-                return $curl;
-            }
-            if (isset($curl['status']) and (int) $curl['status']['code'] != 200) {
-                foreach ($curl["error"] as $error) {
-                    $errors[] = $error;
-                }
-                return get_error_response(["error" => $errors]);
-            }
-        } catch (\Throwable $th) {
-            return ["error" => $th->getMessage()];
-        }
+        // try {
+        //     $local = new Localpayments();
+        //     $curl = $local->bank()->getVirtualAccount($account_id);
+        //     if ($isApi === false) {
+        //         return $curl;
+        //     }
+        //     if (isset($curl['status']) and (int) $curl['status']['code'] != 200) {
+        //         foreach ($curl["error"] as $error) {
+        //             $errors[] = $error;
+        //         }
+        //         return get_error_response(["error" => $errors]);
+        //     }
+        // } catch (\Throwable $th) {
+        //     return ["error" => $th->getMessage()];
+        // }
     }
 
     public function bulk_account_creation(Request $request)

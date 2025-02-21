@@ -50,6 +50,13 @@ class BusinessController extends Controller
         return view('admin.business.index', compact('businesses'));
     }
 
+    private function getUserWallets($userId)
+    {
+        $user = User::findOrFail($userId);
+        $wallets = $user->wallets; // Get all wallets of the user
+        return $wallets;
+    }
+
     public function show($id)
     {
         $business = Business::whereId($id)->with('user')->first();
@@ -60,6 +67,7 @@ class BusinessController extends Controller
         $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $user->id)->get();
         $deposits = Deposit::latest()->limit(20)->where('user_id', $user->id)->get();
         $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $user->id)->get();
+        $wallets =  $this->getUserWallets($user->id);
 
         // $business = $user;
 
@@ -74,7 +82,7 @@ class BusinessController extends Controller
         //     "withdrawals" => $withdrawals,
         // ];
 
-        return view('admin.business.show', compact('business', 'user', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
+        return view('admin.business.show', compact('business', 'wallets', 'user', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
     }
 
     /**

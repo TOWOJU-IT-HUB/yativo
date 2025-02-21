@@ -158,15 +158,8 @@ class CustomerController extends Controller
                 'customer_email' => 'required',
                 'customer_phone' => 'required',
                 'customer_type' => 'required',
-                "send_kyc_mail" => 'sometimes|boolean|in:true, false, 0, 1',
+                // "send_kyc_mail" => 'sometimes|boolean|in:true,false,0,1',
                 'customer_country' => 'required',
-                // 'customer_address' => 'required|array',
-                // 'customer_idType' => 'required',
-                // 'customer_idNumber' => 'required',
-                // 'customer_idCountry' => 'required',
-                // 'customer_idExpiration' => 'required',
-                // 'customer_idFront' => 'required',
-                // 'customer_idBack' => 'required',
             ]);
 
             if ($validate->fails()) {
@@ -189,21 +182,6 @@ class CustomerController extends Controller
                 return get_error_response($validator->errors()->toArray(), 422);
             }
 
-            // $customerData = [
-            //     'customer_name' => $request->customer_name,
-            //     'customer_email' => $request->customer_email,
-            //     'customer_phone' => $request->customer_phone,
-            //     'customer_country' => $request->customer_country,
-            //     'customer_address' => $request->customer_address,
-            //     'customer_idType' => $request->customer_idType,
-            //     'customer_idNumber' => $request->customer_idNumber,
-            //     'customer_idCountry' => $request->customer_idCountry,
-            //     'customer_idExpiration' => $request->customer_idExpiration,
-            // ];
-
-
-            // $json_data = encryptCustomerData(json_encode($customerData));
-
             $customer = new Customer();
             $customer->user_id = auth()->id();
             $customer->customer_id = generate_uuid();
@@ -212,15 +190,7 @@ class CustomerController extends Controller
             $customer->customer_phone = $request->customer_phone;
             $customer->customer_status = 'active';
             $customer->customer_country = $request->customer_country;
-            // $customer->customer_address = $request->customer_address;
-            // $customer->customer_idType = encryptCustomerData($request->customer_idType) ?? null;
-            // $customer->customer_idNumber = encryptCustomerData($request->customer_idNumber) ?? null;
-            // $customer->customer_idCountry = encryptCustomerData($request->customer_idCountry) ?? null;
-            // $customer->customer_idExpiration = encryptCustomerData($request->customer_idExpiration) ?? null;
-            // $customer->customer_idFront = encryptCustomerData($request->customer_idFront) ?? null;
-            // $customer->customer_idBack = encryptCustomerData($request->customer_idBack) ?? null;
-            // $customer->json_data = $json_data;
-
+            
             if ($customer->save()) {
                 return get_success_response($customer, 201);
             } else {

@@ -64,7 +64,7 @@ class BitsoServices
             $responseBody = json_decode($response->getBody()->getContents(), true);
             $httpCode = $response->getStatusCode();
 
-            Log::info(json_encode($responseBody));
+            Log::info('Bitso response body: ', $responseBody);
 
             if ($httpCode !== 200) {
                 if (isset($responseBody['error'])) {
@@ -82,6 +82,7 @@ class BitsoServices
                 return $responseBody['payload'];
             }
 
+            Log::info("Bitso transaction result: ", ['response' => $responseBody]);
             return $responseBody;
         } catch (\GuzzleHttp\Exception\RequestException $e) {
             Log::error($e->getMessage());
@@ -127,7 +128,7 @@ class BitsoServices
     public function depositCop($amount, $cellphone, $email, $documentType, $documentNumber, $fullName)
     {
         $this->requestPath = "/api/v3/funding_details/pse/payment_links";
-        $callback_url = $request->callback_url ?? env('WEB_URL', route('bitso.cop.deposit'));
+        $callback_url = request()->redirect_url ?? "https://app.yativo.com";
         $data = [
             "amount" => $amount,
             "cellphone" => $cellphone,
@@ -204,5 +205,12 @@ class BitsoServices
             Log::error($th->getMessage());
             return ['error' => 'Failed to store USD account details'];
         }
+    }
+
+    public function getDepositStatus($fid)
+    {
+        $this->requestPath = "/api/v3/fundings/{$fid}";
+        $request = $this->sendRequest($payload, 'GET');
+        return $request;
     }
 }

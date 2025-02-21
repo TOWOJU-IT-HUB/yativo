@@ -30,6 +30,7 @@ use Modules\SendMoney\app\Models\SendQuote;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 use Towoju5\Localpayments\Localpayments;
+use App\Services\BrlaDigitalService;
 
 
 /**
@@ -102,17 +103,6 @@ class PayoutService
         }
     }
 
-    public function binance_pay($quoteId, $currency, $payoutObject)
-    {
-        try {
-            $binance = new BinancePayController();
-            $init = $binance->withdrawal($quoteId, $payoutObject->amount, $currency);
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
-    }
-
     public function advcash($quoteId, $currency, $payoutObject)
     {
         try {
@@ -124,72 +114,12 @@ class PayoutService
         }
     }
 
-    public function flutterwave($quoteId, $currency, $payoutObject)
-    {
-        try {
-            $flutterwave = new FlutterwaveController();
-            $init = $flutterwave->payout($quoteId, $payoutObject->amount, $payoutObject->toArray());
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
-    }
-
-    public function coinpayments($quoteId, $currency, $payoutObject): object|array
-    {
-        $coinpayment = new CoinPaymentsController();
-        $checkout = $coinpayment->pay($quoteId, $currency, $payoutObject);
-        if (isset($checkout['error']) and $checkout['error'] == 'ok') {
-            return $checkout['result'];
-        } else {
-            return $checkout;
-        }
-
-    }
-
     public function paypal($quoteId, $currency, $payoutObject): object|array
     {
         $paypal = new PayoutController();
         $beneficiaryId = request()->payment_method_id;
         $checkout = $paypal->init($quoteId, $currency, $payoutObject);
         return $checkout;
-    }
-
-    public function monnet($quoteId, $currency, $payoutObject): object|array
-    {
-        // var_dump("Here i am. monnet serveices"); exit;
-        $request = request();
-        $monnet = new MonnetServices();
-        $beneficiaryId = $request->payment_method_id;
-        $checkout = $monnet->payout(
-            $request->amount,
-            $currency,
-            $beneficiaryId,
-            $quoteId
-        );
-
-        if (!isset($checkout['errors'])) {
-            return $checkout;
-        }
-        return ['error' => $checkout["errors"]];
-    }
-
-    public function local_payment($quoteId, $currency, $payoutObject)
-    {
-        try {
-            $request = request();
-            $beneficiaryId = $request->payment_method_id;
-            $local = new LocalPaymentsController();
-            $payout = $local->payout(
-                $request->amount,
-                $currency,
-                $beneficiaryId,
-                $quoteId
-            );
-            return $payout;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
     }
 
     public function bitso($quoteId, $currency, $payoutObject)
@@ -263,11 +193,12 @@ class PayoutService
                 "amount" => $payoutObject->amount * $rate,
                 "order" => $quoteId,
                 "type" => "business_transaction",
+                "beneficiary_email" => "emma@yativo.com"
             ];
 
-            if (isset($formArray['email'])) {
-                $requestBody['beneficiary_email'] = $formArray['email'];
-            }
+            // if (isset($formArray['email'])) {
+            //     $requestBody['beneficiary_email'] = $formArray['email'];
+            // }
 
             // if (isset($formArray['beneficiary_type'])) {
             //     $formArray['beneficiary_type'] = strtolower($formArray['beneficiary_type']);
@@ -313,30 +244,11 @@ class PayoutService
         }
     }
 
-    public function transak($quoteId, $amount, $currency)
-    {
-        if (!empty($amount) && !empty($currency)) {
-            $baseUrl = getenv('TRANSAK_BASE_URL');
-
-            $queryParams = [
-                'network' => "ethereum",
-                'cryptoCurrencyCode' => "USDC",
-                'apiKey' => getenv('TRANSAK_API_KEY'),
-                'fiatCurrency' => $currency,
-                'fiatAmount' => $amount
-            ];
-
-            $queryString = http_build_query($queryParams);
-
-            $url = $baseUrl . '?' . $queryString;
-            return $url;
-        }
-    }
-
-    public function brla($quoteId, $amount, $currency, $payoutObject)
+    public function brla($quoteId, $currency, $payoutObject)
     {
         $request = request();
         try {
+            $amount = $payoutObject->amount;
             $beneficiaryId = $request->payment_method_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
@@ -356,7 +268,7 @@ class PayoutService
 
             $formArray = (array) $beneficiary->payment_data;
 
-            $payload = [
+            $payload = array_filter([
                 'pixKey' => $formArray['pixKey'] ?? null,
                 'taxId' => $formArray['taxId'] ?? null,
                 'amount' => $amount,
@@ -365,7 +277,7 @@ class PayoutService
                 'ispb' => $formArray['ispb'] ?? null,
                 'branchCode' => $formArray['branchCode'] ?? null,
                 'accountNumber' => $formArray['accountNumber'] ?? null,
-            ];
+            ]);
             $brla = new BrlaDigitalService();
             $process = $brla->createPayOutOrder($payload);
             return $process;
@@ -409,5 +321,10 @@ class PayoutService
             'success' => true,
             'message' => 'Transaction status updated successfully.',
         ]);
+    }
+
+    public function floid()
+    {
+        return ['error' => 'Payout method is currently unavailable'];
     }
 }

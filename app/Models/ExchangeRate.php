@@ -12,11 +12,6 @@ class ExchangeRate extends Model
 
 
     protected $fillable = [
-        // "coupon_code",
-        // "coupon_discount",
-        // "coupon_expires_at",
-        // "coupon_status",
-        // "coupon_type"
         "gateway_id",
         "rate_type",
         "float_percentage",

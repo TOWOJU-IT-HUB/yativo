@@ -186,27 +186,18 @@
                                         <p class="mb-10 font-medium">
                                             Are you sure you want to reject this payout? Please select a reason.
                                         </p>
-                                        <form action="{{ route('admin.payouts.reject', $payout->id) }}" method="POST">
+                                        <form action="{{ route('admin.payouts.process-manual', $payout->id) }}" method="POST">
                                             @csrf
                                             <div class="mb-4">
                                                 <label
                                                     class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason
                                                     for
                                                     Rejection</label>
-                                                <select name="reason"
-                                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input">
-                                                    <option value="insufficient_funds">Insufficient Funds</option>
-                                                    <option value="invalid_account">Invalid Account Details</option>
-                                                    <option value="suspicious_activity">Suspicious Activity</option>
-                                                    <option value="other">Other</option>
+                                                <select name="status" class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input">
+                                                    <option value="complete">Complete Payout (Mark Successful)</option>
+                                                    <option value="failed">Failed</option>
+                                                    <option value="expired">Expire</option>
                                                 </select>
-                                            </div>
-                                            <div class="mb-4">
-                                                <label
-                                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300">Additional
-                                                    Comments</label>
-                                                <textarea name="comments" rows="3"
-                                                    class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input"></textarea>
                                             </div>
                                             <div class="flex justify-between gap-3">
                                                 <button @click="modalOpen = false" type="button"
@@ -215,7 +206,7 @@
                                                 </button>
                                                 <button type="submit"
                                                     class="px-4 py-2 text-sm font-medium text-white bg-danger rounded-md hover:bg-red-600">
-                                                    Reject
+                                                    Process Payout Update
                                                 </button>
                                             </div>
                                         </form>

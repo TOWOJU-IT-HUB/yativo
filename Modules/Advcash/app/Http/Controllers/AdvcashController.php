@@ -81,8 +81,8 @@ class AdvcashController extends Controller
     public function handleCallback(Request $request)
     {
         // Extract query parameters from the URL
-        $queryParams = $request->query();
-        Log::info("Processing AdvCash payin with query parameters:", ['query_params' => $queryParams]);
+        $queryParams = $request->all();
+        Log::info("Advcash parameters:", ['query_params' => $queryParams]);
 
         // Extract specific parameters from query
         $amount = $queryParams['ac_amount'] ?? 0;

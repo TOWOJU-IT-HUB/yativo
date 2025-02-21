@@ -31,7 +31,7 @@ class FlowController extends Controller
                 'quote_id' => $quoteId,
                 'custom' => $quoteId,
                 'amount' => $amount,
-                'redirect_url' => route('floid.callback.redirect'),
+                'redirect_url' => request()->redirect_url ?? route('floid.callback.redirect'),
                 'webhook_url' => route('floid.callback.success'),
                 // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
@@ -55,15 +55,11 @@ class FlowController extends Controller
     public function getChlPaymentStatus($token = null)
     {
         $request = request();
-        Log::info("Floid request and response data", ['request' => $request->getContent()]);
-
         $url = "https://api.floid.app/cl/payments/check";
-
         $token = $token ?? $request->payment_token;
-
         $result = $this->getPaymentStatus($url, $token);
-
-        if (isset($result['payment_url'])) {
+        // Log::info("Floid request and response data", ['request' => $request->getContent()]);
+        if (isset($result['status'])) {
             return $result;
         }
         return ["error" => $result];
@@ -72,7 +68,7 @@ class FlowController extends Controller
     public function getPenPaymentStatus($token = null)
     {
         $request = request();
-        Log::info("Floid request and response data", ['request' => $request->getContent()]);
+        // Log::info("Floid request and response data", ['request' => $request->getContent()]);
 
         $url = "https://api.floid.app/pe/payments/check";
 
@@ -80,39 +76,49 @@ class FlowController extends Controller
 
         $result = $this->getPaymentStatus($url, $token);
 
-        if (isset($result['payment_url'])) {
+        if (isset($result['status'])) {
             return $result;
         }
         return ["error" => $result];
     }
 
-    private function getPaymentStatus($url, $payment_token)
+    public function getPaymentStatus($url, $payment_token)
     {
         $request = request();
-        Log::info("Floid request and response data", ['request' => $payment_token]);
+        // Log::info("Floid request and response data", ['request' => $payment_token]);
 
         $authToken = env("FLOID_AUTH_TOKEN");
 
         $response = Http::withToken($authToken)->withHeaders([
             'Content-Type' => 'application/json',
-        ])->get($url, [
+        ])->post($url, [
                     'payment_token' => $payment_token
                 ]);
 
         $result = $response->json();
+        Log::info('Direct status from floid - getPaymentStatus: ', ['getPaymentStatus' => $result]);
         return $result;
     }
 
     public function callback(Request $request)
     {
         $rawInput = file_get_contents('php://input');
-        Log::info('Raw request input:', ['data' => $rawInput]);
-
-
-        Log::info("Floid request and response data", ['request' => $request->getContent()]);
-
         $requestBody = $request->all();
         Log::info('Floid callback request body:', $requestBody);
+        if(isset($request->id) && !empty($request->id)) {
+            $deposit = Deposit::where('gateway_deposit_id', $request->id)->first();
+            if($deposit) {
+                // get the deposit then process it.
+                if(strtoupper($deposit->currency) == "PEN") {
+                    return $this->getPenPaymentStatus($request->id);
+                } else if(strtoupper($deposit->currency) == "CLP") {
+                    return $this->getChlPaymentStatus($request->id);
+                } else {
+                    //
+                }
+            }
 
+            return rediret()->away('https://app.yativo.com');
+        }
     }
 }

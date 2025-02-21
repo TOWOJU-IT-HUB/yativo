@@ -49,69 +49,60 @@ class DojahVerificationController extends Controller
             'type' => 'required|in:individual,business',
             'email' => 'required|email',
             'address' => 'required|array',
+            'documents' => ['required', 'array', 'min:1'],
+            'documents.*.purposes' => ['required', 'array'],
+            'documents.*.purposes.*' => ['string'], 
+            'documents.*.file' => ['required', 'string'],
+            'documents.*.description' => ['required', 'string'],
         ];
-
+    
         if ($request->input('type') === 'individual') {
             $rules = array_merge($rules, [
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'birth_date' => 'required|date|before:today',
                 'employment_status' => 'required|string|in:employed,self_employed,unemployed',
-                'expected_monthly_payments' => 'required|string|in:5000_9999,10000_14999,15000_plus',
+                'expected_monthly_payments' => 'required|string|in:0_4999,5000_9999,10000_14999,15000_plus',
                 'acting_as_intermediary' => 'required|boolean',
                 'most_recent_occupation' => 'required|string',
                 'account_purpose' => 'required|string|in:purchase_goods_and_services,other',
                 'source_of_funds' => 'required|string',
                 'identifying_information' => 'required|array|min:1',
-                'documents' => 'required|array|min:1',
+                'documents' => 'sometimes|array',
             ]);
         } elseif ($request->input('type') === 'business') {
-            $ex_rules = array_merge($rules, [
-                'registered_address.street_line_1' => 'required|string|max:255',
-                'registered_address.city' => 'required|string|max:255',
-                'registered_address.subdivision' => 'nullable|string|max:255',
-                'registered_address.postal_code' => 'required|string|max:20',
-                'registered_address.country' => 'required|string|size:3',
-                'business_type' => 'required|string',
-                'business_industry' => 'required|string',
-                'business_legal_name' => 'required|string|max:255',
-                'estimated_annual_revenue_usd' => 'required|string',
-                'expected_monthly_payments_usd' => 'required|numeric',
-                'ultimate_beneficial_owners' => 'required|array|min:1',
-                'ultimate_beneficial_owners.*.first_name' => 'required|string|max:255',
-                'ultimate_beneficial_owners.*.last_name' => 'required|string|max:255',
-                'ultimate_beneficial_owners.*.birth_date' => 'required|date|before:today',
-                'ultimate_beneficial_owners.*.email' => 'required|email',
-                'ultimate_beneficial_owners.*.address.street_line_1' => 'required|string|max:255',
-                'ultimate_beneficial_owners.*.address.country' => 'required|string|size:3',
-                'ultimate_beneficial_owners.*.has_ownership' => 'required|boolean',
-                'ultimate_beneficial_owners.*.ownership_percentage' => 'required_if:ultimate_beneficial_owners.*.has_ownership,true|numeric|min:0|max:100',
-                'ultimate_beneficial_owners.*.is_director' => 'required|boolean',
-                'ultimate_beneficial_owners.*.is_signer' => 'required|boolean',
-                'ultimate_beneficial_owners.*.documents' => 'required|array|min:1',
-                'ultimate_beneficial_owners.*.documents.*.purposes' => 'required|array|min:1',
-                'ultimate_beneficial_owners.*.documents.*.file' => 'required|string|starts_with:data:image',
+            $rules = array_merge($rules, [
+                'business_name' => 'required|string|max:255',
+                'business_type' => 'required|string|in:sole_proprietorship,partnership,corporation',
+                'registration_number' => 'required|string|max:255',
+                'tax_identification_number' => 'nullable|string|max:255',
+                'contact_person' => 'required|string|max:255',
+                'business_address' => 'required|array',
+                'business_documents' => 'sometimes|array',
             ]);
         }
-
+    
         $validator = Validator::make($request->all(), $rules);
-
+    
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return get_error_response(['errors' => $validator->errors()], 422);
         }
-
-        $validatedData = $validator->validated();
+    
+        $validatedData = $request->all();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
-        $validatedData['residential_address'] = $validatedData['address'];
-
+        $validatedData['residential_address'] = $request->address;
+        $validatedData['expected_monthly_payments_usd'] = $request->expected_monthly_payments;
+    
         try {
+            unset($validatedData['customer_id']);
+            // return $validatedData;
             $bridge = new BridgeController();
             $bridgeData = $bridge->addCustomerV1($validatedData);
-
-            if (isset($bridgeData['code']) && $bridgeData['code'] === 'invalid_parameters') {
-                return get_error_response(['error' => $bridgeData]);
+    
+            if (isset($bridgeData['code']) && $bridgeData['code'] == 'invalid_parameters') {
+                return get_error_response(['error' => $bridgeData['source']]);
             }
-
+    
             $bitnobPayload = [
                 'customerEmail' => $validatedData['email'],
                 'idNumber' => $validatedData['identifying_information'][0]['number'] ?? null,
@@ -124,43 +115,28 @@ class DojahVerificationController extends Controller
                 'country' => $validatedData['address']['country'] ?? null,
                 'zipCode' => $validatedData['address']['postal_code'] ?? null,
                 'line1' => $validatedData['address']['street_line_1'] ?? null,
-                'idImage' => MiscController::uploadBase64ImageToCloudflare($validatedData['documents'][0]['file']) ?? null,
+                'idImage' => isset($validatedData['documents'][0]['file'])
+                    ? MiscController::uploadBase64ImageToCloudflare($validatedData['documents'][0]['file'])
+                    : null,
                 'dateOfBirth' => $validatedData['birth_date'] ?? null,
             ];
-
-
+    
             $bitnob = new Bitnob();
             $bitnobResponse = $bitnob->cards()->regUser($bitnobPayload);
-
+    
             if (isset($bitnobResponse['error'])) {
                 return get_error_response(['error' => $bitnobResponse['message'] ?? 'Bitnob registration failed']);
             }
-
+    
             $tranfi = new TransFiController();
             $tranfi->kycForm($request);
             $userId = auth()->id();
-
-            // Queue webhook notification
-            // dispatch(function () use ($userId, $bridgeData) {
-            //     $webhook = Webhook::whereUserId($userId)->first();
-            //     if ($webhook) {
-            //         WebhookCall::create()
-            //             ->meta(['_uid' => $webhook->user_id])
-            //             ->url($webhook->url)
-            //             ->useSecret($webhook->secret)
-            //             ->payload([
-            //                 "event.type" => "customer.created",
-            //                 "payload" => $bridgeData,
-            //             ])
-            //             ->dispatchSync();
-            //     }
-            // })->afterResponse();
             return get_success_response($bridgeData);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()], 500);
         }
     }
-
+    
     /**
      * The function generates a signed agreement ID by making a POST request to a specific URL with certain
      * parameters.

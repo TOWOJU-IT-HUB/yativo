@@ -95,19 +95,27 @@ class ShuftiProServices
     public function businessVerification($businessName, $businessRegistrationNumber, $businessJurisdictionCode, $businessCountry = null)
     {
         try {
-            if ($businessCountry == null) {
-                $country = explode("-", $businessJurisdictionCode);
-                $businessCountry = $country[0];
+            // Determine business country from jurisdiction code if not provided
+            if (is_null($businessCountry)) {
+                $countryParts = explode("-", $businessJurisdictionCode);
+                $businessCountry = $countryParts[0] ?? null;
             }
-            //Shufti Pro API base URL
+    
+            // Get Shufti Pro API credentials
             $url = 'https://api.shuftipro.com/';
-            $client_id = getenv('SHUFTI_PRO_CLIENT_ID');
-            $secret_key = getenv('SHUFTI_PRO_SECRET_KEY');
+            $client_id = config('services.shufti.client_id'); // Use config instead of getenv
+            $secret_key = config('services.shufti.secret_key');
+    
+            // Get active user
             $user = User::find(active_user());
-
-            $auth = $client_id . ":" . $secret_key;
-
+            if (!$user) {
+                return get_error_response(['error' => 'Invalid user session'], 403);
+            }
+    
+            // Generate request reference code
             $ref_code = generate_uuid();
+    
+            // Build verification request payload
             $verification_request = [
                 'reference' => $ref_code,
                 'country' => $businessCountry,
@@ -120,34 +128,26 @@ class ShuftiProServices
                     'company_name' => $businessName
                 ],
             ];
-
-            $auth = base64_encode($client_id . ":" . $secret_key);
-
+    
+            // Set headers
+            $auth = base64_encode("$client_id:$secret_key");
             $headers = [
                 'Content-Type' => 'application/json',
                 'Authorization' => 'Basic ' . $auth,
             ];
-
+    
+            // Make API request
             $response = Http::withHeaders($headers)->post($url, $verification_request);
-            // $response_data = $response->body();
-            // $response_headers = $response->headers();
-
-            // $sp_signature = $response_headers['Signature'] ?? $response_headers['signature'] ?? null;
-
-            // $calculate_signature = hash('sha256', $response_data . $secret_key);
-            // $decoded_response = json_decode($response_data, true);
-            // $event_name = $decoded_response['event'] ?? null;
-
+    
             return ["verification_result" => $response->json()];
         } catch (\Throwable $th) {
-            return ["verification_result" => $th->getMessage()];
-            // if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
-            }
+            // Log the error for debugging
+            \Log::error("Business Verification Error: " . $th->getMessage());
+    
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-
+    
     public function callback(Request $request)
     {
         \Log::info('ShuftiPro Webhook Initiated:- ', $request->all());

@@ -27,7 +27,9 @@ class payoutMethods extends Model
         "minimum_charge",
         "maximum_charge",
         "cutoff_hrs_start",
-        "cutoff_hrs_end"
+        "cutoff_hrs_end",
+        "base_currency",
+        "exchange_rate_float"
     ];
 
     protected $hidden = [
@@ -42,6 +44,7 @@ class payoutMethods extends Model
         "maximum_withdrawal",
         "minimum_charge",
         "maximum_charge",
+        // "exchange_rate_float",
         "gateway",
         "created_at",
         "updated_at",

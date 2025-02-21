@@ -43,6 +43,37 @@
                             {{ ucfirst($deposit->status) }}
                         </span>
                     </div>
+                    <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
+                        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Meta</h3>
+
+                        @if(is_array($deposit->meta) || is_object($deposit->meta))
+                            <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
+                                <thead>
+                                    <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
+                                        <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
+                                        <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($deposit->meta as $key => $value)
+                                        <tr class="text-gray-700 dark:text-gray-300">
+                                            <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
+                                            <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                                                @if(is_array($value) || is_object($value))
+                                                    <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
+                                                @else
+                                                    {{ $value }}
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        @else
+                            <p class="text-gray-600 dark:text-gray-300">{!! $deposit->meta !!}</p>
+                        @endif
+                    </div>
+
                 </div>
             </div>
 
@@ -103,11 +134,11 @@
             
 
             <div id="gateway" class="tab-content hidden space-y-4">
-                @if ($deposit->deposit_gateway)
+                @if ($deposit->depositGateway)
                     <div class="bg-gray-50 dark:bg-slate-800 rounded-lg overflow-hidden">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach ($deposit->deposit_gateway->toArray() as $key => $value)
+                                @foreach ($deposit->depositGateway->toArray() as $key => $value)
                                     <tr class="hover:bg-gray-100 dark:hover:bg-slate-700">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                                             {{ ucwords(str_replace('_', ' ', $key)) }}

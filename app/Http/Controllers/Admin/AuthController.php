@@ -74,14 +74,14 @@ class AuthController extends Controller
         ]);
 
         if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->get('remember'))) {
-            return redirect()->intended(route('admin.dashboard'));
+            $user = auth()->user();
+            $user->update([
+                "last_login" => now()
+            ]);
+            
+            return redirect()->to(route('admin.dashboard'));
         }
 
-        $user = auth()->user();
-        $user->update([
-            "last_login" => now()
-        ]);
-
-        return back()->withInput($request->only('email', 'remember'));
+        return redirect()->to(route('admin.login'))->withInput($request->only('email', 'remember'));
     }
 }
