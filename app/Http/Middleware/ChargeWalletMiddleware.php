@@ -40,11 +40,11 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Exchange rate unavailable']);
                     }
     
-                    $amountInWalletCurrency = round(floatval($request->amount) * $xchangeRate, 4);
+                    $amountInWalletCurrency = round(floatval($request->amount) / $xchangeRate, 4);
                     $transactionFee = floatval(get_transaction_fee($beneficiary->gateway_id, $request->amount, "payout", "payout"));
     
                     // Corrected total amount calculation
-                    $feeInWalletCurrency = round($transactionFee * $xchangeRate, 4);
+                    $feeInWalletCurrency = round($transactionFee / $xchangeRate, 4);
                     $finalAmount = round($amountInWalletCurrency + $feeInWalletCurrency, 4);
     
                     // Store values in session
