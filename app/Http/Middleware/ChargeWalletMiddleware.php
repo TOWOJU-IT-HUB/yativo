@@ -64,7 +64,7 @@ class ChargeWalletMiddleware
                     session([
                         'transaction_fee' => $transaction_fee,
                         'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
-                        'total_amount_charged' => $xtotal
+                        'total_amount_charged' => $xtotal,
                         'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
