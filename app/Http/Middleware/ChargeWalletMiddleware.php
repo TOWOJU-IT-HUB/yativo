@@ -104,20 +104,21 @@ class ChargeWalletMiddleware
                                 "base_exchange_rate" => session("base_exchange_rate"),
                                 "exchange_rate" => session("exchange_rate"),
                             ]
-                        ]); exit;
-                    }
+                        ]); 
 
-                    session()->forget([
-                        "fixed_fee_in_local_currency",
-                        "floating_fee_in_local_currency",
-                        "total_charge",
-                        "minimum_charge",
-                        "maximum_charge",
-                        "fixed_charge",
-                        "float_charge",
-                        "base_exchange_rate",
-                        "exchange_rate",
-                    ]);
+                        session()->forget([
+                            "fixed_fee_in_local_currency",
+                            "floating_fee_in_local_currency",
+                            "total_charge",
+                            "minimum_charge",
+                            "maximum_charge",
+                            "fixed_charge",
+                            "float_charge",
+                            "base_exchange_rate",
+                            "exchange_rate",
+                        ]);
+                        exit;
+                    }
 
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
