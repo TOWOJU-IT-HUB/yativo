@@ -128,7 +128,7 @@ class ChargeWalletMiddleware
         }
         
         // Get exchange rate
-        $exchange_rate = get_transaction_rate($request['debit_wallet'], $beneficiary->currency, $payoutMethod->id, "payout");
+        echo $exchange_rate = get_transaction_rate($request['debit_wallet'], $beneficiary->currency, $payoutMethod->id, "payout");
         if (!$exchange_rate || $exchange_rate <= 0) {
             return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
         }
