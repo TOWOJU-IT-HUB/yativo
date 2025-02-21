@@ -83,7 +83,8 @@ class ChargeWalletMiddleware
                         'total_amount_charged' => $xtotal,
                         'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
-                    if($request->has('debug'))
+
+                    if($request->has('debug')){
                         var_dump([
                             "exchange_rate" => $exchange_rate,
                             "transaction_fee" => $transaction_fee,
@@ -94,7 +95,7 @@ class ChargeWalletMiddleware
                             "feeInWalletCurrency" => $feeInWalletCurrency
                         ]); exit;
                     }
-                    
+
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
                     }
