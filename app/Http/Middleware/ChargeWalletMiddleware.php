@@ -80,7 +80,7 @@ class ChargeWalletMiddleware
                     $chargeNow = debit_user_wallet(floatval($totalAmountInDebitCurrency * 100), $request->debit_wallet, "Payout transaction", [
                         'transaction_fee' => $transaction_fee,
                         'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
-                        'total_amount_charged' => $xtotal
+                        'total_amount_charged' => $xtotal,
                         'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
