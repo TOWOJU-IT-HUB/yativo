@@ -202,7 +202,7 @@ class WithdrawalConntroller extends Controller
                 "minWithdrawal" => $minWithdrawal,
                 "maxWithdrawal" => $maxWithdrawal,
                 "convertedAmount" => $convertedAmount,
-                "transaction_fee" => session()->get('transaction_fee')
+                "transaction_fee" => session()->get('transaction_fee'),
                 "total_amount_charged" => session()->get('total_amount_charged'),
                 'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
                 'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
@@ -215,7 +215,7 @@ class WithdrawalConntroller extends Controller
             $userData = [
                 "beneficiary" => $beneficiary,
                 "exchange_rate" => $exchange_rate,
-                "transaction_fee" => session()->get('transaction_fee')
+                "transaction_fee" => session()->get('transaction_fee'),
                 "total_amount_charged" => session()->get('total_amount_charged'),
                 'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
                 'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
