@@ -55,11 +55,12 @@ class ChargeWalletMiddleware
                     $finalAmount = round($feeInWalletCurrency, 4);
 
 
-                    // Convert the total amount charged back to the debit wallet currency
-                    $totalAmountInDebitCurrency = round($xtotal / $exchange_rate, 4);
-
                     // Store values in session
                     $xtotal = floatval($convertedAmount + $transaction_fee);
+
+                    // Convert the total amount charged back to the debit wallet currency
+                    $totalAmountInDebitCurrency = round($xtotal / $exchange_rate, 4);
+                    
                     session([
                         'transaction_fee' => $transaction_fee,
                         'total_amount_charged' => $xtotal
@@ -81,15 +82,15 @@ class ChargeWalletMiddleware
                         "payout_amount" => $convertedAmount
                     ]);
 
-                    var_dump([
-                        "exchange_rate" => $exchange_rate,
-                        "transaction_fee" => $transaction_fee,
-                        "payout_amount" => $convertedAmount,
-                        'total_amount_charged' => $total_amount_charged,
-                        'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                        "amount_to_be_charged" => $totalAmountInDebitCurrency,
-                        "feeInWalletCurrency" => $feeInWalletCurrency
-                    ]); exit;
+                    // var_dump([
+                    //     "exchange_rate" => $exchange_rate,
+                    //     "transaction_fee" => $transaction_fee,
+                    //     "payout_amount" => $convertedAmount,
+                    //     'total_amount_charged' => $total_amount_charged,
+                    //     'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
+                    //     "amount_to_be_charged" => $totalAmountInDebitCurrency,
+                    //     "feeInWalletCurrency" => $feeInWalletCurrency
+                    // ]); exit;
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
