@@ -59,13 +59,14 @@ class ChargeWalletMiddleware
 
                     // Convert the total amount charged back to the debit wallet currency
                     $totalAmountInDebitCurrency = round($xtotal / $exchange_rate, 4);
+                    $transactionFeeInDebitCurrency = round($transaction_fee / $exchange_rate, 4);
 
                     session([
                         'transaction_fee' => $transaction_fee,
+                        'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
                         'total_amount_charged' => $xtotal
+                        'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
-
-                    $amount_due =  
 
                     // Validate allowed currencies
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
@@ -76,20 +77,22 @@ class ChargeWalletMiddleware
                     }
 
                     // Deduct from user's wallet
-                    $chargeNow = debit_user_wallet(floatval($xtotal * 100), $request->debit_wallet, "Payout transaction", [
-                        "transaction_fee" => $transaction_fee,
-                        "payout_amount" => $convertedAmount
+                    $chargeNow = debit_user_wallet(floatval($totalAmountInDebitCurrency * 100), $request->debit_wallet, "Payout transaction", [
+                        'transaction_fee' => $transaction_fee,
+                        'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
+                        'total_amount_charged' => $xtotal
+                        'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
-                    var_dump([
-                        "exchange_rate" => $exchange_rate,
-                        "transaction_fee" => $transaction_fee,
-                        "payout_amount" => $convertedAmount,
-                        'total_amount_charged' => $xtotal,
-                        'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                        "amount_to_be_charged" => $totalAmountInDebitCurrency,
-                        "feeInWalletCurrency" => $feeInWalletCurrency
-                    ]); exit;
+                    // var_dump([
+                    //     "exchange_rate" => $exchange_rate,
+                    //     "transaction_fee" => $transaction_fee,
+                    //     "payout_amount" => $convertedAmount,
+                    //     'total_amount_charged' => $xtotal,
+                    //     'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
+                    //     "amount_to_be_charged" => $totalAmountInDebitCurrency,
+                    //     "feeInWalletCurrency" => $feeInWalletCurrency
+                    // ]); exit;
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
