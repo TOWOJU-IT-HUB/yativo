@@ -207,8 +207,7 @@ class WithdrawalConntroller extends Controller
                 'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
                 'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
                 'debit_currency' => $request->debit_wallet
-            ];
-            session()->forget(['transaction_fee', 'total_amount_charged', 'transaction_fee_in_debit_currency', 'total_amount_charged_in_debit_currency']);
+            ]; 
             unset($validated['payment_method_id']);
 
 
@@ -222,6 +221,7 @@ class WithdrawalConntroller extends Controller
                 'debit_currency' => $request->debit_wallet
             ];
 
+            session()->forget(['transaction_fee', 'total_amount_charged', 'transaction_fee_in_debit_currency', 'total_amount_charged_in_debit_currency']);
             // Create withdrawal
             $create = Withdraw::create($validated);
             return get_success_response(array_merge($create->toArray(), ['payout_data' => $userData]), 201, "Withdrawal request received and will be processed shortly.");
