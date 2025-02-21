@@ -135,8 +135,8 @@ class ChargeWalletMiddleware
         
         // Calculate Fees
         $amount = $request['amount'];
-        $float_fee = ($amount * ($payoutMethod->float_fee / 100)); // 0.2% of amount
-        $fixed_fee = $payoutMethod->fixed_fee; // Fixed fee in USD
+        echo $float_fee = ($amount * ($payoutMethod->float_fee / 100)); // 0.2% of amount
+        echo $fixed_fee = $payoutMethod->fixed_fee; // Fixed fee in USD
         
         // Convert Fees to CLP
         $total_fee = $float_fee + ($fixed_fee * $exchange_rate);
