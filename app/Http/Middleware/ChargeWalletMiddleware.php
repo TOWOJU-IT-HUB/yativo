@@ -7,6 +7,7 @@ use Closure;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Plan;
 use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\Beneficiary;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
@@ -23,8 +24,10 @@ class ChargeWalletMiddleware
         // cancell all users subscriptions. 
         foreach(User::all() as $u) {
             $u->cancelCurrentSubscription();
+            $plan = Plan::whereId(1)->first();
+            $subscription = $user->subscribeTo($plan, 30, false); // 30 days, non-recurrent
         }
-        
+
         try {
             if ($request->has('amount')) {
                 $user = $request->user();
