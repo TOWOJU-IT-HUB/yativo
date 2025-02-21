@@ -1064,7 +1064,7 @@ if (!function_exists('get_transaction_fee')) {
      * @param string $gateway_type - Gateway type ('payin' or 'payout')
      * @return float The total transaction fee in the currency of the transaction.
      */
-    function get_transaction_fee(int $gateway, float $amount, string $txn_type = "", string $gateway_type  = "payin")
+    function get_transaction_fee(int $gateway, float $amount, string $txn_type = "", string $gateway_type = "payin")
     {
         $user = auth()->user();
         if (!$user->hasActiveSubscription()) {
@@ -1073,10 +1073,10 @@ if (!function_exists('get_transaction_fee')) {
                 $user->subscribeTo($plan, 30, true);
             }
         }
-
+    
         $subscription = $user->activeSubscription();
         $user_plan = (int) $subscription->plan_id;
-
+    
         // Fetch gateway details
         if (strtolower($gateway_type) == "payin") {
             $gateway = PayinMethods::whereId($gateway)->first();
@@ -1085,26 +1085,26 @@ if (!function_exists('get_transaction_fee')) {
         } else {
             return ['error' => "Invalid gateway selected"];
         }
-
+    
         if (!$gateway) {
             return ['error' => "Gateway not found"];
         }
-
+    
         $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
         $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-
-        // Corrected Exchange Rate Calculation
+    
+        // ✅ Fixed Exchange Rate Calculation
         $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
-
+    
         // Default charges
         $fixed_charge = $float_charge = 0;
-
+    
         // Determine user plan pricing
         if ($user_plan === 3) {
             $customPricing = CustomPricing::where('user_id', $user->id)
                 ->where('gateway_id', $gateway->id)
                 ->first();
-
+    
             if (!$customPricing) {
                 $user_plan = 2; // Fallback to Plan 2
             } else {
@@ -1112,48 +1112,46 @@ if (!function_exists('get_transaction_fee')) {
                 $float_charge = $customPricing->float_charge;
             }
         }
-
+    
         if ($user_plan === 1 || $user_plan === 2) {
             $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
             $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
         }
-
+    
         // Convert fixed fee to local currency using exchange rate
         $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
-
-        // Correct floating fee calculation using exchange_rate instead of base_exchange_rate
+    
+        // ✅ Fixed Floating Fee Calculation
         $floating_fee_in_local_currency = round(($amount * ($float_charge / 100)) * $exchange_rate, 8);
-
+    
         // Calculate total charge in local currency
         $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
-
-
+    
         // Apply minimum and maximum charge constraints
         $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
         $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
-
+    
         if ($total_charge < $minimum_charge) {
             $total_charge = $minimum_charge;
         } elseif ($total_charge > $maximum_charge) {
             $total_charge = $maximum_charge;
         }
-
-
+    
         session([
             "fixed_fee_in_local_currency" => $fixed_fee_in_local_currency,
             "floating_fee_in_local_currency" => $floating_fee_in_local_currency,
             "total_charge" => $total_charge,
             "minimum_charge" => $minimum_charge,
             "maximum_charge" => $maximum_charge,
-            "fixed_charge" => $fixed_charge, 
+            "fixed_charge" => $fixed_charge,
             "float_charge" => $float_charge,
             "base_exchange_rate" => $base_exchange_rate,
             "exchange_rate" => $exchange_rate
         ]);
-
-
+    
         return round($total_charge, 2);
     }
+    
 }
 
 
