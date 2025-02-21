@@ -35,16 +35,16 @@ class ChargeWalletMiddleware
                     }
     
                     // Convert amount using exchange rate
-                    $xchangeRate = exchange_rates($request->debit_wallet, $payoutMethod->currency);
+                    $xchangeRate = exchange_rates($payoutMethod->currency, $request->debit_wallet);
                     if (!$xchangeRate || $xchangeRate <= 0) {
                         return get_error_response(['error' => 'Exchange rate unavailable']);
                     }
     
-                    $amountInWalletCurrency = round(floatval($request->amount) / $xchangeRate, 4);
+                    $amountInWalletCurrency = round(floatval($request->amount) * $xchangeRate, 4);
                     $transactionFee = floatval(get_transaction_fee($beneficiary->gateway_id, $request->amount, "payout", "payout"));
     
                     // Corrected total amount calculation
-                    $feeInWalletCurrency = round($transactionFee / $xchangeRate, 4);
+                    $feeInWalletCurrency = round($transactionFee * $xchangeRate, 4);
                     $finalAmount = round($amountInWalletCurrency + $feeInWalletCurrency, 4);
     
                     // Store values in session
@@ -52,7 +52,14 @@ class ChargeWalletMiddleware
                         'transaction_fee' => $feeInWalletCurrency,
                         'total_amount_charged' => $finalAmount
                     ]);
-    
+                    
+                    return response()->json([
+                        "rate" => $xchangeRate,
+                        "amount" => $request->amount,
+                        "final_amount" => $finalAmount,
+                        "fee" => $feeInWalletCurrency
+                    ]);
+
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
                     if (!in_array($request->debit_wallet, $allowedCurrencies)) {
                         return get_error_response([
