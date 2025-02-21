@@ -90,7 +90,7 @@ class ChargeWalletMiddleware
                     if($request->has('debug')) {
                         var_dump([
                             "exchange_rate" => $exchange_rate,
-                            "new_total_fees" => $new_total_fees,
+                            "new_total_fees" => $new_total_fees['total_fees'],
                             "transaction_fee" => $transaction_fee,
                             "payout_amount" => $convertedAmount,
                             'total_amount_charged' => $xtotal,
@@ -141,6 +141,6 @@ class ChargeWalletMiddleware
         // Convert Fees to CLP
         $total_fee = $float_fee + ($fixed_fee * $exchange_rate);
         
-        return ['total_fees' => round($total_fee, 2) . ' CLP'];
+        return ['total_fees' => floatval($total_fee)];
     }
 }
