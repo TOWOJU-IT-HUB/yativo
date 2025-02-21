@@ -1121,11 +1121,12 @@ if (!function_exists('get_transaction_fee')) {
         // Convert fixed fee to local currency using exchange rate
         $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
 
-        // Calculate floating fee in local currency
-        $floating_fee_in_local_currency = round(($amount * ($float_charge / 100)) * $base_exchange_rate, 8);
+        // Correct floating fee calculation using exchange_rate instead of base_exchange_rate
+        $floating_fee_in_local_currency = round(($amount * ($float_charge / 100)) * $exchange_rate, 8);
 
         // Calculate total charge in local currency
         $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
+
 
         // Apply minimum and maximum charge constraints
         $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
