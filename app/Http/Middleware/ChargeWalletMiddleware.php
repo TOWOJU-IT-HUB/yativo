@@ -21,12 +21,6 @@ class ChargeWalletMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        // cancell all users subscriptions. 
-        foreach(User::all() as $u) {
-            $plan = Plan::whereId(1)->first();
-            $subscription = $u->subscribeTo($plan, 30, false); // 30 days, non-recurrent
-        }
-
         try {
             if ($request->has('amount')) {
                 $user = $request->user();
@@ -134,19 +128,17 @@ class ChargeWalletMiddleware
         if (!$payoutMethod) {
             return get_error_response(['error' => 'Invalid payout method selected']);
         }
-
-        echo json_encode($payoutMethod); exit;
         
         // Get exchange rate
-        echo $exchange_rate = get_transaction_rate($request['debit_wallet'], $beneficiary->currency, $payoutMethod->id, "payout");
+        $exchange_rate = get_transaction_rate($request['debit_wallet'], $beneficiary->currency, $payoutMethod->id, "payout");
         if (!$exchange_rate || $exchange_rate <= 0) {
             return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
         }
         
         // Calculate Fees
         $amount = $request['amount'];
-        echo $float_fee = ($amount * ($payoutMethod->float_fee / 100)); // 0.2% of amount
-        echo $fixed_fee = $payoutMethod->fixed_fee; // Fixed fee in USD
+        $float_fee = ($amount * ($payoutMethod->float_fee / 100)); // 0.2% of amount
+        $fixed_fee = $payoutMethod->fixed_fee; // Fixed fee in USD
         
         // Convert Fees to CLP
         $total_fee = $float_fee + ($fixed_fee * $exchange_rate);
