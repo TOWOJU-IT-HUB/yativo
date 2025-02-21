@@ -28,59 +28,67 @@ class ChargeWalletMiddleware
                     if (!$beneficiary) {
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
-    
+
                     $payoutMethod = payoutMethods::whereId($beneficiary->gateway_id)->first();
                     if (!$payoutMethod) {
                         return get_error_response(['error' => 'Invalid payout method selected']);
                     }
-    
-                    // Convert amount using exchange rate
-                    $xchangeRate = exchange_rates($payoutMethod->currency, $request->debit_wallet);
-                    if (!$xchangeRate || $xchangeRate <= 0) {
-                        return get_error_response(['error' => 'Exchange rate unavailable']);
+
+                    // Get exchange rate
+                    $exchange_rate = get_transaction_rate($request->debit_wallet, $beneficiary->currency, $payoutMethod->id, "payout");
+                    if (!$exchange_rate || $exchange_rate <= 0) {
+                        return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
                     }
-    
-                    $amountInWalletCurrency = round(floatval($request->amount) * $xchangeRate, 4);
-                    $transactionFee = floatval(get_transaction_fee($beneficiary->gateway_id, $request->amount, "payout", "payout"));
-    
-                    // Corrected total amount calculation
-                    $feeInWalletCurrency = round($transactionFee * $xchangeRate, 4);
-                    $finalAmount = round($amountInWalletCurrency + $feeInWalletCurrency, 4);
-    
+
+                    $exchange_rate = floatval($exchange_rate);
+                    $deposit_float = floatval($payoutMethod->exchange_rate_float ?? 0);
+                    $exchange_rate -= ($exchange_rate * $deposit_float / 100);
+
+                    // Convert amount to beneficiary's currency
+                    $convertedAmount = $exchange_rate * floatval($request->amount);
+
+                    // Calculate transaction fee
+                    $transaction_fee = get_transaction_fee($payoutMethod->id, $request->amount, "payout", "payout");
+                    $feeInWalletCurrency = $transaction_fee * $exchange_rate;
+
+                    // Calculate final amount
+                    $finalAmount = round($convertedAmount + $feeInWalletCurrency, 4);
+
                     // Store values in session
                     session([
                         'transaction_fee' => $feeInWalletCurrency,
                         'total_amount_charged' => $finalAmount
                     ]);
-                    
-                    return response()->json([
-                        "rate" => $xchangeRate,
-                        "amount" => $request->amount,
-                        "final_amount" => $finalAmount,
-                        "fee" => $feeInWalletCurrency
-                    ]);
 
+                    // Validate allowed currencies
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
                     if (!in_array($request->debit_wallet, $allowedCurrencies)) {
                         return get_error_response([
-                            'error' => "The selected wallet is not supported for selected gateway. Allowed currencies: " . $payoutMethod->base_currency
+                            'error' => "The selected wallet is not supported for the selected gateway. Allowed currencies: " . $payoutMethod->base_currency
                         ], 400);
                     }
-    
+
+                    // Deduct from user's wallet
                     $chargeNow = debit_user_wallet($finalAmount, $request->debit_wallet);
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
                     }
+
+                    return response()->json([
+                        "rate" => $exchange_rate,
+                        "amount" => $request->amount,
+                        "converted_amount" => $convertedAmount,
+                        "final_amount" => $finalAmount,
+                        "fee" => $feeInWalletCurrency
+                    ]);
                 } 
-    
+
                 return $next($request);
             }
-    
+
             return get_error_response(['error' => "Sorry, we're currently unable to process your transaction"]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
-    
-    
 }
