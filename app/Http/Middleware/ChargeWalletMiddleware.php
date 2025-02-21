@@ -76,7 +76,7 @@ class ChargeWalletMiddleware
                     }
 
                     // Deduct from user's wallet
-                    $chargeNow = debit_user_wallet(floatval($xtotal * 100), $request->debit_wallet, "Payout transaction", [
+                    $chargeNow = debit_user_wallet(floatval($total_amount_charged * 100), $request->debit_wallet, "Payout transaction", [
                         "transaction_fee" => $transaction_fee,
                         "payout_amount" => $convertedAmount
                     ]);
@@ -85,7 +85,7 @@ class ChargeWalletMiddleware
                         "exchange_rate" => $exchange_rate,
                         "transaction_fee" => $transaction_fee,
                         "payout_amount" => $convertedAmount,
-                        'total_amount_charged' => $xtotal,
+                        'total_amount_charged' => $total_amount_charged,
                         'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
                         "amount_to_be_charged" => $totalAmountInDebitCurrency,
                         "feeInWalletCurrency" => $feeInWalletCurrency
