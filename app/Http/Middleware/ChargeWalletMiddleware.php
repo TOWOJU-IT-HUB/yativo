@@ -43,7 +43,7 @@ class ChargeWalletMiddleware
 
                     $fees = floatval($xchangeRate * get_transaction_fee($beneficiary->gateway_id, $amount, "payout", "payout"));
                     
-                    $finalAmount = floatval($amount + $fees);
+                    $finalAmount = floatval((($xchangeRate * $amount) * 100) + $fees);
                     echo $finalAmount; 
                     session(['transaction_fee' => $fees, "total_amount_charged" => $finalAmount]);
 
