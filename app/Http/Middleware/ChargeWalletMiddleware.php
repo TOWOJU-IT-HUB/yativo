@@ -25,7 +25,7 @@ class ChargeWalletMiddleware
         foreach(User::all() as $u) {
             $u->cancelCurrentSubscription();
             $plan = Plan::whereId(1)->first();
-            $subscription = $user->subscribeTo($plan, 30, false); // 30 days, non-recurrent
+            $subscription = $u->subscribeTo($plan, 30, false); // 30 days, non-recurrent
         }
 
         try {
