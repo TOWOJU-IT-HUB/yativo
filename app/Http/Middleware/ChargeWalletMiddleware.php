@@ -6,6 +6,7 @@ use App\Models\BeneficiaryFoems;
 use Closure;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use App\Models\User;
 use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\Beneficiary;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
@@ -19,6 +20,11 @@ class ChargeWalletMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
+        // cancell all users subscriptions. 
+        foreach(User::all() as $u) {
+            $u->cancelCurrentSubscription();
+        }
+        
         try {
             if ($request->has('amount')) {
                 $user = $request->user();
