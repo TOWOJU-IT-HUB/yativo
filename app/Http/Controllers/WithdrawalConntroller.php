@@ -138,6 +138,7 @@ class WithdrawalConntroller extends Controller
 
             $validated = $validate->validated();
             $is_beneficiary = BeneficiaryPaymentMethod::with('user')->find($validated['payment_method_id']);
+            $beneficiary = BeneficiaryPaymentMethod::find($validated['payment_method_id']);
 
             if (!$is_beneficiary) {
                 return get_error_response(['error' => "Payment method not found"]);
@@ -208,9 +209,18 @@ class WithdrawalConntroller extends Controller
             session()->forget(['transaction_fee', 'total_amount_charged']);
             unset($validated['payment_method_id']);
 
+
+            $userData = [
+                "beneficiary" => $beneficiary,
+                "exchange_rate" => $exchange_rate,
+                "convertedAmount" => $convertedAmount,
+                "total_amount_charged" => session()->get('total_amount_charged'),
+                "transaction_fee" => session()->get('transaction_fee')
+            ];
+
             // Create withdrawal
             $create = Withdraw::create($validated);
-            return get_success_response($create, 201, "Withdrawal request received and will be processed shortly.");
+            return get_success_response(array_merge($create, ['payout_data' => $userData]), 201, "Withdrawal request received and will be processed shortly.");
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
