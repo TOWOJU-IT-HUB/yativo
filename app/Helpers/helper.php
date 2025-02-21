@@ -1122,7 +1122,7 @@ if (!function_exists('get_transaction_fee')) {
         $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
 
         // Calculate floating fee in local currency
-        $floating_fee_in_local_currency = ($amount * $float_charge) / 100;
+        $floating_fee_in_local_currency = (($amount * $float_charge) / 100)* $exchange_rate;;
 
         // Calculate total charge in local currency
         $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
