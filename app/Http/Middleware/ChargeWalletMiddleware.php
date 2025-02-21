@@ -99,6 +99,8 @@ class ChargeWalletMiddleware
                                 "total_charge" => session()->get("total_charge"),
                                 "minimum_charge" => session()->get("minimum_charge"),
                                 "maximum_charge" => session()->get("maximum_charge"),
+                                "fixed_charge" => session()->get("fixed_charge"),
+                                "float_charge" => session()->get("float_charge"),
                             ]
                         ]); exit;
                     }

@@ -1144,6 +1144,8 @@ if (!function_exists('get_transaction_fee')) {
             "total_charge" => $total_charge,
             "minimum_charge" => $minimum_charge,
             "maximum_charge" => $maximum_charge,
+            "fixed_charge" => $fixed_charge, 
+            "float_charge" => $float_charge,
         ]);
 
 
