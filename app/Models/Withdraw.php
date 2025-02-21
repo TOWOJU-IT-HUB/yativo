@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Beneficiary\app\Models\Beneficiary;
+use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
 class Withdraw extends Model
 {
@@ -21,6 +22,7 @@ class Withdraw extends Model
     protected $hidden = [
         'deleted_at',
         'gateway',
+        'gateway_id',
         'id'
     ];
 
@@ -39,17 +41,29 @@ class Withdraw extends Model
             }
         });
     }
+    
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function transactions()
     {
-        return $this->hasMany(Transaction::class)
-            ->where('meta_id', '=', $this->getKey())
-            ->where('meta_type', '=', 'payouts');
+        return $this->hasMany(TransactionRecord::class, 'transaction_id', 'id')
+            ->where('transaction_memo', 'payout');
+    }
+
+       /**
+     * Get the payin method associated with the exchange rate.
+     */
+    public function payoutGateway()
+    {
+        return $this->belongsTo(payoutMethods::class, 'gateway_id', 'id');
     }
 
     public function beneficiary()
     {
-        return $this->belongsTo(Beneficiary::class);
+        return $this->belongsTo(BeneficiaryPaymentMethod::class, 'beneficiary_id');
     }
 
     // public function beneficiary()

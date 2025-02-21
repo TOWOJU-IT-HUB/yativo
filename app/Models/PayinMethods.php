@@ -31,10 +31,26 @@ class PayinMethods extends Model
         "cutoff_hrs_end",
         "Working_hours_start",
         "Working_hours_end",
+        "base_currency",
+        "exchange_rate_float"
     ];
 
     protected $hidden = [
-        // "gateway",
+        "payment_mode",
+        "charges_type",
+        "fixed_charge",
+        "float_charge",
+        "settlement_time",
+        "pro_fixed_charge",
+        "pro_float_charge",
+        "minimum_deposit",
+        "maximum_deposit",
+        "minimum_charge",
+        "maximum_charge",
+        "cutoff_hrs_start",
+        "cutoff_hrs_end",
+        // "exchange_rate_float",
+        "gateway",
         "created_at",
         "updated_at",
         "deleted_at"

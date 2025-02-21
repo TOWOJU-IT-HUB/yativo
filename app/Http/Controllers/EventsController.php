@@ -12,10 +12,21 @@ class EventsController extends Controller
     public function index()
     {
         try {
-            $activity = ApiLog::where('user_id', auth()->id())->latest()->paginate(per_page());
+            $activity = ApiLog::where('user_id', auth()->id())
+                ->when(request('status'), function($query) {
+                    return $query->where('response_status', request('status'));
+                })
+                ->when(request('method'), function($query) {
+                    return $query->where('method', request('method'));
+                })
+                ->latest()->limit(300)
+                ->paginate(per_page())->withQueryString();
             return paginate_yativo($activity);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -30,18 +41,24 @@ class EventsController extends Controller
     
             return get_success_response($activity);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
     public function getWebhookLogs(Request $request)
     {
         try {
-            $activity = WebhookLog::where('user_id', auth()->id())->latest()->paginate(per_page());
+            $activity = WebhookLog::where('user_id', auth()->id())->latest()->paginate(per_page())->withQueryString();
 
             return paginate_yativo($activity);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -51,7 +68,10 @@ class EventsController extends Controller
             $activity = WebhookLog::whereId($eventId)->where('user_id', auth()->id())->latest()->first();
             return get_success_response($activity);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
     

@@ -12,11 +12,6 @@ class ExchangeRate extends Model
 
 
     protected $fillable = [
-        // "coupon_code",
-        // "coupon_discount",
-        // "coupon_expires_at",
-        // "coupon_status",
-        // "coupon_type"
         "gateway_id",
         "rate_type",
         "float_percentage",
@@ -33,4 +28,15 @@ class ExchangeRate extends Model
     {
         return $this->belongsTo(Gateways::class);
     }
+
+    public function payin()
+    {
+        return $this->belongsTo(PayinMethods::class, 'gateway_id');
+    }
+
+    public function payout()
+    {
+        return $this->belongsTo(payoutMethods::class, 'gateway_id');
+    }
+
 }

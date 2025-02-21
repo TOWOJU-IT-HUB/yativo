@@ -1,13 +1,13 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PayoutMethods;
+use App\Models\payoutMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-class PayoutMethodsController extends Controller
+class payoutMethodsController extends Controller
 {
     public function __construct()
     {
@@ -19,7 +19,29 @@ class PayoutMethodsController extends Controller
 
     public function index()
     {
-        $payoutMethods = PayoutMethods::all();
+        $query = payoutMethods::query();
+
+        if (request('currency')) {
+            $query->where('currency', request('currency'));
+        }
+
+        if (request('gateway')) {
+            $query->where('gateway', 'like', '%' . request('gateway') . '%');
+        }
+
+        if (request('method_name')) {
+            $query->where('method_name', 'like', '%' . request('method_name') . '%');
+        }
+
+        if (request('country')) {
+            $query->where('country', 'like', '%' . request('country') . '%');
+        }
+
+        if (request('show_deleted')) {
+            $query->withTrashed();
+        }
+
+        $payoutMethods = $query->paginate(per_page())->withQueryString();
         return view('admin.payout_methods.index', compact('payoutMethods'));
     }
 
@@ -30,13 +52,13 @@ class PayoutMethodsController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'method_name' => 'required|string|max:255',
             'gateway' => 'required|string|max:255',
-            'country' => 'required|string|max:255',
+            'country' => 'sometimes|string|max:255',
             'currency' => 'required|string|max:3',
             'payment_mode' => 'required|string|max:255',
-            'charges_type' => 'required|string|in:fixed,percentage',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
             'float_charge' => 'nullable|numeric',
             'estimated_delivery' => 'nullable|integer',
@@ -47,24 +69,29 @@ class PayoutMethodsController extends Controller
             'minimum_charge' => 'nullable|numeric',
             'maximum_charge' => 'nullable|numeric',
             'cutoff_hrs_start' => 'nullable',
-            'cutoff_hrs_end' => 'nullable'
+            'cutoff_hrs_end' => 'nullable',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes'
         ]);
 
-        PayoutMethods::create($request->all());
+        if (empty($request->country)) {
+            $validatedData['country'] = 'global';
+        }
+        payoutMethods::create($request->all());
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method created successfully.');
     }
 
-    public function show(PayoutMethods $payoutMethod)
+    public function show(payoutMethods $payoutMethod)
     {
         return view('admin.payout_methods.show', compact('payoutMethod'));
     }
 
-    public function edit(PayoutMethods $payoutMethod)
+    public function edit(payoutMethods $payoutMethod)
     {
         return view('admin.payout_methods.edit', compact('payoutMethod'));
     }
 
-    public function update(Request $request, PayoutMethods $payoutMethod)
+    public function update(Request $request, payoutMethods $payoutMethod)
     {
         $request->validate([
             'method_name' => 'required|string|max:255',
@@ -72,7 +99,7 @@ class PayoutMethodsController extends Controller
             'country' => 'required|string|max:255',
             'currency' => 'required|string|max:3',
             'payment_mode' => 'required|string|max:255',
-            'charges_type' => 'required|string|in:fixed,percentage',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
             'float_charge' => 'nullable|numeric',
             'estimated_delivery' => 'nullable|integer',
@@ -83,14 +110,16 @@ class PayoutMethodsController extends Controller
             'minimum_charge' => 'nullable|numeric',
             'maximum_charge' => 'nullable|numeric',
             'cutoff_hrs_start' => 'nullable',
-            'cutoff_hrs_end' => 'nullable'
+            'cutoff_hrs_end' => 'nullable',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes',
         ]);
 
         $payoutMethod->update($request->all());
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method updated successfully.');
     }
 
-    public function destroy(PayoutMethods $payoutMethod)
+    public function destroy(payoutMethods $payoutMethod)
     {
         $payoutMethod->delete();
         return redirect()->route('admin.payout-methods.index')->with('success', 'Payout method deleted successfully.');

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('shuftipro_users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users');
             $table->string('reference');
             $table->string('status')->default('pending');;
             $table->json('payload')->nullable();

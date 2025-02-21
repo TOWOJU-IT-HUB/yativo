@@ -55,6 +55,7 @@ class BinancePayController extends Controller
             $call = $this->api_call('/binancepay/openapi/v2/order', 'POST', $payload);
 
             if ($call["status"] != "FAIL") {
+                update_deposit_gateway_id($quoteId, $trxId);
                 BinancePay::create([
                     'deposit_id' => $quoteId,
                     'gateway_id' => $trxId, // the transaction ID from BinancePay

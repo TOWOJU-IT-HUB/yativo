@@ -28,7 +28,10 @@ class PayoutMethodsController extends Controller
             $payout = payoutMethods::where($filters)->get();
             return get_success_response($payout);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     } 
 }

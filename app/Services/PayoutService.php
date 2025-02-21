@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\BridgeController;
+use App\Http\Controllers\TransFiController;
+use App\Models\Bridge;
 use App\Models\Country;
 use App\Models\Gateways;
 use App\Models\payoutMethods;
@@ -27,6 +30,7 @@ use Modules\SendMoney\app\Models\SendQuote;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 use Towoju5\Localpayments\Localpayments;
+use App\Services\BrlaDigitalService;
 
 
 /**
@@ -42,35 +46,42 @@ class PayoutService
      * then make request to gateway and 
      * return payment url or charge status for wallet
      */
-    public function makePayment($quoteId, $gateway, $txn_type = 'withdrawal')
+    public function makePayment($quoteId, $c_gateway, $txn_type = 'withdrawal')
     {
         try {
             if ($txn_type == 'withdrawal') {
                 $withdrawal = Withdraw::whereId($quoteId)->with('beneficiary')->first();
-            } else {
-                $withdrawal = SendQuote::whereId($quoteId)->with('beneficiary')->first();
             }
 
             if (!$withdrawal) {
                 return ['error' => "Unable to process withdrawal request, please contact support"];
             }
 
+            // var_dump($withdrawal); exit;
+            $gateway = $c_gateway->gateway;
             if ($gateway) {
-
                 $result = self::$gateway($quoteId, $withdrawal->currency, $withdrawal);
 
+                if(isset($result['error'])) {
+                    return back()->with('error', $result['error']);
+                }
+                // var_dump($result); exit;
+
                 TransactionRecord::create([
-                    "user_id" => auth()->id(),
-                    "transaction_beneficiary_id" => auth()->id(),
+                    "user_id" => $withdrawal->user_id,
+                    "transaction_beneficiary_id" => $withdrawal->user_id,
                     "transaction_id" => $quoteId,
                     "transaction_amount" => $withdrawal->amount,
                     "gateway_id" => $gateway,
                     "transaction_status" => "In Progress",
                     "transaction_type" => $txn_type ?? 'payout',
                     "transaction_memo" => "payout",
+                    "transaction_currency" => $withdrawal->currency ?? "N/A",
+                    "base_currency" => $withdrawal->currency ?? "N/A",
+                    "secondary_currency" => $c_gateway->currency ?? "N/A",
                     "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
-                    "transaction_payin_details" => $withdrawal->beneficiary->payment_object,
-                    "transaction_payout_details" => $withdrawal,
+                    "transaction_payin_details" => null,
+                    "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => $result],
                 ]);
 
                 Track::create([
@@ -79,22 +90,14 @@ class PayoutService
                     "transaction_type" => $txn_type ?? 'payout',
                 ]);
 
+                $withdrawal->update([
+                    "status" => "In Progress"
+                ]);
                 return $result;
+                // return back()->with('success', "Transaction initiated successfully");
             }
 
             return ['error' => 'Unable to process transaction at the moment'];
-            // var_dump($methods->slug, $gateway); exit;//[self::ACTIVE => false];
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()];
-        }
-    }
-
-    public function binance_pay($quoteId, $currency, $payoutObject)
-    {
-        try {
-            $binance = new BinancePayController();
-            $init = $binance->withdrawal($quoteId, $payoutObject->amount, $currency);
-            return $init;
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
         }
@@ -111,72 +114,12 @@ class PayoutService
         }
     }
 
-    public function flutterwave($quoteId, $currency, $payoutObject)
-    {
-        try {
-            $flutterwave = new FlutterwaveController();
-            $init = $flutterwave->payout($quoteId, $payoutObject->amount, $payoutObject->toArray());
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
-    }
-
-    public function coinpayments($quoteId, $currency, $payoutObject): object|array
-    {
-        $coinpayment = new CoinPaymentsController();
-        $checkout = $coinpayment->pay($quoteId, $currency, $payoutObject);
-        if (isset($checkout['error']) and $checkout['error'] == 'ok') {
-            return $checkout['result'];
-        } else {
-            return $checkout;
-        }
-
-    }
-
     public function paypal($quoteId, $currency, $payoutObject): object|array
     {
         $paypal = new PayoutController();
         $beneficiaryId = request()->payment_method_id;
         $checkout = $paypal->init($quoteId, $currency, $payoutObject);
         return $checkout;
-    }
-
-    public function monnet($quoteId, $currency, $payoutObject): object|array
-    {
-        // var_dump("Here i am. monnet serveices"); exit;
-        $request = request();
-        $monnet = new MonnetServices();
-        $beneficiaryId = $request->payment_method_id;
-        $checkout = $monnet->payout(
-            $request->amount,
-            $currency,
-            $beneficiaryId,
-            $quoteId
-        );
-
-        if (!isset($checkout['errors'])) {
-            return $checkout;
-        }
-        return ['error' => $checkout["errors"]];
-    }
-
-    public function local_payment($quoteId, $currency, $payoutObject)
-    {
-        try {
-            $request = request();
-            $beneficiaryId = $request->payment_method_id;
-            $local = new LocalPaymentsController();
-            $payout = $local->payout(
-                $request->amount,
-                $currency,
-                $beneficiaryId,
-                $quoteId
-            );
-            return $payout;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
     }
 
     public function bitso($quoteId, $currency, $payoutObject)
@@ -196,11 +139,25 @@ class PayoutService
         }
     }
 
+    public function transfi($deposit_id, $amount, $currency, $payoutObject)
+    {
+        $transFi = new TransFiController();
+        $checkout = $transFi->payout($deposit_id, $amount, $currency, $payoutObject);
+        return $checkout;
+    }
+
+    public function bridge($deposit_id)
+    {
+        $bridge = new BridgeController();
+        $checkout = $bridge->makePayout($deposit_id);
+        return $checkout;
+    }
+    
     public function vitawallet($quoteId, $currency, $payoutObject)
     {
         $request = request();
         try {
-            $beneficiaryId = $request->payment_method_id;
+            $beneficiaryId = $payoutObject->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
 
@@ -211,36 +168,41 @@ class PayoutService
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
+            // var_dump($gateway); exit;
 
+            // $country = Country::where('currency_code', strtoupper($gateway->currency))->first();
             $country = Country::where('currency_code', $gateway->currency)->where('iso3', $gateway->country)->first();
+            
+            // var_dump($country); exit;
             if (!$country) {
                 return ['error' => 'Currency not supported'];
             }
 
             $rate = 1;
-            Log::info("Currency conversion error: " . $gateway->currency . " - " . $payoutObject->currency);
-            if (strtolower($gateway->currency) != strtolower('clp')) {
-                // convert the amount to the currency of the gateway
-                if (File::exists(storage_path('logs/laravel.log'))) {
-                    File::delete(storage_path('logs/laravel.log'));
-                }
-                $rate = getExchangeVal($gateway->currency, $payoutObject->currency);
-            }
-
+           
+            Log::info("VitaWallet", ['currency1' => $gateway->currency, "currency2" => $payoutObject->currency]);
+            
+            $rate = getExchangeVal($gateway->currency, "CLP"); //$payoutObject->currency
             $formArray = (array) $beneficiary->payment_data;
             $requestBody = [
                 "wallet" => env("VITAWALLET_WALLET_ID", "76f1d08e-9981-4d69-bfc5-edc0c1bc0574"),
                 "transactions_type" => "withdrawal",
-                "url_notify" => env("APP_URL", "https://api.yativo.com"),
+                "url_notify" => "https://api.yativo.com/callback/webhook/vitawallet", //route("vitawallet.callback.success"),
                 "country" => $country->iso2,
                 "currency" => "CLP",
                 "amount" => $payoutObject->amount * $rate,
                 "order" => $quoteId,
+                "type" => "business_transaction",
+                "beneficiary_email" => "emma@yativo.com"
             ];
 
-            if (isset($formArray['email'])) {
-                $requestBody['beneficiary_email'] = $formArray['email'];
-            }
+            // if (isset($formArray['email'])) {
+            //     $requestBody['beneficiary_email'] = $formArray['email'];
+            // }
+
+            // if (isset($formArray['beneficiary_type'])) {
+            //     $formArray['beneficiary_type'] = strtolower($formArray['beneficiary_type']);
+            // }
 
             if (!isset($formArray['phone'])) {
                 $requestBody['phone'] = auth()->user()?->phone ?? "9203751431";
@@ -250,9 +212,16 @@ class PayoutService
                 $requestBody["city"] = $country->name;
             }
 
+            if (!isset($formArray['purpose_comentary'])) {
+                $requestBody["purpose_comentary"] = "For your school fee payment";
+            }
+
             $payload = array_merge($formArray, $requestBody);
 
+            // echo json_encode($payload, JSON_PRETTY_PRINT); exit;
+
             $vitawallet = new VitaWalletController();
+            $vitawallet->prices();
             $process = $vitawallet->create_withdrawal($payload);
 
             if (!is_array($process)) {
@@ -275,30 +244,11 @@ class PayoutService
         }
     }
 
-    public function transak($quoteId, $amount, $currency)
-    {
-        if (!empty($amount) && !empty($currency)) {
-            $baseUrl = getenv('TRANSAK_BASE_URL');
-
-            $queryParams = [
-                'network' => "ethereum",
-                'cryptoCurrencyCode' => "USDC",
-                'apiKey' => getenv('TRANSAK_API_KEY'),
-                'fiatCurrency' => $currency,
-                'fiatAmount' => $amount
-            ];
-
-            $queryString = http_build_query($queryParams);
-
-            $url = $baseUrl . '?' . $queryString;
-            return $url;
-        }
-    }
-
-    public function brla($quoteId, $amount, $currency, $payoutObject)
+    public function brla($quoteId, $currency, $payoutObject)
     {
         $request = request();
         try {
+            $amount = $payoutObject->amount;
             $beneficiaryId = $request->payment_method_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
@@ -318,7 +268,7 @@ class PayoutService
 
             $formArray = (array) $beneficiary->payment_data;
 
-            $payload = [
+            $payload = array_filter([
                 'pixKey' => $formArray['pixKey'] ?? null,
                 'taxId' => $formArray['taxId'] ?? null,
                 'amount' => $amount,
@@ -327,7 +277,7 @@ class PayoutService
                 'ispb' => $formArray['ispb'] ?? null,
                 'branchCode' => $formArray['branchCode'] ?? null,
                 'accountNumber' => $formArray['accountNumber'] ?? null,
-            ];
+            ]);
             $brla = new BrlaDigitalService();
             $process = $brla->createPayOutOrder($payload);
             return $process;
@@ -336,5 +286,45 @@ class PayoutService
             return ['error' => $th->getMessage()];
         }
     }
-}
 
+    public function completePayout($transactionId, $status)
+    {
+        // Prepare the condition to find the TransactionRecord
+        $where = [
+            'transaction_memo' => 'payout',
+            'transaction_id' => $transactionId,
+        ];
+
+        // Retrieve the transaction record
+        $transactionRecord = TransactionRecord::where($where)->first();
+
+        if (!$transactionRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction record not found.',
+            ], 404);
+        }
+
+        // Update the transaction record status
+        $transactionRecord->transacction_status = $status;
+        $transactionRecord->save();
+
+        // Check if the Withdraw model needs updating
+        $withdraw = Withdraw::whereId($transactionId)->first();
+
+        if ($withdraw) {
+            $withdraw->status = $status;
+            $withdraw->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction status updated successfully.',
+        ]);
+    }
+
+    public function floid()
+    {
+        return ['error' => 'Payout method is currently unavailable'];
+    }
+}

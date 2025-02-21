@@ -2,12 +2,16 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\CoinbaseOnrampController;
+use App\Http\Controllers\OnrampController;
+use App\Http\Controllers\TransFiController;
 use App\Models\Deposit;
 use App\Models\Gateways;
 use App\Models\PayinMethods;
 use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
+use Modules\Customer\app\Models\Customer;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Log;
@@ -38,8 +42,8 @@ use Towoju5\Localpayments\Localpayments;
  * 
  * @category Wallet_Top_Up
  * @package  Null
- * @author   Emmanuel A Towoju <towojuads@gmail.com>
- * @license  MIT www.yativo.com/license
+ * @author   Emmanuel A Towoju <emma@yativo.com>
+ * @license  YAT - www.yativo.com/license
  * @link     www.yativo.com
  */
 
@@ -62,14 +66,17 @@ class DepositService
                 $result = self::$model($send['id'], $amount, $currency, $txn_type, $paymentMethods);
             }
 
-            if ($txn_type == "deposit") {
-                $txn_amount = $send['amount'];
-            } else {
-                $quote = SendQuote::find($send['quote_id']);
-                if (!$quote) {
-                    return ['error' => 'Invalid quote.'];
-                }
-                $txn_amount = $quote['send_amount'];
+            switch ($txn_type) {
+                case "deposit":
+                    $txn_amount = $send['amount'];
+                    break;
+                default:
+                    $quote = SendQuote::find($send['quote_id']);
+                    if (!$quote) {
+                        return ['error' => 'Invalid quote.'];
+                    }
+                    $txn_amount = $quote['send_amount'];
+                    break;
             }
 
             TransactionRecord::create([
@@ -81,6 +88,9 @@ class DepositService
                 "transaction_status" => "In Progress",
                 "transaction_type" => $txn_type,
                 "transaction_memo" => "payin",
+                "transaction_currency" => $currency,
+                "base_currency" => $currency,
+                "secondary_currency" => $paymentMethods->currency,
                 "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
                 "transaction_payin_details" => array_merge([$send, $result]),
                 "transaction_payout_details" => [],
@@ -88,293 +98,14 @@ class DepositService
 
             Track::create([
                 "quote_id" => $send['id'],
+                "transaction_type" => $txn_type ?? 'deposit',
                 "tracking_status" => "Deposit initiated successfully",
                 "raw_data" => (array) $result
             ]);
-
+            Log::info($result);
             return $result;
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
-        }
-    }
-
-    public function local_payment($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        try {
-            // ddd($amount);
-            $request = request();
-            $paymentMethod = null;
-            if (strtolower(getenv('LOCALPAYMENT_MODE')) === 'test') {
-                $accs = json_decode(file_get_contents(public_path("pay-methods/localpayment-account-test.json")), true);
-            } else {
-                $accs = json_decode(file_get_contents(public_path("pay-methods/localpayment-account.json")), true);
-            }
-
-            if (strtolower($gateway->payment_mode) === 'apm') {
-                $payment_mode = "BankTransfer";
-                if (preg_match('/\((.*?)\)/', $gateway->method_name, $matches)) {
-                    $paymentMethod = strtolower($matches[1]);
-                }
-            } else {
-                $payment_mode = $gateway->payment_mode;
-            }
-
-
-            foreach ($accs as $acc) {
-                $isMatch = strtolower($acc['country_iso3']) === strtolower($gateway->country)
-                    && strtolower($acc['currency_iso3']) === strtolower($currency)
-                    // && strtolower($acc["transactionType"]) === "payin"
-                    && strtolower($acc['paymentMethodType']) === strtolower($payment_mode);
-
-                if ($paymentMethod !== null) {
-                    $isMatch = $isMatch && strtolower($acc['name']) === strtolower($paymentMethod);
-                }
-
-                if ($isMatch) {
-                    if (isset($acc['minAmount']) && $amount < $acc['minAmount']) {
-                        return ['error' => 'Amount is below the minimum allowed: ' . $acc['minAmount']];
-                    }
-
-                    if (isset($acc['minAmount']) && $amount > $acc['maxAmount']) {
-                        return ['error' => 'Amount exceeds the maximum allowed: ' . $acc['maxAmount']];
-                    }
-
-                    $payObj = (object) $acc;
-                    break;
-                }
-            }
-
-            if (!isset($payObj)) {
-                return ['error' => 'Payment method is currently unavailable, please contact support'];
-            }
-
-
-            $customer = auth()->user();
-            $name = explode(" ", $customer->name);
-
-            $accountNumber = $payObj->number;
-
-            if (is_array($accountNumber) && isset($accountNumber['error'])) {
-                return $accountNumber;
-            }
-
-            switch (strtolower($gateway->payment_mode)) {
-                case 'cash':
-                    $payload = [
-                        "paymentMethod" => [
-                            "type" => "Cash",
-                            "code" => $payObj->gateway_code,
-                            "flow" => "REDIRECT"
-                        ],
-                        "externalId" => $deposit_id,
-                        "country" => $gateway->country,
-                        "amount" => floatval($amount),
-                        "currency" => $gateway->currency,
-                        "accountNumber" => $accountNumber,
-                        "conceptCode" => "0003",
-                        "comment" => "Yativo payin transaction id: " . $deposit_id,
-                        "merchant" => [
-                            "type" => "COMPANY",
-                            "name" => "Zee Technologies SPA",
-                            "email" => "michael@yativo.com"
-                        ],
-                        "payer" => [
-                            "type" => "INDIVIDUAL",
-                            "name" => $customer->firstName,
-                            "lastname" => $customer->lastName,
-                            "document" => [
-                                "id" => $customer->idNumber,
-                                "type" => $customer->idType
-                            ],
-                            "email" => $customer->email,
-                            "bank" => [
-                                "name" => $request->bank_name,
-                                "code" => $request->bank_code,
-                                "account" => [
-                                    "number" => $request->account_number,
-                                    "type" => $request->account_type
-                                ],
-                            ],
-                        ]
-                    ];
-                    // if ($customer->is_business) {
-                    //     unset($payload['payer']);
-                    //     $payload['payer'] = [
-                    //         "type" => "COMPANY",
-                    //         "name" => $customer->firstName,
-                    //         "document" => [
-                    //             "id" => $customer->idNumber,
-                    //             "type" => $customer->idType
-                    //         ],
-                    //         "email" => $customer->email,
-                    //         "bank" => [
-                    //             "name" => $request->bank_name,
-                    //             "code" => $request->bank_code,
-                    //             "account" => [
-                    //                 "number" => $request->account_number,
-                    //                 "type" => $request->account_type
-                    //             ],
-                    //         ],
-                    //     ];
-                    // }
-                    break;
-                case 'banktransfer':
-                    $payload = [
-                        "paymentMethod" => [
-                            "type" => ucfirst($payObj->paymentMethodType),
-                            "code" => $payObj->gateway_code,
-                            "flow" => "DIRECT"
-                        ],
-                        "externalId" => $deposit_id,
-                        "country" => strtoupper($payObj->country_iso3),
-                        "amount" => floatval($amount),
-                        "currency" => strtoupper($gateway->currency),
-                        "accountNumber" => $accountNumber,
-                        "conceptCode" => "0003",
-                        "comment" => "Yativo payin transaction id: " . $deposit_id,
-                        "merchant" => [
-                            "type" => "COMPANY",
-                            "name" => "Zee Technologies SPA",
-                            "email" => "michael@yativo.com"
-                        ],
-                        "payer" => [
-                            "type" => "INDIVIDUAL",
-                            "name" => $customer->firstName,
-                            "lastname" => $customer->lastName,
-                            "document" => [
-                                "id" => $request->document_id ?? $customer->idNumber,
-                                "type" => $request->document_type ?? $customer->idType
-                            ],
-                            "email" => $customer->email,
-                            "bank" => [
-                                "name" => $request->bank_name,
-                                "code" => $request->bank_code,
-                                "account" => [
-                                    "number" => $request->account_number,
-                                    "type" => $request->account_type
-                                ],
-                            ],
-                        ]
-                    ];
-
-                    // if ($customer->is_business) {
-                    //     unset($payload['payer']);
-                    //     $payload['payer'] = [
-                    //         "type" => "COMPANY",
-                    //         "name" => $customer->firstName,
-                    //         "document" => [
-                    //             "id" => $customer->idNumber,
-                    //             "type" => $customer->idType
-                    //         ],
-                    //         "email" => $customer->email,
-                    //         "bank" => [
-                    //             "name" => $request->bank_name,
-                    //             "code" => $request->bank_code,
-                    //             "account" => [
-                    //                 "number" => $request->account_number,
-                    //                 "type" => $request->account_type
-                    //             ],
-                    //         ],
-                    //     ];
-                    // }
-                    break;
-                case 'apm':
-                    $payload = [
-                        "paymentMethod" => [
-                            "type" => ucfirst($payObj->paymentMethodType),
-                            "code" => $payObj->gateway_code,
-                            "flow" => "REDIRECT"
-                        ],
-                        "externalId" => $deposit_id,
-                        "country" => $gateway->country,
-                        "amount" => floatval($amount),
-                        "currency" => $gateway->currency,
-                        "accountNumber" => $accountNumber,
-                        "conceptCode" => "0003",
-                        "comment" => "Yativo payin transaction id: " . $deposit_id,
-                        "merchant" => [
-                            "type" => "COMPANY",
-                            "name" => "Zee Technologies SPA",
-                            "email" => "michael@yativo.com"
-                        ],
-                        "payer" => [
-                            "type" => "INDIVIDUAL",
-                            "name" => $customer->firstName,
-                            "lastname" => $customer->lastName,
-                            "document" => [
-                                "id" => $request->document_id ?? $customer->idNumber,
-                                "type" => $request->document_type ?? $customer->idType
-                            ],
-                            "email" => $customer->email,
-                        ]
-                    ];
-                    // if ($customer->is_business) {
-                    //     unset($payload['payer']);
-                    //     $payload['payer'] = [
-                    //         "type" => "COMPANY",
-                    //         "name" => $customer->firstName,
-                    //         "document" => [
-                    //             "id" => $customer->idNumber,
-                    //             "type" => $customer->idType
-                    //         ],
-                    //         "email" => $customer->email
-                    //     ];
-                    // }
-                    break;
-
-                default:
-                    # code...
-                    break;
-            }
-
-            $local = new Localpayments();
-
-            $payin = $local->payin()->init($payload);
-
-
-            if (!is_array($payin)) {
-                result($payin);
-            }
-
-            if (isset($payin['error']) && !is_array($payin['error'])) {
-                $arr = json_decode($payin['error'], true);
-                if (isset($arr['errors'])) {
-                    return ['error' => $arr['errors']];
-                }
-            }
-
-            if (isset($payin["qr"])) {
-                return ['qr' => array_merge($payin["qr"], $payin['payment'])];
-            }
-
-            if (isset($payin['redirectUrl'])) {
-                return $payin['redirectUrl'];
-            }
-
-            if (isset($payin['wireInstructions']) && isset($payin['payment'])) {
-                return array_merge($payin['payment'], $payin['wireInstructions']);
-            }
-
-
-            if (isset($payin['ticket']) && isset($payin['payment'])) {
-                return array_merge($payin['payment'], $payin['ticket']);
-            }
-
-
-            return (array) $payin;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(),];
-        }
-    }
-
-    public function binance_pay($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        try {
-            $binance = new BinancePayController();
-            $init = $binance->init($deposit_id, $amount, $currency, $gateway, $txn_type);
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), "trace" => $th->getTrace()];
         }
     }
 
@@ -389,39 +120,24 @@ class DepositService
         }
     }
 
-    public function flutterwave($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        try {
-            $flutterwave = new FlutterwaveController();
-            $init = $flutterwave->makePayment($deposit_id, $amount, $currency);
-            return $init;
-        } catch (\Throwable $th) {
-            return ['error' => $th->getMessage()];
-        }
-    }
-
-    public function coinpayment($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        $coinpayment = new CoinPaymentsController();
-        // echo json_encode([$deposit_id, $amount, $currency, $txn_type, $gateway]); exit;
-        $checkout = $coinpayment->makePayment($deposit_id, $amount, $currency);
-        if ($checkout['error'] == 'ok') {
-            return $checkout['result']['checkout_url'];
-        }
-        return ["result" => $checkout['error']];
-    }
-
-    public function monnet($deposit_id, $amount, $currency, $txn_type, $gateway)
-    {
-        $monnet = new MonnetServices();
-        $checkout = $monnet->payin($deposit_id, $amount, $currency, 'DEPOSIT');
-        return $checkout;
-    }
-
-    public function flow($deposit_id, $amount, $currency, $txn_type, $gateway)
+    public function floid($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $flow = new FlowController();
         $checkout = $flow->makePayment($deposit_id, $amount, $currency);
+        return $checkout;
+    }
+
+    public function transfi($deposit_id, $amount, $currency, $txn_type, $gateway)
+    {
+        $transFi = new TransFiController();
+        $checkout = $transFi->payin($deposit_id, $amount, $currency, $txn_type, $gateway);
+        return $checkout;
+    }
+
+    public function onramp($deposit_id, $amount, $currency, $txn_type, $gateway)
+    {
+        $transFi = new OnrampController();
+        $checkout = $transFi->payin(request());
         return $checkout;
     }
 
@@ -432,17 +148,27 @@ class DepositService
     {
         // return [];
         $bitso = new BitsoController();
-        $checkout = $bitso->deposit($amount);
+        $checkout = $bitso->deposit($deposit_id, $amount, $currency);
         return $checkout;
     }
 
-    public function brla_qr($deposit_id, $amount, $currency, $txn_type, $gateway)
+    public function brla($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
+        $request = request();
         $checkout_id = rand(102930, 9999999);
         session()->put("checkout_id", $checkout_id);
-        $payload['amount'] = $amount;
+        $payload['amount'] = round($amount, 2);
         $payload['referenceLabel'] = $checkout_id;
-
+        if ($request->has('customer_id')) {
+            $customer = Customer::where('customer_id', $request->customer_id)->first();
+            if (!$customer->brla_subaccount_id) {
+                // create and retrieve the brla_subaccount_id
+            }
+            //retrieve the customer sub_account_id
+            $payload['subaccountId'] = $customer->brla_subaccount_id;
+            Log::info('Brla qr pix data', ['brla_subaccount_id' => $customer->brla_subaccount_id, 'referenceLabel' => $checkout_id]);
+        }
+        update_deposit_gateway_id($deposit_id, $checkout_id);
         $brla = new BrlaDigitalService();
         $checkout = $brla->generatePayInBRCode($payload);
         return $checkout;
@@ -451,23 +177,33 @@ class DepositService
     public function vitawallet($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
         $vitawallet = new VitaWalletController();
-        $checkout = $vitawallet->payin($amount, $currency);
+        $checkout = $vitawallet->payin($deposit_id, $amount, $currency);
         return $checkout;
+    }
+
+    private function khipu()
+    {
+        return ['error' => 'Deposit method is currently unavailable'];
     }
 
     /**
      * @param mixed $tranxRecord  of deposit
-     * @return void
+     * @return void DepositService.php
      */
     public function process_deposit($tranxRecord)
     {
         try {
             Log::channel('deposit_error')->info("initiating deposit for: $tranxRecord");
-            $order = TransactionRecord::whereId($tranxRecord)->first();
+            $order = TransactionRecord::whereId($tranxRecord)->orWhere('transaction_id', $tranxRecord)->first();
             if (!$order) {
-                Log::channel('deposit_error')->info("Error processing transactions", [$order, $tranxRecord]);
-            }
+                $where = [
+                    "transaction_memo" => "payin",
+                    "transaction_id" => $tranxRecord
+                ];
+                $order = TransactionRecord::where($where)->first();
+            } 
 
+            Log::channel('deposit_error')->info("Log my incoming transaction data status: ", ['order' => $order]);
             $quoteId = $order['transaction_id'];
 
             switch ($order['transaction_status']) {
@@ -482,24 +218,14 @@ class DepositService
                     $user = User::findOrFail($order['user_id']);
                     $order->update(['transaction_status' => SendMoneyController::SUCCESS]);
 
-                    switch (strtolower($order->transaction_type)) {
-                        case "deposit":
-                            $deposit = Deposit::whereId($order['transaction_id'])->where('status', 'pending')->first();
-                            if ($deposit) {
-                                $deposit->status = SendMoneyController::SUCCESS;
-                                if ($deposit->save()) {
-                                    $this->complete_deposit($deposit, $user, $order, $payin);
-                                }
-                            }
-                            break;
-                        case "send_money":
-                            $send_money = SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
-                            if ($send_money) {
-                                CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
-                            }
-                            break;
+                    $deposit = Deposit::whereId($order['transaction_id'])->where('status', 'pending')->first();
+                    
+                    if ($deposit) {
+                        $deposit->status = SendMoneyController::SUCCESS;
+                        if ($deposit->save()) {
+                            $this->complete_deposit($deposit, $user, $order, $payin);
+                        }
                     }
-                    break;
                 default:
                     Log::channel('deposit_error')->info('Transaction status is ' . $order['transaction_status']);
                     break;
@@ -528,24 +254,6 @@ class DepositService
 
         if ($wallet->deposit($credit_amount)) {
             Log::info("Deposit crediting completed for {$user->id}, Params: ", $order->toArray());
-
-            $webhook_url = Webhook::whereUserId($user->id)->first();
-
-            if ($webhook_url) {
-                WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
-                    "event.type" => "deposit_success",
-                    "payload" => array_merge($order->toArray(), [
-                        "deposit_amount" => $deposit->amount * 100,
-                        "credited_amount" => $credit_amount,
-                        "user_id" => $user->id,
-                        "wallet_type" => "credit",
-                        "transaction_type" => "deposit",
-                        "transaction_id" => $order['transaction_id'],
-                        "transaction_status" => "success",
-                        "transaction_reference" => $order['transaction_reference']
-                    ])
-                ])->dispatchSync();
-            }
         }
 
         Track::create([

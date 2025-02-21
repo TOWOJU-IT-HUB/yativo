@@ -9,6 +9,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "asbiin/laravel-webauthn": "^4.6",
         "aws/aws-sdk-php": "^3.325",
         "bavix/laravel-wallet": "^11.3",
         "dipeshsukhia/laravel-country-state-city-data": "^2.0",
@@ -17,15 +18,18 @@
         "laravel/framework": "^11.9",
         "laravel/jetstream": "^5.3",
         "laravel/sanctum": "^4.0",
+        "laravel/telescope": "^5.5",
         "laravel/tinker": "^2.9",
         "league/flysystem-aws-s3-v3": "^3.29",
         "nwidart/laravel-modules": "^11.1",
+        "paragonie/sodium_compat": "^2.1",
         "pomelopay/pomelopay-connect-php": "^2.1",
         "pragmarx/google2fa-laravel": "^2.2",
         "spatie/laravel-permission": "^6.9",
         "spatie/laravel-webhook-server": "^3.8",
         "stephenjude/laravel-wallet": "^2.0",
         "symfony/http-client": "^7.1",
+        "tightenco/ziggy": "^2.3",
         "towoju5/advcash": "^0.1.0",
         "towoju5/bitnob": "^1.2",
         "towoju5/laravel-azure-mailer": "^1.1",
@@ -33,7 +37,10 @@
         "towoju5/localpayments": "^1.2",
         "towoju5/plans": "^1.1",
         "tymon/jwt-auth": "*",
-        "yadahan/laravel-authentication-log": "^1.7"
+        "yadahan/laravel-authentication-log": "^1.7",
+        "yajra/laravel-datatables-buttons": "^11.2",
+        "yajra/laravel-datatables-html": "^11.6",
+        "yajra/laravel-datatables-oracle": "^11.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -57,7 +57,10 @@ class ShuftiProServices
             return get_success_response(['url' => $url]);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -89,88 +92,77 @@ class ShuftiProServices
         return $response;
     }
 
-    public function businessVerification($businessName, $businessRegistrationNumber, $businessJurisdictionCode, $businessCountry)
+    public function businessVerification($businessName, $businessRegistrationNumber, $businessJurisdictionCode, $businessCountry = null)
     {
         try {
-            //Shufti Pro API base URL
+            // Determine business country from jurisdiction code if not provided
+            if (is_null($businessCountry)) {
+                $countryParts = explode("-", $businessJurisdictionCode);
+                $businessCountry = $countryParts[0] ?? null;
+            }
+    
+            // Get Shufti Pro API credentials
             $url = 'https://api.shuftipro.com/';
-            $client_id = getenv('SHUFTI_PRO_CLIENT_ID');
-            $secret_key = getenv('SHUFTI_PRO_SECRET_KEY');
+            $client_id = config('services.shufti.client_id'); // Use config instead of getenv
+            $secret_key = config('services.shufti.secret_key');
+    
+            // Get active user
             $user = User::find(active_user());
-
-            $auth = $client_id . ":" . $secret_key;
-
+            if (!$user) {
+                return get_error_response(['error' => 'Invalid user session'], 403);
+            }
+    
+            // Generate request reference code
             $ref_code = generate_uuid();
+    
+            // Build verification request payload
             $verification_request = [
                 'reference' => $ref_code,
                 'country' => $businessCountry,
                 'language' => 'EN',
                 'email' => $user->email,
-                'callback_url' => 'https://yourdomain.com/profile/notifyCallback',
+                'callback_url' => route("shufti.business.verification.callback"),
                 'kyb' => [
                     'company_registration_number' => $businessRegistrationNumber,
                     'company_jurisdiction_code' => $businessJurisdictionCode,
                     'company_name' => $businessName
                 ],
             ];
-
-            $auth = base64_encode($client_id . ":" . $secret_key);
-
+    
+            // Set headers
+            $auth = base64_encode("$client_id:$secret_key");
             $headers = [
                 'Content-Type' => 'application/json',
                 'Authorization' => 'Basic ' . $auth,
             ];
-
+    
+            // Make API request
             $response = Http::withHeaders($headers)->post($url, $verification_request);
-            $response_data = $response->body();
-            $response_headers = $response->headers();
-
-            $sp_signature = $response_headers['Signature'] ?? $response_headers['signature'] ?? null;
-
-            $calculate_signature = hash('sha256', $response_data . $secret_key);
-            $decoded_response = json_decode($response_data, true);
-            $event_name = $decoded_response['event'] ?? null;
-
-            if (in_array($event_name, ['verification.accepted', 'verification.declined', 'request.received'])) {
-                if ($sp_signature === $calculate_signature) {
-                    echo $event_name . " :" . $response_data;
-                } else {
-                    echo "Invalid signature :" . $response_data;
-                }
-            } else {
-                echo "Error :" . $response_data;
-            }
-
-
-            return get_success_response(['url' => $response]);
+    
+            return ["verification_result" => $response->json()];
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            // Log the error for debugging
+            \Log::error("Business Verification Error: " . $th->getMessage());
+    
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-
+    
     public function callback(Request $request)
     {
-        // Log the incoming request for debugging
         \Log::info('ShuftiPro Webhook Initiated:- ', $request->all());
         try {
             if ($request->has('event') && $request->event == "verification.accepted") {
-                // decode event and update user status using the user email as identifier
-
-                // Log the incoming request for debugging
                 \Log::info('ShuftiPro Webhook Received: ', $request->all());
-
-                // Validate the incoming request (you can add more validation as needed)
                 $validate = Validator::make($request->all(), [
                     'event' => 'required|string',
                     'reference' => 'required|string',
                     'verification_result' => 'required|array',
-                    // add other necessary fields
                 ]);
 
                 if ($validate->fails()) {
                     return get_error_response(['error' => $validate->errors()->toArray()]);
                 }
-    
 
                 // Extract data from the request
                 $event = $request->event;
@@ -193,7 +185,6 @@ class ShuftiProServices
                         $new_status = 'pending';
                         break;
                 }
-
 
 
                 // $signature = $request->header('x-shuftipro-signature');
@@ -228,7 +219,10 @@ class ShuftiProServices
                 return get_error_response(["status" => 'Verification completed successfully']);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

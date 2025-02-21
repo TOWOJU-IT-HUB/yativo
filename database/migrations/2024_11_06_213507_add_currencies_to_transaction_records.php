@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('transaction_records', function (Blueprint $table) {
+            $table->string('base_currency')->nullable();
+            $table->string('secondary_currency')->nullable();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('transaction_records', function (Blueprint $table) {
+            $table->dropColumn('base_currency');
+            $table->dropColumn('secondary_currency');
+        });
+    }
+};

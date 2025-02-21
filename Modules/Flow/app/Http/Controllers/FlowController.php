@@ -5,7 +5,9 @@ namespace Modules\Flow\app\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Deposit;
 use App\Models\User;
+use Http;
 use Illuminate\Http\Request;
+use Log;
 use Modules\Flow\app\Services\FlowServices;
 use Modules\SendMoney\app\Models\SendMoney;
 
@@ -15,64 +17,108 @@ class FlowController extends Controller
     public function makePayment($quoteId, $amount, $currency)
     {
         try {
-            $user = auth()->user();
-            $optional = [];
-            $optional = json_encode($optional);
+            if ($currency == 'CLP') {
+                $url = "https://api.floid.app/cl/payments/create";
+            } else if ($currency == "PEN" || $currency == "USD") {
+                $url = "https://api.floid.app/pe/payments/create";
+            } else {
+                return ['error' => "Unsupported currency selected"];
+            }
 
-            // Prepare the data array
+            $authToken = env("FLOID_AUTH_TOKEN");
 
-            // if(empty($quoteId)) {
-            //     $quoteId = "DEP-".strtoupper(\Str::random(8));
-            // }
-
-
-            $params = [
-                "commerceOrder" => $quoteId,
-                "subject" => "Wallet topup by {$user->name}",
-                "currency" => $currency,
-                "amount" => $amount,
-                "email" => $user->email,
-                "urlConfirmation" => "http://flowosccomerce.tuxpan.com/csepulveda/api2/pay/confirmPay.php",
-                "urlReturn" => "http://flowosccomerce.tuxpan.com/csepulveda/api2/pay/resultPay.php",
-                "optional" => $optional,
+            $requestData = [
+                'quote_id' => $quoteId,
+                'custom' => $quoteId,
+                'amount' => $amount,
+                'redirect_url' => request()->redirect_url ?? route('floid.callback.redirect'),
+                'webhook_url' => route('floid.callback.success'),
+                // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
 
-            $serviceName = "payment/create";
-            $flowApi = new FlowServices;
-            $response = $flowApi->send($serviceName, $params, "POST");
-            if(!empty($response))  $response['redirect'] = $response["url"] . "?token=" . $response["token"];
+            $response = Http::withToken($authToken)->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($url, $requestData);
 
-            if(empty($quoteId)) {
-                updateDepositRawData($quoteId, $response);
-            } else updateSendMoneyRawData($quoteId, $response);
-            return $response;
+            $result = $response->json();
+
+            if (isset($result['payment_url']) && isset($result['payment_token'])) {
+                update_deposit_gateway_id($quoteId, $result['payment_token']);
+                return $result;
+            }
+            return ["error" => $result];
         } catch (\Throwable $e) {
-            echo $e->getCode() . " - " . $e->getMessage();
+            return ["error" => $e->getMessage()];
         }
     }
 
-    public function getStatus(Request $request, $txnId)
+    public function getChlPaymentStatus($token = null)
     {
-        try {
-            $order_object = SendMoney::where('quote_id', $request->commerceOrder)->first();
-            if(empty($order_object)) {
-                // check if order is deposit.
-                $order_object = Deposit::where("deposit_id", $txnId)->first();
+        $request = request();
+        $url = "https://api.floid.app/cl/payments/check";
+        $token = $token ?? $request->payment_token;
+        $result = $this->getPaymentStatus($url, $token);
+        // Log::info("Floid request and response data", ['request' => $request->getContent()]);
+        if (isset($result['status'])) {
+            return $result;
+        }
+        return ["error" => $result];
+    }
+
+    public function getPenPaymentStatus($token = null)
+    {
+        $request = request();
+        // Log::info("Floid request and response data", ['request' => $request->getContent()]);
+
+        $url = "https://api.floid.app/pe/payments/check";
+
+        $token = $token ?? $request->payment_token;
+
+        $result = $this->getPaymentStatus($url, $token);
+
+        if (isset($result['status'])) {
+            return $result;
+        }
+        return ["error" => $result];
+    }
+
+    public function getPaymentStatus($url, $payment_token)
+    {
+        $request = request();
+        // Log::info("Floid request and response data", ['request' => $payment_token]);
+
+        $authToken = env("FLOID_AUTH_TOKEN");
+
+        $response = Http::withToken($authToken)->withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($url, [
+                    'payment_token' => $payment_token
+                ]);
+
+        $result = $response->json();
+        Log::info('Direct status from floid - getPaymentStatus: ', ['getPaymentStatus' => $result]);
+        return $result;
+    }
+
+    public function callback(Request $request)
+    {
+        $rawInput = file_get_contents('php://input');
+        $requestBody = $request->all();
+        Log::info('Floid callback request body:', $requestBody);
+        if(isset($request->id) && !empty($request->id)) {
+            $deposit = Deposit::where('gateway_deposit_id', $request->id)->first();
+            if($deposit) {
+                // get the deposit then process it.
+                if(strtoupper($deposit->currency) == "PEN") {
+                    return $this->getPenPaymentStatus($request->id);
+                } else if(strtoupper($deposit->currency) == "CLP") {
+                    return $this->getChlPaymentStatus($request->id);
+                } else {
+                    //
+                }
             }
-            $serviceName = "payment/getStatus";
-            $flowApi = new FlowServices;
 
-            $params['token'] = $txnId;
-
-            $response = result($flowApi->send($serviceName, $params, "POST"));
-        } catch (\Throwable $e) {}
+            return rediret()->away('https://app.yativo.com');
+        }
     }
-
-    public function success(Request $request)
-    {
-        try {
-            $order_object = SendMoney::where('quote_id', $request->commerceOrder)->first();
-        } catch (\Throwable $e) {}
-    }
-
 }

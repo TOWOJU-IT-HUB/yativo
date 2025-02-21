@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto py-8">
+<div class="container mx-auto p-6">
     <h1 class="text-2xl font-semibold text-gray-800 mb-6">Create Admin</h1>
 
     @if(isset($errors))
@@ -26,7 +26,7 @@
             <input type="email" name="email" id="email" value="{{ old('email') }}"
                    class="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500">
         </div>
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">Create Admin</button>
+        <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg">Create Admin</button>
     </form>
 </div>
 @endsection

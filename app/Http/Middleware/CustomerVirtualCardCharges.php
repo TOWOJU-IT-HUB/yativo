@@ -32,7 +32,10 @@ class CustomerVirtualCardCharges
                     return $next($request);
                 }
             } catch (\Throwable $th) {
+                if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
             }
         }
         // return $next($request);

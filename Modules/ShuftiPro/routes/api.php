@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\ShuftiPro\app\Http\Controllers\ShuftiProController;
@@ -20,4 +21,6 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
 
     Route::get('shufti-token', [ShuftiProController::class, 'generateShuftiProToken']);
     Route::post("verify-now", [ShuftiProController::class, 'shuftiPro']);
+    // Route::post("verify-now", [ShuftiProController::class, 'shuftiPro']);
 });
+

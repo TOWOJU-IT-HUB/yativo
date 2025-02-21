@@ -8,18 +8,23 @@ use Illuminate\Http\Request;
 
 class DepositController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $deposits = Deposit::with('user', 'depositGateway')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = Deposit::query();
+        $query->with('user', 'depositGateway', 'transactions');
+        $query->when($request->has('status'), function ($query) use ($request) {
+            $query->where('status', $request->status);
+        });
+
+        $query->orderBy('created_at', 'desc');
+        $deposits = $query->paginate(per_page())->withQueryString();
 
         return view('admin.deposits.index', compact('deposits'));
     }
 
     public function show($id)
     {
-        $deposit = Deposit::with('user', 'depositGateway', 'transaction')->findOrFail($id);
+        $deposit = Deposit::with('user', 'depositGateway', 'transactions')->findOrFail($id);
         return view('admin.deposits.show', compact('deposit'));
     }
 }

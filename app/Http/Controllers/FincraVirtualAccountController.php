@@ -89,7 +89,7 @@ class FincraVirtualAccountController extends Controller
             $response = json_decode($response, true);
         }
 
-        if (isset($response['status']) and (int) $response['status']['code'] != 100) {  
+        if (isset($response['status']) and (int) $response['status']['code'] != 100) {
             foreach ($response["error"] as $error) {
                 $errors[] = $error;
             }
@@ -141,79 +141,33 @@ class FincraVirtualAccountController extends Controller
     public function handleVirtualAccountApproved(Request $request)
     {
         $payload = $request->all();
-        
+
         // Ensure the event is 'virtualaccount.approved'
         if ($payload['event'] !== 'virtualaccount.approved') {
             return get_error_response(['message' => 'Event not supported'], 400);
         }
 
-        // Extract account data from the payload
-        $accountData = $payload['data'];
-
         // Retrieve country information based on the currency code
-        $country = Country::where('currency_code', $accountData['currency'])->first();
-        
-        if (!$country) {
-            Log::error("Country not found for currency: " . $accountData['currency']);
-            return get_error_response(['message' => 'Invalid currency code'], 400);
-        }
+        $extractedData = $payload['data'];
 
-        // Extract the required information
-        $extractedData = [
-            'external_id' => $accountData['id'],
-            'country' => $country->iso3,
-            'currency' => $accountData['currency'],
-            'account_number' => $accountData['accountInformation']['accountNumber'],
-        ];
-
-        // Extract the first 3 numbers of the account number as bank code
-        $extractedData['bank_code'] = Str::substr($extractedData['account_number'], 0, 3);
-        
-        // Determine the bank name based on bank code
-        if ($extractedData['bank_code'] == "646") {
-            $bank_name = "Sistema de Transferencias y Pagos STP";
-        } else {
-            $bank_name = $this->getBankName($extractedData['country'], $extractedData['bank_code']);
-        }
-
-        // Log the extracted data
-        Log::info('Virtual Account Creation:', $extractedData);
-
-        // Find the virtual account using the external ID
-        $virtualAccount = VirtualAccount::where('account_id', $extractedData['external_id'])->first();
-
-        if (!$virtualAccount) {
-            Log::channel('virtual_account')->error("Virtual account record not found", $accountData);
-            return response()->json(['message' => 'Virtual account not found'], 404);
-        }
-
+        // Retrieve the virtual account record
+        $virtualAccount = new VirtualAccount();
+        $country = Country::where('currency_code', $extractedData['currency'])->first();
         // Prepare account information
         $accountInfo = [
-            'country' => $extractedData['country'],
+            'country' => $country->iso3, // Set country as Nigeria
             'currency' => $extractedData['currency'],
-            'account_number' => $extractedData['account_number'],
-            'bank_code' => $extractedData['bank_code'],
-            'bank_name' => $bank_name,
+            'account_number' => $extractedData['accountInformation']['accountNumber'],
+            'bank_code' => $extractedData['accountInformation']['bankCode'],
+            'bank_name' => $extractedData['accountInformation']['bankName'],
+            'account_name' => $extractedData['accountInformation']['accountName'],
         ];
 
-        // Update virtual account with new information
-        $virtualAccount->account_number = $extractedData['account_number'];
+        $virtualAccount->account_number = $extractedData['accountInformation']['accountNumber'];
         $virtualAccount->account_info = $accountInfo;
+        $virtualAccount->extra_data = $extractedData; // Optionally store original account data from provider
         $virtualAccount->save();
-
-        // Log the completion of virtual account creation
-        Log::channel('virtual_account')->info("Virtual account creation completed: ", $virtualAccount->toArray());
-
+            
         return response()->json(['message' => 'Virtual account updated successfully'], 200);
-    }
-
-    // A helper function to get the bank name based on the country and bank code
-    private function getBankName($countryCode, $bankCode)
-    {
-        // Implement the logic to retrieve the bank name based on the country and bank code
-        // This can be a lookup table or an API call to a banking service
-        // For now, we'll return a generic name for demonstration purposes
-
-        return 'Generic Bank Name';
     }
 }

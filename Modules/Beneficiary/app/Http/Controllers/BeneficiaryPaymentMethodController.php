@@ -2,6 +2,7 @@
 
 namespace Modules\Beneficiary\app\Http\Controllers;
 
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Controller;
 use App\Models\Gateways;
 use App\Models\payoutMethods;
@@ -18,12 +19,15 @@ class BeneficiaryPaymentMethodController extends Controller
     public function index(Request $request)
     {
         try {
-            $beneficiaries = BeneficiaryPaymentMethod::with('gateway')->where("user_id", active_user())->get();
+            $beneficiaries = BeneficiaryPaymentMethod::with('gateway')->where("user_id", active_user())->latest()->get();
             if (isApi())
                 return get_success_response($beneficiaries);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -37,13 +41,13 @@ class BeneficiaryPaymentMethodController extends Controller
             $validator = Validator::make($request->all(), [
                 'gateway_id' => 'required',
                 'payment_data' => 'required',
-                'beneficiary_id' => 'required',
+                'beneficiary_id' => 'sometimes',
                 'currency' => 'required',
                 'nickname' => 'required',
             ]);
 
             if ($validator->fails()) {
-                return get_error_response($validator->errors());
+                return get_error_response((array) $validator->errors());
             }
 
             $user = auth()->user();
@@ -53,37 +57,55 @@ class BeneficiaryPaymentMethodController extends Controller
             $currency = $gateway->currency;
 
             if ($gateway->gateway == 'bitso' && strtoupper($gateway->currency) == "USD") {
-                // $user = auth()->user();
+                // Code for bitso USD gateway handling
+            } else if ($gateway->gateway == 'bridge') {
+                // Code for bridge gateway handling
+                $validator = Validator::make($request->all(), [
+                    'customer_id' => 'required|exists:customers,customer_id',
+                    'payment_data.account_number' => 'required|string',
+                    'payment_data.account_name' => 'required|string|max:100',
+                    'payment_data.routing_number' => 'required|string',
+                    'payment_data.account_type' => 'required|in:us,iban',
+                    'payment_data.address.line1' => 'required|string|max:255',
+                    'payment_data.address.line2' => 'nullable|string|max:255',
+                    'payment_data.address.city' => 'required|string|max:100',
+                    'payment_data.address.state' => 'required|string|max:100',
+                    'payment_data.address.postal_code' => 'required|string|max:20',
+                    'payment_data.address.country' => 'required|string|size:2',
+                    // US-specific validations
+                    'payment_data.bank_account_number' => 'required_if:account_type,us|string|max:20',
+                    'payment_data.bank_routing_number' => 'required_if:account_type,us|string|max:9',
+                    'payment_data.checking_or_savings' => 'required_if:account_type,us|in:checking,savings',
+                    // IBAN-specific validations
+                    'payment_data.iban_account_number' => 'required_if:account_type,iban|string|max:34',
+                    'payment_data.iban_bic' => 'required_if:account_type,iban|string|max:11',
+                    'payment_data.iban_country' => 'required_if:account_type,iban|string|size:2',
+                    'payment_data.account_owner_type' => 'nullable|in:individual,business',
+                    'payment_data.first_name' => 'required_if:account_owner_type,individual|string|max:100',
+                    'payment_data.last_name' => 'required_if:account_owner_type,individual|string|max:100',
+                    'payment_data.business_name' => 'required_if:account_owner_type,business|string|max:255',
+                ]);
+                if ($validator->fails()) {
+                    return get_error_response((array) $validator->errors()->toArray());
+                }
+                $bridge = new BridgeController();
+                $result = $bridge->externalAccounts($validator->validated(), $gateway);
 
-                // $where = [
-                //     'user_id' => $user->id,
-                //     'key' => 'bitso_usd_account'
-                // ];
+                if(isset($result['error'])) {
+                    return get_error_response($result['error']);
+                }
 
-                // $userMeta = UserMeta::where($where)->first();
-
-                // if (is_null($userMeta) or empty($userMeta) or !$userMeta) {
-                //     return ['error' => "Please update you usd bank record firstly"];
-                // }
-
-
-                // $userMeta = $user->userMeta;
-                // $accountId = $userMeta->bitso_account_id;
-
-
-                /**
-                 * make a call to bitso server to store USD account 
-                 * and retrieve the account id for future transactions
-                 */
-
-
+                if ($result) {
+                    return get_success_response(['message' => "Payment data processed successfully", "data" => $result]);
+                }
 
             } else if ($gateway->gateway == 'local_payment') {
                 $result = $this->localPayments($request);
                 return get_success_response($result);
+
             } elseif ($gateway->gateway == 'monnet') {
                 if (!in_array($currency, ['PEN', 'MXN'])) {
-                    return ['error' => 'Invalid or unsupported Currency type'];
+                    return get_error_response(['error' => 'Invalid or unsupported Currency type']);
                 }
 
                 if ($currency == "PEN") {
@@ -112,7 +134,7 @@ class BeneficiaryPaymentMethodController extends Controller
                 }
 
                 if (!preg_match($requirement['document_validation_regex'], $idNumber)) {
-                    return get_error_response(['error' => 'Invalid Dcoument ID number']);
+                    return get_error_response(['error' => 'Invalid Document ID number']);
                 }
 
                 $model = new BeneficiaryPaymentMethod;
@@ -123,7 +145,6 @@ class BeneficiaryPaymentMethodController extends Controller
                 $model->address = $request->address;
                 $model->payment_data = $request->payment_data;
                 $model->beneficiary_id = $request->beneficiary_id;
-
             } else {
                 $model = new BeneficiaryPaymentMethod;
                 $model->user_id = active_user();
@@ -135,11 +156,14 @@ class BeneficiaryPaymentMethodController extends Controller
                 $model->beneficiary_id = $request->beneficiary_id;
             }
 
-            if ($data = $model->save()) {
-                return get_success_response(['message' => "Payment data processed successfully"]);
+            if ($model->save()) {
+                return get_success_response(['message' => "Payment data processed successfully", "data" => $model]);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -150,7 +174,7 @@ class BeneficiaryPaymentMethodController extends Controller
                 'gateway_id' => 'required',
                 'currency' => 'required',
                 'payment_data' => 'required',
-                'beneficiary_id' => 'required',
+                'beneficiary_id' => 'sometimes',
             ]);
 
             if ($validate->fails()) {
@@ -171,7 +195,10 @@ class BeneficiaryPaymentMethodController extends Controller
                 return ['message' => "Payment data processed successfully"];
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -185,7 +212,10 @@ class BeneficiaryPaymentMethodController extends Controller
 
             return get_error_response(['error' => 'Record not found'], 404);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -216,7 +246,10 @@ class BeneficiaryPaymentMethodController extends Controller
                 return get_success_response(['message' => "Payment data updated successfully"]);
             }
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

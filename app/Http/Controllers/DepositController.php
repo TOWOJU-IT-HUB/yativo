@@ -31,10 +31,13 @@ class DepositController extends Controller
         try {
             $request = request();
             $per_page = $request->per_page ?? per_page();
-            $deposits = Deposit::whereUserId(active_user())->latest()->paginate($per_page);
+            $deposits = Deposit::whereUserId(active_user())->with(['depositGateway'])->latest()->paginate($per_page);
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -47,27 +50,82 @@ class DepositController extends Controller
     public function store(Request $request)
     {
         try {
+            if(!$request->has('redirect_url') || $request->redirect_url == null) {
+                $request->merge(['redirect_url' => 'https://app.yativo.com']);
+            }
             $validate = Validator::make(
                 $request->all(),
                 [
-                    'gateway' => 'required',
-                    'amount' => 'required',
-                    'currency' => 'sometimes',
-                    'credit_wallet' => 'sometimes'
+                    'gateway' => 'required|numeric|min:1',
+                    'amount' => 'required|numeric',
+                    'currency' => 'required_without:credit_wallet',
+                    'credit_wallet' => 'required_without:currency',
+                    'redirect_url' => 'required'
                 ]
             );
 
+            if(!$request->has('credit_wallet') && $request->has('currency')) {
+                $request->merge([
+                    'credit_wallet' => $request->currency
+                ]);
+            }
+
+            if(!$request->has('currency') && $request->has('credit_wallet')) {
+                $request->merge([
+                    'currency' => $request->credit_wallet
+                ]);
+            }
+            
             if ($validate->fails()) {
                 return get_error_response($validate->errors()->toArray());
             }
 
             $user = $request->user();
 
-            if (!$user->hasWallet($request->credit_wallet ?? $request->currency)) {
+            if (!$user->hasWallet($request->currency)) {
                 return get_error_response(['error' => "Invalid wallet selected"], 400);
             }
 
             $payin = PayinMethods::whereId($request->gateway)->first();
+
+            if (!$payin) {
+                return get_error_response(['error' => 'Invalid payment gateway selected.'], 400);
+            }
+            $allowedCurrencies = [];
+            $allowedCurrencies = explode(',', $payin->base_currency);
+            
+            if (!in_array($request->currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' =>  "The selected deposit wallet is not supported for selected gateway. Allowed currencies: " . $payin->base_currency
+                ], 400);
+            }
+            
+            $exchange_rate = get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin");
+            
+            if (!$exchange_rate || $exchange_rate <= 0) {
+                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
+            }
+            $exchange_rate = floatval($exchange_rate);
+            $deposit_float = floatval($payin->exchange_rate_float ?? 0);
+
+            // Calculate percentage and add to exchange rate
+            $exchange_rate += ($exchange_rate * $deposit_float / 100);
+
+
+            $amount = floatval($request->amount ?? 0);
+            if ($amount <= 0) {
+                return get_error_response(['error' => 'Invalid deposit amount.'], 400);
+            }
+            
+            if (($payin->minimum_deposit * $exchange_rate) > $amount) {
+                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is ". floatval($payin->minimum_deposit * $exchange_rate)], 400);
+            }
+            
+            if (($payin->maximum_deposit * $exchange_rate) < $amount) {
+                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is ". floatval($payin->maximum_deposit * $exchange_rate)], 400);
+            }
+            
+
             // record deposit info into the DB
             $deposit = new Deposit();
             $deposit->currency = $payin->currency;
@@ -75,10 +133,12 @@ class DepositController extends Controller
             $deposit->user_id = active_user();
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
+            $deposit->receive_amount = floatval($request->amount * $exchange_rate);
+            $transaction_fee = floatval($exchange_rate * get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin"));
 
-            $exchange_rate = floatval(get_transaction_rate($payin->currency, $deposit->deposit_currency, $payin->id, "payin"));
-            $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
-            // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
+            if(is_array($transaction_fee) && isset($transaction_fee['error'])) {
+                return get_error_response($transaction_fee, 422);
+            }
 
             if (!$payin) {
                 return get_error_response(['error' => 'Invalid gateway, please contact support']);
@@ -86,12 +146,12 @@ class DepositController extends Controller
 
             $deposit->currency = $payin->currency;
             if ($deposit->save()) {
-                $total_amount_due = $request->amount + $transaction_fee;
+                $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
                 $arr['payment_info'] = [
-                    "send_amount" => "$request->amount $payin->currency",
-                    "receive_amount" => ($request->amount * $exchange_rate) . " {$deposit->deposit_currency}",
+                    "send_amount" => round($request->amount / $exchange_rate, 4)." $payin->currency",
+                    "receive_amount" => round($request->amount * $exchange_rate, 2) . explode(".", $deposit->deposit_currency)[0],
                     "exchange_rate" => "1" . strtoupper($payin->currency) . " ~ $exchange_rate" . strtoupper($request->credit_wallet ?? $request->currency),
-                    "transaction_fee" => "$transaction_fee $payin->currency",
+                    "transaction_fee" => round($transaction_fee * $exchange_rate, 2) .$payin->currency,
                     "payment_method" => $payin->method_name,
                     "estimate_delivery_time" => formatSettlementTime($payin['settlement_time']),
                     "total_amount_due" => "$total_amount_due $payin->currency"
@@ -109,7 +169,7 @@ class DepositController extends Controller
             return get_error_response(['error' => "Sorry we're currently unable to process your deposit request"]);
         } catch (\Throwable $th) {
             // return response()->json(['error' => $th->getTraceAsString()]);
-            return get_error_response(['error' => $th->getMessage(), "trace" => $th->getTrace()]);
+            return get_error_response(['error' => $th->getMessage()]);
         }
     }
 
@@ -120,78 +180,87 @@ class DepositController extends Controller
     {
         try {
             $payment = new DepositService();
-
             $callback = $payment->makeDeposit($gateway, $currency, $amount, $deposit, $txn_type);
 
-            if (is_object($callback)) {
+            Log::info("Deposit callback: " . json_encode($callback));
+
+            if (is_string($callback)) {
+                $callback = ['url' => $callback];  // Treat string responses as redirect URLs
+            } elseif (is_object($callback)) {
                 $callback = (array) $callback;
             }
 
-            if (empty($callback) or isset($callback['error'])) {
-                return ['error' => $callback];
+            if (empty($callback) || isset($callback['error'])) {
+                return ['error' => $callback['error'] ?? 'An unknown error occurred'];
             }
 
-            if ($callback) {
-                if (is_string($callback)) {
-                    $mode = 'redirect';
-                    $pay_data = $callback;
-                }
+            // Determine the payment mode and data based on callback response
+            $mode = null;
+            $pay_data = null;
 
-                if (isset($callback['url'])) {
-                    $mode = 'redirect';
-                    $pay_data = $callback['url'];
-                }
-
-                if (isset($callback['brCode'])) {
-                    $mode = 'qr_code';
-                    $pay_data = $callback['brCode'];
-                }
-
-                if (isset($callback['qr'])) {
-                    $mode = 'qr_code';
-                    $pay_data = $callback['qr'];
-                }
-
-                if (isset($callback['ticket'])) {
-                    $mode = "wire_details";
-                    $pay_data = $callback['ticket'];
-                }
-
-                if (isset($callback['wireInstructions'])) {
-                    $mode = "wire_details";
-                    $pay_data = $callback['wireInstructions'];
-                }
-
-                $transaction = TransactionRecord::where(["transaction_type" => $txn_type, 'transaction_id' => $deposit['id']])->first();
-                
-                $checkout = new CheckoutModel();
-                $checkout['user_id'] = auth()->id();
-                $checkout['transaction_id'] = $transaction->id;
-                $checkout['deposit_id'] = $deposit['id'];
-                $checkout['checkout_mode'] = $mode;
-                $checkout['checkout_id'] = session()->get("checkout_id", $callback['id']);
-                $checkout['provider_checkout_response'] = $callback;
-                $checkout['checkouturl'] = route("checkout.url", ['id' => $deposit['id']]);
-                $checkout['checkout_status'] = "pending";
-
-                if(!$checkout->save()){                
-                    return ['error' => "Unable to inititate payin, please contact support."];
-                }
-
-                $encryptedId = Crypt::encrypt($checkout->id);
-                $checkoutUrl = route('checkout.url', ['id' => $encryptedId]);
+            if (isset($callback['url'])) {
+                $mode = 'redirect';
+                $pay_data = $callback['url'];
+            } elseif (isset($callback['payment_url'])) { // for floid
+                $mode = 'redirect';
+                $pay_data = $callback['url'] = $callback['payment_url'];
+            } elseif (isset($callback['brCode'])) {
+                $mode = 'brCode';
+                $pay_data = $callback['brCode'];
+            } elseif (isset($callback['qr'])) {
+                $mode = 'qr_code';
+                $pay_data = $callback['qr'];
+            } elseif (isset($callback['ticket'])) {
+                $mode = 'wire_details';
+                $pay_data = $callback['ticket'];
+            } elseif (isset($callback['onramp'])) {
+                $mode = 'onramp';
+                $pay_data = $callback['onramp'];
+            } elseif (isset($callback['wireInstructions'])) {
+                $mode = 'wire_details';
+                $pay_data = $callback['wireInstructions'];
+            } else {
+                Log::info("Received payment response", $callback);
+                return ['error' => 'Unsupported payment response format'];
             }
+
+            $transaction = TransactionRecord::where([
+                "transaction_type" => $txn_type,
+                'transaction_id' => $deposit['id']
+            ])->first();
+
+            if (!$transaction) {
+                return ['error' => 'Transaction not found'];
+            }
+
+            // Create a new checkout entry
+            $checkout = new CheckoutModel();
+            $checkout->user_id = auth()->id();
+            $checkout->transaction_id = $transaction->id;
+            $checkout->deposit_id = $deposit['id'];
+            $checkout->checkout_mode = $mode;
+            $checkout->checkout_id = session()->get("checkout_id", $callback['id'] ?? null);
+            $checkout->provider_checkout_response = $callback;
+            $checkout->checkouturl = str_replace('http://api.yativo.com', 'https://checkout.yativo.com', route("checkout.url", ['id' => $deposit['id']]));
+            $checkout->checkout_status = "pending";
+
+            if (!$checkout->save()) {
+                return ['error' => "Unable to initiate payment, please contact support."];
+            }
+
+            $encryptedId = Crypt::encrypt($checkout->id);
+            $checkoutUrl = route('checkout.url', ['id' => $encryptedId]);
 
             return [
-                'deposit_url' => $checkoutUrl ?? $callback,
-                'deposit_data' => $deposit
+                'deposit_url' => $checkout->checkouturl,
+                'deposit_data' => $deposit,
             ];
 
-            // return ['error' => "Deposit not saved, please contact support."];
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), "trace" => $th->getTrace()];
+            return ['error' => $th->getMessage()];
         }
     }
+
 
     /**
      * Display the specified resource.
@@ -207,7 +276,10 @@ class DepositController extends Controller
                 return get_error_response(['error' => "Transaction not found"]);
             return get_success_response($deposit);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -217,50 +289,66 @@ class DepositController extends Controller
             $validate = Validator::make($request->all(), [
                 'country' => 'required|min:3|max:3'
             ]);
-
+    
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
-
+    
             $where = [
                 'country' => $request->country
             ];
-
-
+    
             $currencies = PayinMethods::where($where)
                 ->join('currency_lists', 'currency_lists.currency_code', '=', 'payin_methods.currency')
-                ->groupBy('currency_lists.currency_code', 'currency_lists.currency_name', 'currency_lists.currency_symbol')
                 ->select('currency_lists.currency_code', 'currency_lists.currency_name', 'currency_lists.currency_symbol')
                 ->get();
-
+    
             return get_success_response($currencies);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if (env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+    
 
     public function payinMethods(Request $request)
     {
         try {
+            // Validation: country and currency can be nullable
             $validate = Validator::make($request->all(), [
-                'country' => 'required|min:3|max:3',
-                'currency' => 'required'
+                'country' => 'nullable|min:3|max:3',  // country can be null or 3 chars long
+                'currency' => 'nullable|min:3|max:3', // currency can be null or 3 chars long
             ]);
 
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
-            $where = [
-                'country' => $request->country,
-                'currency' => $request->currency
-            ];
+            // Initialize the query conditions based on which parameter is provided
+            $where = [];
+            if ($request->has('country')) {
+                $where['country'] = $request->country;
+            }
+
+            if ($request->has('currency')) {
+                $where['currency'] = $request->currency;
+            }
+
+            // Fetch the payin methods based on the query conditions
             $methods = PayinMethods::where($where)->get();
+
             return get_success_response($methods);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            // Handle errors
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+
 
     public function payinMethodsCountries()
     {
@@ -281,7 +369,10 @@ class DepositController extends Controller
             });
             return get_success_response($countries);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

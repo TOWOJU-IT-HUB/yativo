@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\MiscController;
 use App\Models\Balance;
 use App\Models\Business;
+use App\Models\BusinessConfig;
 use App\Models\Country;
+use App\Models\CustomPricing;
 use App\Models\Deposit;
 use App\Models\ExchangeRate;
 use App\Models\Gateways;
@@ -29,6 +32,7 @@ use Bavix\Wallet\Exceptions\InsufficientFunds;
 use Illuminate\Support\Facades\Cache;
 use Modules\SendMoney\app\Models\SendQuote;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('user_can')) {
     /**
@@ -117,13 +121,13 @@ if (!function_exists('settings')) {
      *
      * @return string
      */
-    function settings(string $key): string
+    function settings(string $key, $default = null): string
     {
         $setting = Settings::where('meta_key', $key)->first();
         if (!empty($setting)) {
             $setting = $setting->meta_value;
         } else {
-            return "$key not Found!";
+            return $default;
         }
 
         return $setting;
@@ -144,34 +148,46 @@ if (!function_exists('get_current_balance')) {
 }
 
 if (!function_exists('get_transaction_rate')) {
-    function get_transaction_rate($send_currency, $receive_currency, $gateway, $type)
+    function get_transaction_rate($send_currency, $receive_currency, $Id, $type)
     {
-        Log::info(json_encode([$send_currency, $receive_currency, $gateway, $type]));
+        Log::info(json_encode([$send_currency, $receive_currency, $Id, $type]));
+
         $result = 0;
+        $rate = 0; // Default rate
+        $gatewayId = $Id; // Define $gatewayId
 
         // Fetch exchange rate details based on gateway and type
-        $rates = ExchangeRate::where('gateway_id', $gateway)
-            ->where('rate_type', $type)
-            ->first();
+        if ($type == "payout" || $type == "payoutMethod") {
+            // Get the payout method
+            $gateway = payoutMethods::whereId($gatewayId)->first();
+            if ($gateway) {
+                $rate = $gateway->exchange_rate_float ?? 0;
+            }
+        } else {
+            // get the payin data
+            $gateway = PayinMethods::whereId($gatewayId)->first();
+            if ($gateway) {
+                $rate = $gateway->exchange_rate_float ?? 0;
+            }
+        }
 
         // Fetch base rate from external service or function
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
 
-        if ($rates) {
+        if ($rate > 0 && $baseRate > 0) {
+            // Calculate floated amount
+            $rate_floated_amount = ($rate / 100) * $baseRate;
 
-            if ($baseRate > 0) {
-                // Calculate floated amount if float percentage is set
-                $rate_floated_amount = ($rates->float_percentage ?? 0) / 100 * $baseRate;
-                $result = $baseRate + $rate_floated_amount;
+            // Adjust calculation based on type
+            if ($type == "payout" || $type == "payoutMethod") {
+                $result = $baseRate - $rate_floated_amount; // Subtract for payouts
             } else {
-                Log::error("Base rate is 0 for {$send_currency} to {$receive_currency}");
+                $result = $baseRate + $rate_floated_amount; // Add for others
             }
+        } elseif ($baseRate > 0) {
+            $result = $baseRate;
         } else {
-            if ($baseRate > 0) {
-                $result = $baseRate;
-            } else {
-                Log::error("No exchange rate found for gateway ID: {$gateway}, type: {$type}");
-            }
+            Log::error("No exchange rate found for gateway ID: {$gatewayId}, type: {$type}");
         }
 
         return floatval($result);
@@ -179,42 +195,38 @@ if (!function_exists('get_transaction_rate')) {
 }
 
 if (!function_exists('exchange_rates')) {
-    function exchange_rates($from, $to)
+    function exchange_rates($from, $to) : int
     {
-        // If the currencies are the same, return 1
-        if ($from === $to) {
-            return 1;
-        }
+        if ($from === $to) return 1; // Return 1 for same currencies
 
-        // Initialize price to 0
-        $price = 0;
-
-        try {
-            // Use Guzzle to make a reliable API request
+        $cacheKey = "exchange_rate_{$from}_{$to}";
+        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
-            $response = $client->get("https://min-api.cryptocompare.com/data/price", [
-                'query' => [
-                    'fsym' => $from,
-                    'tsyms' => $to
-                ]
-            ]);
 
-            $data = json_decode($response->getBody(), true);
+            $apis = [
+                "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
+                "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
+            ];
 
-            // Extract the price from the response
-            if (isset($data[$to])) {
-                $price = $data[$to];
-            } else {
-                Log::error("Invalid response for {$from} to {$to}: " . json_encode($data));
+            foreach ($apis as $url => $params) {
+                try {
+                    $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
+                    $rate = $url === "https://min-api.cryptocompare.com/data/price" 
+                        ? ($response[$to] ?? null) 
+                        : ($response['data']['rates'][$to] ?? null);
+
+                    if ($rate) return (float) $rate; // Return rate immediately if found
+                } catch (\Exception $e) {
+                    Log::error("Error fetching exchange rate from $url: " . $e->getMessage());
+                }
             }
-        } catch (\Exception $e) {
-            // Log any exception that occurs during the API request
-            Log::error("Failed to fetch exchange rate for {$from} to {$to}: " . $e->getMessage());
-        }
 
-        return $price;
+            return 0; // Return 0 if both APIs fail
+        });
     }
 }
+
+
 
 if (!function_exists('getExchangeVal')) {
     /**
@@ -232,7 +244,7 @@ if (!function_exists('per_page')) {
      */
     function per_page($perPage = null)
     {
-        if(isset(request()->per_page)) {
+        if (isset(request()->per_page)) {
             $perPage = request()->per_page;
         }
         return $perPage ?? 10;
@@ -318,7 +330,7 @@ if (!function_exists('get_business_id')) {
 }
 
 if (!function_exists('get_success_response')) {
-    function get_success_response($data, $status_code = 200)
+    function get_success_response($data, $status_code = 200, $message = "Request successful")
     {
         if (isset($data['error'])) {
             return get_error_response($data);
@@ -327,7 +339,7 @@ if (!function_exists('get_success_response')) {
         $response = [
             'status' => 'success',
             'status_code' => $status_code,
-            'message' => 'Request successful',
+            'message' => $message,
             'data' => $data
         ];
         // return $response;
@@ -336,7 +348,7 @@ if (!function_exists('get_success_response')) {
 }
 
 if (!function_exists('get_error_response')) {
-    function get_error_response($data, $status_code = 400)
+    function get_error_response($data, $status_code = 400, $message = "Request failed.")
     {
         if (isset($data['error'])) {
             if (isset($data['error']['error'])) {
@@ -352,7 +364,7 @@ if (!function_exists('get_error_response')) {
         $response = [
             'status' => 'failed',
             'status_code' => $status_code,
-            'message' => 'Request failed',
+            'message' => $message,
             'data' => $data
         ];
         return response()->json($response, $status_code);
@@ -427,11 +439,34 @@ if (!function_exists('save_image')) {
             }
 
             return getenv("CLOUDFLARE_BASE_URL") . $imgPath;
-
         }
         return $result;
     }
 }
+
+
+if (!function_exists('save_base64_image')) {
+    function save_base64_image($path, $imagePath)
+    {
+        $result = null;
+
+        if (!empty($imagePath) && file_exists($imagePath)) {
+            // Assuming user is authenticated; modify if needed
+            $user = request()->user();
+            $userPath = "documents/{$user->membership_id}";
+
+            // Upload the file to the Cloudflare R2 storage
+            $imgPath = "{$userPath}/" . basename($imagePath);
+            Storage::disk('r2')->put($imgPath, file_get_contents($imagePath));
+
+            // Generate and return the full Cloudflare URL
+            $result = getenv("CLOUDFLARE_BASE_URL") . $imgPath;
+        }
+
+        return $result;
+    }
+}
+
 
 if (!function_exists('get_fees')) {
     /**
@@ -715,7 +750,6 @@ if (!function_exists("generateSignature")) {
 
         return ($result);
     }
-
 }
 
 if (!function_exists("url_request")) {
@@ -781,56 +815,99 @@ if (!function_exists('add_transaction_details')) {
     }
 }
 
-
-/**
- * Encrypt customer data using AES and RSA
- *
- * @param mixed $customerData
- * @return string  
- * */
-function encryptCustomerData($customerData)
-{
-    $encryptionService = new EncryptionService();
-    return $encryptionService->encrypt($customerData);
+if (!function_exists('add_usd_virtual_card_deposit')) {
+    function add_usd_virtual_card_deposit($data)
+    {
+        // TransactionRecord::create([
+        //     "user_id" => $data['user_id'],
+        //     "transaction_beneficiary_id" => $data['user_id'],
+        //     "transaction_id" => $data['id'],
+        //     "transaction_amount" => $data['user_id'],
+        //     "gateway_id" => 0,
+        //     "transaction_status" => "completed",
+        //     "transaction_type" => $txn_type,
+        //     "transaction_memo" => "payin",
+        //     "transaction_currency" => $currency,
+        //     "base_currency" => $currency,
+        //     "secondary_currency" => $paymentMethods->currency,
+        //     "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
+        //     "transaction_payin_details" => array_merge([$send, $result]),
+        //     "transaction_payout_details" => [],
+        // ]);
+    }
 }
 
 
-/**
- * Decrypt customer data using AES and RSA
- *
- * @param string $encryptedData
- * @param string $encryptedKey
- * @return array|null
- */
-function decryptCustomerData($encryptedData, $encryptedKey)
-{
-    // Decrypt the AES key with RSA
-    $aesKey = Crypt::decryptString($encryptedKey);
 
-    if ($aesKey === false) {
-        return null; // Failed to decrypt the AES key
+if (!function_exists('decryptCustomerData')) {
+    /**
+     * Encrypt customer data with AES-256-GCM using the app key
+     *
+     * @param mixed $customerData
+     * @return string Base64-encoded string of IV, ciphertext, and tag
+     */
+    function encryptCustomerData($customerData)
+    {
+        // Get the app key from environment variables and ensure it's exactly 32 bytes
+        $appKey = substr(env('APP_KEY'), 0, 32);
+
+        // Generate a random IV for each encryption
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length('aes-256-gcm'));
+
+        // Encrypt the data
+        $encryptedData = openssl_encrypt(
+            json_encode($customerData),
+            'aes-256-gcm',
+            $appKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        // Concatenate the IV, encrypted data, and tag
+        $finalData = base64_encode($iv . $encryptedData . $tag);
+
+        return $finalData;
     }
-
-    $encryptedData = base64_decode($encryptedData);
-    $iv = substr($encryptedData, 0, openssl_cipher_iv_length('aes-256-gcm'));
-    $tag = substr($encryptedData, -16);
-    $encryptedData = substr($encryptedData, openssl_cipher_iv_length('aes-256-gcm'), strlen($encryptedData) - openssl_cipher_iv_length('aes-256-gcm') - 16);
-
-    // Decrypt customer data with AES
-    $decryptedData = openssl_decrypt(
-        $encryptedData,
-        'aes-256-gcm',
-        $aesKey,
-        $iv,
-        $tag
-    );
-
-    if ($decryptedData === false) {
-        return null; // Failed to decrypt the data
-    }
-
-    return json_decode($decryptedData, true);
 }
+
+if (!function_exists('decryptCustomerData')) {
+    /**
+     * Decrypt customer data with AES-256-GCM using the app key
+     *
+     * @param string $encryptedData Base64-encoded string of IV, ciphertext, and tag
+     * @return array|null The decrypted customer data as an associative array, or null if decryption fails
+     */
+    function decryptCustomerData($encryptedData)
+    {
+        // Get the app key from environment variables and ensure it's exactly 32 bytes
+        $appKey = substr(env('APP_KEY'), 0, 32);
+
+        // Decode the base64-encoded data
+        $decodedData = base64_decode($encryptedData);
+
+        // Extract the IV, encrypted data, and tag
+        $ivLength = openssl_cipher_iv_length('aes-256-gcm');
+        $iv = substr($decodedData, 0, $ivLength);
+        $tag = substr($decodedData, -16);
+        $ciphertext = substr($decodedData, $ivLength, -16);
+
+        // Decrypt the data
+        $decryptedData = openssl_decrypt(
+            $ciphertext,
+            'aes-256-gcm',
+            $appKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        // Return the decoded data or null if decryption failed
+        return $decryptedData === false ? null : json_decode($decryptedData, true);
+    }
+}
+
+
 
 
 if (!function_exists('convertToUSD')) {
@@ -872,45 +949,42 @@ if (!function_exists('convertToUSD')) {
 }
 
 if (!function_exists('debit_user_wallet')) {
-    function debit_user_wallet($amount, $currency = "USD", $description = 'Charge for service')
+    function debit_user_wallet($amount, $currency, $description = 'Charge for service', $arr = [])
     {
-        if (!$currency or empty($currency)) {
-            // return ['error' => 'Invalid currency provided'];
-            $currency = "USD";
-        }
-        
         $request = request();
         $user = $request->user();
         // Find or create wallet for the user
         $wallet = $user->getWallet($currency);
-
+        if(!$wallet) {
+            return ['error' => "Insufficient balance or invalid debit wallet."];
+        }
         try {
-            if (!$wallet) { // wallet not found
-                $usdWallet = $user->getWallet('USD');
+            // if (!$wallet) { // wallet not found
+            //     $usdWallet = $user->getWallet('USD');
 
 
 
-                // Convert the amount to USD
-                $convertedAmount = convertToUSD($currency, $amount);
-                // var_dump($convertedAmount); exit;
+            //     // Convert the amount to USD
+            //     $convertedAmount = convertToUSD($currency, $amount);
+            //     // var_dump($convertedAmount); exit;
 
-                if ($convertedAmount === null || $convertedAmount <= 0) {
-                    return ['error' => 'Currency conversion failed or insufficient balance: '];
-                }
+            //     if ($convertedAmount === null || $convertedAmount <= 0) {
+            //         return ['error' => 'Currency conversion failed or insufficient balance: '];
+            //     }
 
-                if ($usdWallet && $usdWallet->balance >= $convertedAmount) {
-                    // Charge the USD wallet
-                    $usdWallet->withdraw($convertedAmount, [
-                        'description' => $description,
-                    ]);
+            //     if ($usdWallet && $usdWallet->balance >= $convertedAmount) {
+            //         // Charge the USD wallet
+            //         $usdWallet->withdraw($convertedAmount, [
+            //             'description' => $description,
+            //         ]);
 
-                    $currency = 'USD'; // Log the transaction in USD
-                    $amount = $convertedAmount; // Update amount to converted USD value
-                    $wallet = $usdWallet; // Update wallet to USD wallet for further processing
-                } else {
-                    return ['error' => 'Insufficient balance in USD wallet'];
-                }
-            }
+            //         $currency = 'USD'; // Log the transaction in USD
+            //         $amount = $convertedAmount; // Update amount to converted USD value
+            //         $wallet = $usdWallet; // Update wallet to USD wallet for further processing
+            //     } else {
+            //         return ['error' => 'Insufficient balance in USD wallet'];
+            //     }
+            // }
 
             // Try to charge the wallet
             $charge = $wallet->withdraw($amount, [
@@ -930,7 +1004,6 @@ if (!function_exists('debit_user_wallet')) {
             ]);
 
             return ['success' => true, 'message' => 'Transaction completed successfully'];
-
         } catch (InsufficientFunds $exception) {
             // User doesn't have enough balance in wallet
             return ['error' => $exception->getMessage()];
@@ -989,62 +1062,89 @@ if (!function_exists('get_transaction_fee')) {
      * @param mixed $amount | 100
      * @param mixed $txn_type deposit | payout
      * @param mixed $gateway_type - payin | payout
-     * @return int
+     * @return int|array
      */
     function get_transaction_fee(int $gateway, float $amount, string $txn_type, string $gateway_type)
     {
-        $fee = 0;
+        $fee = $total_charge = 0;
         $rate = 0;
         $rate_floated_amount = 0;
 
-        // get user pricing model
-        $user = request()->user();
+        // Get user pricing model
+        $user = auth()->user();
         if (!$user->hasActiveSubscription()) {
             $plan = PlanModel::where('price', 0)->latest()->first();
             if ($plan) {
                 $user->subscribeTo($plan, 30, true);
             }
         }
+
         $subscription = $user->activeSubscription();
-        if ((int) $subscription->plan_id !== 3) {
-            $user_plan = (int) $subscription->plan_id;
-            if (strtolower($gateway_type) == "payin"):
-                $gateway = PayinMethods::whereId($gateway)->first();
-            elseif (strtolower($gateway_type) == "payout"):
-                $gateway = payoutMethods::whereId($gateway)->first();
-            else:
-                abort(json_encode(['error' => "Invalid gateway selected"]));
-            endif;
+        $user_plan = (int) $subscription->plan_id;
 
-            // Calculate charges based on user plan
-            if ($user_plan === 1) {
-                $fixed_charge = $gateway->fixed_charge;
-                $float_charge = $gateway->float_charge;
-            } elseif ($user_plan === 2) {
-                $fixed_charge = $gateway->pro_fixed_charge;
-                $float_charge = $gateway->pro_float_charge;
-            }
-
-            // Calculate the fee
-            $fee = $fixed_charge;
-            $rate = $float_charge;
-            $rate_floated_amount = ($amount * $rate) / 100;
-
-            $total_charge = $fee + $rate_floated_amount;
-            $minimum_charge = $gateway->minimum_charge;
-            $maximum_charge = $gateway->maximum_charge;
-
-            // Compare total charge with minimum and maximum charges
-            if ($total_charge < $minimum_charge) {
-                $total_charge = $minimum_charge;
-            } elseif ($total_charge > $maximum_charge) {
-                $total_charge = $maximum_charge;
-            }
-
-            return $fee;
+        // Handle gateway logic
+        if (strtolower($gateway_type) == "payin") {
+            $gateway = PayinMethods::whereId($gateway)->first();        
+            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+            $exchange_rate = $base_exchange_rate + (($base_exchange_rate * $exchange_rate_float) / 100);
+        } elseif (strtolower($gateway_type) == "payout") {
+            $gateway = PayoutMethods::whereId($gateway)->first();        
+            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+            $exchange_rate = $base_exchange_rate - (($base_exchange_rate * $exchange_rate_float) / 100);
+        } else {
+            return ['error' => "Invalid gateway selected"];
         }
-        return $fee;
+
+        Log::info("Exchange rate float is: {$gateway->exchange_rate_float}");
+
+        // Default charges
+        $fixed_charge = 0;
+        $float_charge = 0;
+
+        if ($user_plan === 3) {
+            // Custom pricing (Plan 3)
+            $customPricing = CustomPricing::where('user_id', $user->id)
+                ->where('gateway_id', $gateway->id)
+                ->first();
+
+            if (!$customPricing) {
+                $user_plan = 2; // Fallback to Plan 2 if no custom pricing
+            } else {
+                $fixed_charge = $customPricing->fixed_charge;
+                $float_charge = $customPricing->float_charge;
+            }
+        }
+
+        if ($user_plan === 1 || $user_plan === 2) {
+            // Handle basic and pro plans
+            $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
+            $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
+        }
+
+        // Calculate fees properly
+        $fixed_fee_in_usd = $fixed_charge;  // Fixed charge is in USD
+        $rate = $float_charge;  // Float charge percentage
+        $float_fee_in_usd = ($amount * $rate) / 100; // Float charge in USD
+
+        // Convert to local currency using exchange rate
+        $total_charge = ($fixed_fee_in_usd + $float_fee_in_usd) * $exchange_rate;
+
+        // Minimum & Maximum charge in local currency
+        $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
+        $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
+
+        // Apply charge limits
+        if ($total_charge < $minimum_charge) {
+            $total_charge = $minimum_charge;
+        } elseif ($total_charge > $maximum_charge) {
+            $total_charge = $maximum_charge;
+        }
+
+        return $total_charge;
     }
+
 }
 
 if (!function_exists('formatSettlementTime')) {
@@ -1076,6 +1176,25 @@ if (!function_exists('formatSettlementTime')) {
 }
 
 
+if (!function_exists('convertToBase64ImageUrl')) {
+    function convertToBase64ImageUrl($base64String)
+    {
+        // Decode the base64 string
+        $decodedString = base64_decode($base64String);
+
+        // Check if decoding was successful
+        if ($decodedString === false) {
+            return null; // Return null or handle the error as needed
+        }
+
+        // Convert the decoded string back to base64 for image embedding
+        $imageBase64 = base64_encode($decodedString);
+
+        // Construct the data URI for the image
+        return MiscController::uploadBase64ImageToCloudflare('data:image/png;base64,' . $imageBase64);
+    }
+}
+
 if (!function_exists('get_payout_code')) {
     function get_payout_code($currency)
     {
@@ -1100,5 +1219,71 @@ if (!function_exists('get_payout_code')) {
 
         // Return null if no match is found or file does not exist
         return null;
+    }
+}
+
+if (!function_exists('update_deposit_gateway_id')) {
+    /**
+     * update the ID of checkout gateway into the deposit DB for easy record retrieval
+     * @param mixed $depositId
+     * @param mixed $gatewayDepositId
+     * @return void
+     */
+    function update_deposit_gateway_id($depositId, $gatewayDepositId)
+    {
+        $deposit = Deposit::find($depositId);
+        if ($deposit) {
+            $deposit->gateway_deposit_id = $gatewayDepositId;
+            $deposit->save();
+        }
+    }
+}
+
+if (!function_exists('generateTableFromArray')) {
+    function generateTableFromArray($data)
+    {
+        if(empty($data)) return '';
+        // Start the table structure
+        $html = '<table class="table table-bordered table-striped w-full mt-4">';
+
+        // Iterate over the array to create table rows
+        foreach ($data as $key => $value) {
+            // Check if the value is an array itself (nested data)
+            if (is_array($value)) {
+                // If so, recursively call the function to handle the nested array
+                $html .= '<tr><th colspan="2">' . ucfirst(str_replace('_', ' ', $key)) . '</th></tr>';
+                $html .= '<tr><td colspan="2">' . generateTableFromArray($value) . '</td></tr>';
+            } else {
+                // If it's a simple key-value pair, display it in a row
+                $html .= '<tr>';
+                $html .= '<td><strong>' . ucfirst(str_replace('_', ' ', $key)) . '</strong></td>';
+                $html .= '<td>' . htmlspecialchars($value) . '</td>';
+                $html .= '</tr>';
+            }
+        }
+
+        // Close the table
+        $html .= '</table>';
+
+        return $html;
+    }
+}
+
+
+if (!function_exists('config_can_peform')) {
+    /**
+     * update the ID of checkout gateway into the deposit DB for easy record retrieval
+     * @param mixed $depositId
+     * @param mixed $gatewayDepositId
+     * @return boolean
+     */
+    function config_can_peform($action): bool
+    {
+        $config = BusinessConfig::where('user_id', auth()->id())->pluck('configs');
+        if ($config && isset($config[0][$action]) && strtolower($config[0][$action]) === "enabled") {
+            return true;
+        }
+
+        return true;
     }
 }

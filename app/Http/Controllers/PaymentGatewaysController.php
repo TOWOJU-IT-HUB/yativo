@@ -21,7 +21,10 @@ class PaymentGatewaysController extends Controller
             if (getenv('APP_DEBUG') == true) {
                 return get_error_response($th->getTrace());
             }
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -44,7 +47,10 @@ class PaymentGatewaysController extends Controller
             if (getenv('APP_DEBUG') == true) {
                 return get_error_response($th->getTrace());
             }
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

@@ -1,0 +1,11 @@
+{
+    "name": "TransFiWebhookController",
+    "alias": "transfiwebhookcontroller",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\TransFiWebhookController\\Providers\\TransFiWebhookControllerServiceProvider"
+    ],
+    "files": []
+}

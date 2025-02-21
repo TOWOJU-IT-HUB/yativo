@@ -3,16 +3,18 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Modules\Customer\app\Models\Customer;
 
 class BrlaApiService
 {
-    protected $baseUrl, $port, $loginToken;
+    protected $baseUrl, $port, $loginToken, $customer;
 
     public function __construct()
     {
         $this->port = env('IS_BRLA_TEST') ? 4567 : 5567;
         $this->baseUrl = "https://api.brla.digital:{$this->port}/v1/business";
         $this->login = self::login(env('BRLA_EMAIL'), env('BRLA_PASSWORD'));
+        $this->customer = $this->getCustomerInfo();
     }
 
     public function login($email, $password)
@@ -34,6 +36,7 @@ class BrlaApiService
             ->get("{$this->baseUrl}/pay-in/br-code", [
                 'amount' => $amount,
                 'referenceLabel' => $referenceLabel,
+                'subaccountId' => $this->customer->brla_subaccount_id
             ]);
 
         return $response->json();
@@ -49,6 +52,7 @@ class BrlaApiService
             'markupAddress' => $markupAddress,
             'receiverAddress' => $receiverAddress,
             'externalId' => $externalId,
+            'subaccountId' => $this->customer->brla_subaccount_id
         ]);
 
         return $response->json();
@@ -67,6 +71,7 @@ class BrlaApiService
             'markupAddress' => $markupAddress,
             'referenceLabel' => $referenceLabel,
             'externalId' => $externalId,
+            'subaccountId' => $this->customer->brla_subaccount_id
         ]);
 
         return $response->json();
@@ -100,5 +105,22 @@ class BrlaApiService
         ])->post("{$this->baseUrl}/swap", $data);
 
         return $response->json();
+    }
+    
+    private function getCustomerInfo()
+    {
+        if (request()->has('customer_id')) {
+            $customer = Customer::where('customer_id', request()->customer_id)->first();
+            $name = explode(' ', $customer->customer_name);
+            $customer->first_name = $name[0];
+            $customer->last_name = $name[1] ?? $name[0];
+            return $customer;
+        } else {
+            $user = request()->user();
+            $name = explode(' ', $user->name);
+            $user->first_name = $name[0];
+            $user->last_name = $name[1] ?? $name[0];
+            return $user;
+        }
     }
 }

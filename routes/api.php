@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BeneficiaryFoemsController;
+use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\PlansController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\Business\WithdrawalController;
 use App\Http\Controllers\BusinessController;
+use App\Http\Controllers\ChartsController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EventsController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\MagicLinkController;
 use App\Http\Controllers\MiscController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\PinVerificationController;
+use App\Http\Controllers\TrackController;
 use App\Http\Controllers\TransactionRecordController;
 use App\Http\Controllers\UserMetaController;
 use App\Http\Controllers\WalletController;
@@ -23,7 +26,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Business\TeamController;
 use App\Http\Controllers\FincraVirtualAccountController;
-
+use App\Http\Middleware\IdempotencyMiddleware;
+use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,6 +54,9 @@ Route::group(['prefix' => 'v1/locations'], function () {
 
 
 Route::group(['prefix' => 'v1/auth'], function () {
+    Route::get('verification-locations', [BridgeController::class, 'getCustomerRegistrationCountries']);
+    Route::get('occupation-codes', [DojahVerificationController::class, 'occupationCodes']);
+
     Route::post('register', [AuthController::class, 'register']);
     Route::post('register/social', [AuthController::class, 'socialLogin']);
     Route::post('login', [AuthController::class, 'login']);
@@ -68,7 +75,7 @@ Route::group(['prefix' => 'v1/auth'], function () {
 });
 
 
-Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
+Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->prefix('v1')->name('api.')->group(function () {
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
 
     Route::prefix('crypto')->group(function () {
@@ -100,16 +107,19 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
     Route::get('is-pin-set', [MiscController::class, 'isPinSet'])->name('isPinSet');
     Route::get("my-payin-methods", [MiscController::class, "getPayinMethods"]);
 
+    Route::get("transaction/track", [TrackController::class, "track"]);
+
 
     Route::group([], function () {
         Route::put('profile', [AuthController::class, 'update']);
-
+        Route::get('customer/kyc/{customerId}', [BridgeController::class, 'getCustomer']);
+        Route::put('customer/kyc/update', [BridgeController::class, 'selfUpdateCustomer']);
         Route::get('user-meta', [UserMetaController::class, 'index']);
         Route::get('user-meta/{id}', [UserMetaController::class, 'show']);
         Route::post('user-meta', [UserMetaController::class, 'store']);
         Route::put('user-meta/{id}', [UserMetaController::class, 'update']);
         Route::delete('user-meta/{id}', [UserMetaController::class, 'destroy']);
-        Route::post('storage/upload', [UserMetaController::class, 'upload'])->name('misc.upload');
+        Route::post('storage/upload', [UserMetaController::class, 'upload'])->name('misc.upload')->withoutMiddleware('kyc_check');
         Route::get('storage/get/{doc}', [UserMetaController::class, 'retriveUpload'])->name('misc.get');
     })->middleware('kyc_check');
 
@@ -156,9 +166,7 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
 
     Route::prefix('payout')->group(function () {
         Route::post('simple', [WithdrawalController::class, 'singlePayout'])->middleware('chargeWallet');
-        ;
         Route::post('batch', [WithdrawalController::class, 'bulkPayout'])->middleware('chargeWallet');
-        ;
         Route::get('get', [WithdrawalController::class, 'getPayouts']);
         Route::get('fetch/{payout_id}', [WithdrawalController::class, 'getPayout']);
     });
@@ -169,13 +177,23 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
     });
 
     Route::prefix('business')->group(function () {
+        Route::get('configs', [BusinessController::class, 'preference'])->name('business.preference');
+        Route::put('configs', [BusinessController::class, 'updatePreference'])->name('business.preference.update');
+        Route::post('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo.post');
+        Route::get('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo');
+        Route::get('ubos', [BusinessController::class, 'uboList'])->name('business.ubo.list');
+        Route::post('/', [BusinessController::class, 'store'])->name('business.store');
+        Route::put('/', [BusinessController::class, 'update'])->name('business.update');
+    });
+
+    Route::prefix('business')->group(function () {
+
         Route::get('transactions/all', [TransactionRecordController::class, 'index']);
         Route::get('transaction/show/{transactionId}', [TransactionRecordController::class, 'show']);
+        Route::get('transaction/by-currency', [TransactionRecordController::class, 'byCurrency']);
         Route::get('chart-data', [TransactionRecordController::class, 'getChartData']);
 
         Route::get('details', [BusinessController::class, 'show'])->name('business.show');
-        Route::post('/', [BusinessController::class, 'store'])->name('business.store');
-        Route::put('/', [BusinessController::class, 'update'])->name('business.update');
 
         Route::prefix('virtual-account')->group(function () {
             Route::get("/", [VirtualAccountsController::class, 'index'])->name('business.virtual-account.index');
@@ -218,11 +236,6 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
             Route::get('show/{eventId}', [EventsController::class, 'showWebhookLog']);
         });
 
-        Route::get('configs', [BusinessController::class, 'preference'])->name('business.preference');
-        Route::post('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo.post');
-        Route::get('notify-ubo', [BusinessController::class, 'sendEmailNotification'])->name('business.notify.ubo');
-
-        Route::get('ubos', [BusinessController::class, 'uboList'])->name('business.ubo.list');
     })->middleware('kyc_check');
 
 
@@ -251,5 +264,13 @@ Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
         Route::post('{teamId}/revoke-role/{userId}/{roleName}', [TeamController::class, 'revokeRole']);
         Route::post('{teamId}/give-permission/{userId}/{permission}', [TeamController::class, 'givePermissionTo']);
         Route::post('{teamId}/revoke-permission/{userId}/{permission}', [TeamController::class, 'revokePermissionTo']);
+    });
+
+
+    Route::prefix('charts')->group(function () {
+        Route::get('api-logs/request-methods', [ChartsController::class, 'countRequestMethodsPerDay']);
+        Route::get('api-logs/success-failed', [ChartsController::class, 'countSuccessVsFailed']);
+        Route::get('webhook-logs/request-methods', [ChartsController::class, 'countWebhookRequestMethodsPerDay']);
+        Route::get('webhook-logs/success-failed', [ChartsController::class, 'countWebhookSuccessVsFailed']);
     });
 });

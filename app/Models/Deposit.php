@@ -24,6 +24,7 @@ class Deposit extends Model
         'meta',
         'deposit_id',
         'deposit_currency',
+        'status',
         'credit_wallet' // wallet to be credited
     ];
 
@@ -37,7 +38,11 @@ class Deposit extends Model
      * @var array<int, string>
      */
     protected $hidden = [
-        'deleted_at'
+        'deleted_at',
+        'exchange_rate',
+        'payment_gateway_id',
+        // 'meta',
+        'credit_wallet',
     ];
 
     public function user()
@@ -50,7 +55,7 @@ class Deposit extends Model
      */
     public function depositGateway()
     {
-        return $this->belongsTo(PayinMethods::class, 'gateway_id');
+        return $this->belongsTo(PayinMethods::class, 'gateway');
     }
 
     public function transaction()
@@ -62,7 +67,7 @@ class Deposit extends Model
 
     public function transactions()
     {
-        return $this->hasMany(TransactionRecord::class)
+        return $this->hasMany(TransactionRecord::class, 'transaction_id', 'id')
             ->where('transaction_type', 'deposit');
     }
 

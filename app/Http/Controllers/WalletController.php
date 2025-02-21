@@ -45,10 +45,13 @@ class WalletController extends Controller
     public function index()
     {
         try {
-            $payouts = Withdraw::where('user_id', auth()->id())->with('beneficiary')->paginate(per_page());
+            $payouts = Withdraw::where('user_id', auth()->id())->with('beneficiary')->paginate(per_page())->withQueryString();
             return paginate_yativo($payouts);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -83,16 +86,8 @@ class WalletController extends Controller
                 foreach ($wallets as $key => $wallet) {
                     // Ensure $wallets is defined or initialized before using it
                     $slug = strtoupper($wallet->slug);
-                    $usdRateResponse = $this->rates($slug);
-
-                    if (isset($usdRateResponse['error'])) {
-                        // Handle error from rates function
-                        return get_error_response(['error' => 'Error fetching exchange rates.', 'details' => $usdRateResponse['error']]);
-                    }
-                    // Fetch the exchange rate from the response
-                    $usdRate = $usdRateResponse['data'][$slug];
-                    // Calculate total balance
-                    $total_balance += ($wallet->balance * $usdRate);
+                    $usdRateResponse = convertToUSD($slug, $wallet->balance);
+                    $total_balance += $usdRateResponse;
                 }
                 // Return total balance
                 return get_success_response(['total_balance' => $total_balance]);
@@ -102,9 +97,6 @@ class WalletController extends Controller
             // Return success response with wallets
             return get_success_response($wallets);
         } catch (\Throwable $th) {
-            // Log error
-            \Log::error($th);
-
             // Return error response
             return get_error_response(['error' => 'Unable to get wallets', 'info' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
@@ -164,7 +156,10 @@ class WalletController extends Controller
             }
             return get_error_response(['error' => 'Unable to process request, please try again later']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -178,10 +173,13 @@ class WalletController extends Controller
     public function deposits()
     {
         try {
-            $deposits = Deposit::whereUserId(active_user())->with('transaction')->paginate(per_page());
+            $deposits = Deposit::whereUserId(active_user())->with('transaction')->paginate(per_page())->withQueryString();
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -291,7 +289,10 @@ class WalletController extends Controller
             //                 ->get();
             return get_success_response($transfer);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

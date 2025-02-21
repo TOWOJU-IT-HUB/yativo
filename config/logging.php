@@ -5,6 +5,9 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
 
+
+$date = date('dd-mm-YYYY');
+
 return [
 
     /*
@@ -50,12 +53,26 @@ return [
     |
     */
 
-    'channels' => [
 
+    'channels' => [
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', env('LOG_STACK', 'single')),
+            'channels' => ['single'],
             'ignore_exceptions' => false,
+        ],
+
+        'shufti' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/shufti.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'monnet' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/monnet.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
         ],
 
         'single' => [
@@ -65,19 +82,74 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'coinpayments' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/coinpayments.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'payout_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/payout_log.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'deposit_error' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/deposit_error.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'whitelist_ip' => [
+            'driver' => 'single',
+            'path' => storage_path("logs/whitelist_ip_{$date}.log"),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'deposit_log' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/deposit_error.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'virtual_account' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/virtual_account.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'missing_route' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/missing-route.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'replace_placeholders' => true,
+        ],
+
+        'database' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/database.log'),
+            'level' => 'info',
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
+            'days' => 14,
             'replace_placeholders' => true,
         ],
 
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),
-            'username' => env('LOG_SLACK_USERNAME', 'Laravel Log'),
-            'emoji' => env('LOG_SLACK_EMOJI', ':boom:'),
+            'username' => 'Laravel Log',
+            'emoji' => ':boom:',
             'level' => env('LOG_LEVEL', 'critical'),
             'replace_placeholders' => true,
         ],
@@ -89,7 +161,7 @@ return [
             'handler_with' => [
                 'host' => env('PAPERTRAIL_URL'),
                 'port' => env('PAPERTRAIL_PORT'),
-                'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
+                'connectionString' => 'tls://' . env('PAPERTRAIL_URL') . ':' . env('PAPERTRAIL_PORT'),
             ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
@@ -108,7 +180,7 @@ return [
         'syslog' => [
             'driver' => 'syslog',
             'level' => env('LOG_LEVEL', 'debug'),
-            'facility' => env('LOG_SYSLOG_FACILITY', LOG_USER),
+            'facility' => LOG_USER,
             'replace_placeholders' => true,
         ],
 
@@ -126,7 +198,6 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
-
     ],
 
 ];

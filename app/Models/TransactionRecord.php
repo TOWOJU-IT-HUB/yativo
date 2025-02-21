@@ -22,6 +22,7 @@ class TransactionRecord extends Model
     ];
 
     protected $hidden = [
+        // 'transaction_payin_details',
         'updated_at',
         'deleted_at',
     ];

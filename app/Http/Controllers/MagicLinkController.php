@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\MagicLinkEmail;
 use App\Models\Balance;
 use App\Models\User;
+use Http;
 use Illuminate\Foundation\Auth\ThrottlesLogins;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,11 @@ use Jijunair\LaravelReferral\Models\Referral;
 
 class MagicLinkController extends Controller
 {
+    public $crypto_base_url;
+    public function __construct()
+    {
+        $this->crypto_base_url = env('CRYPTO_BASE_URL', "https://crypto.yativo.com/api/authentication");
+    }
     /**
      * Send magic link to user email.
      *
@@ -28,7 +34,7 @@ class MagicLinkController extends Controller
         try {
             $this->validate($request, [
                 'email' => 'required|email',
-                'base_url' => 'required',
+                'base_url' => 'sometimes|url',
             ]);
 
             $success = [];
@@ -54,7 +60,10 @@ class MagicLinkController extends Controller
             return get_success_response($success);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -92,12 +101,44 @@ class MagicLinkController extends Controller
             }
 
             $success = $this->respondWithToken($token);
+
+            // check if user has been registered for over 24 hours
+            if ($user->has_crypto_login == false) {
+                $payload = [
+                    'username' => explode('@', $user->email)[0],
+                    'email' => $user->email,
+                    'user_password' => $user->email,
+                ];
+
+                $response = Http::post("{$this->crypto_base_url}/registration", $payload);
+                $result = $response->json();
+                if (isset($result['success']) && $result['success'] === true) {
+                    $user->has_crypto_login = true;
+                    $user->save();
+                }
+            } else {
+                // check if user has been registered for over 24 hours
+                $payload = [
+                    'email' => $user->email,
+                    'user_password' => $user->email,
+                ];
+                $response = Http::post("{$this->crypto_base_url}/login", $payload);
+                $result = $response->json();
+                if (isset($result['success']) && $result['success'] === true) {
+                    $user->has_crypto_login = true;
+                    $user->save();
+                }
+            }
+
             // $success = json_decode($success, true);
-            $result = array_merge($user->toArray(), $success);
+            $result = array_merge($user->toArray(), $success, ['crypto_api' => $result]);
 
             return get_success_response($result);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -175,7 +216,10 @@ class MagicLinkController extends Controller
             return get_success_response($user, 201);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -194,4 +238,50 @@ class MagicLinkController extends Controller
         ];
     }
 
+    public function cryptoAPI(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'crypto_token' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return get_error_response(['error' => $validator->errors()->toArray()]);
+        }
+
+        $payload = [
+            'email' => auth()->user()->email,
+            'user_password' => $request->crypto_token
+        ];
+
+        $response = Http::post("{$this->crypto_base_url}/login", $payload);
+        if ($response->json()['status'] === true) {
+            return get_success_response("Please verify OTP sent to email");
+        } else {
+            return get_error_response(['error' => $response->json()['message']]);
+        }
+    }
+
+    public function getCryptoToken(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'crypto_otp' => 'required',
+        ]);
+
+        
+        if ($validator->fails()) {
+            return get_error_response(['error' => $validator->errors()->toArray()]);
+        }
+
+        $payload = [
+            'email' => auth()->user()->email,
+            'otp' => $request->crypto_otp
+        ];
+
+        $response = Http::post("{$this->crypto_base_url}/otp_verification", $payload);
+        if ($response->json()['status'] === true) {
+            return get_success_response(["crypto_api_key" => $response->json()['result']['apiKey']]);
+        } else {
+            return get_error_response(['error' => $response->json()['message']]);
+        }
+    }
 }

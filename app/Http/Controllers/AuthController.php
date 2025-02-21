@@ -48,12 +48,11 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
                 return get_error_response(['error' => $validator->errors()->toArray()], 422);
             }
 
-            // $credentials = ['email' => base64_decode($request->account_id), 'password' => $request->app_secret];
-            $credentials = ['email' => $request->account_id, 'password' => $request->app_secret];
+            $credentials = ['email' => $email, 'password' => $request->app_secret];
 
             $token = auth()->attempt($credentials);
 
-            $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $email)->first();
 
             if ($token === false) {
                 return get_error_response(['error' => 'Invalid login credentials'], 401);
@@ -356,7 +355,10 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
             }
             return get_success_response($profile);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -394,6 +396,21 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
             "profile_photo_path" => $input['profile_photo_path'] ?? $user->profile_photo_path,
         ]));
 
+        $user->save();
+
+        // if ($user->registration_country == null) {
+        //     $ip = request()->ip();
+        //     $response = Http::get("https://ipinfo.io/{$ip}/country");
+        //     // var_dump($response->json());
+        //     if (Auth::check() && Auth::user()->registration_country === null) {
+        //         if ($response->successful()) {
+        //             $countryIso2 = $response->json()['country'];
+        //             // echo $countryIso2;
+        //             $user->registration_country = get_iso3_by_iso2($countryIso2);
+        //             $user->save();
+        //         }
+        //     }
+        // }
 
         // Check if verification document file was provided
         if (isset($input['verificationDocument']) && $input['verificationDocument'] instanceof UploadedFile) {
@@ -412,19 +429,22 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
     public function generateAppSecret()
     {
         try {
+            $passy = generate_uuid();
             $user = auth()->user();
-            $user->password = generate_uuid();
+            $user->password = bcrypt($passy);
             if ($user->save()) {
                 return get_success_response([
                     'message' => 'App secret generated successfully',
-                    'app_secret' => $user->password
+                    'app_secret' => $passy,
                 ]);
             }
         } catch (\Throwable $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-
 
     /**
      * Handles social login for the application.
@@ -471,8 +491,8 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
                 if ($token === false) {
                     return get_error_response(['error' => 'Unauthorized'], 401);
                 }
-                $loginToken = $this->respondWithToken($token, $is_registered);
-                return $loginToken;
+                $loginToken = $this->respondWithToken($token);
+                return get_success_response([$loginToken, "is_registered" => $is_registered]);
             }
             return get_error_response(['error' => 'Invalid social login'], 422);
         } catch (\Throwable $th) {
@@ -489,7 +509,10 @@ class AuthController extends Controller implements UpdatesUserProfileInformation
             $user->delete();
             return get_success_response(['message' => 'Account deleted successfully']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 

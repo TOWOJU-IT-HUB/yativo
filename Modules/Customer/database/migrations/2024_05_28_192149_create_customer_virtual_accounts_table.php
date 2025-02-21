@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('customer_virtual_accounts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignId('business_id')->constrained('businesses')->cascadeOnDelete();
+            $table->foreignId('business_id')->constrained('businesses');
             $table->string('customer_id');
             $table->json('account_info')->nullable();
             $table->enum('account_status', ['pending', 'active', 'suspended'])->default('pending');

@@ -10,13 +10,15 @@ class BusinessConfig extends Model
 {
     use HasFactory;
 
-
     protected $fillable = [
         'application_form',
         'configs',
         'user_id'
     ];
 
+    protected $casts = [
+        'configs' => 'array'
+    ];
 
     protected $hidden = [
         'id',

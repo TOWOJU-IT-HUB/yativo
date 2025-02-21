@@ -28,10 +28,13 @@ class CustomerVirtualCardsController extends Controller
     public function index()
     {
         try {
-            $cards = CustomerVirtualCards::where('business_id', get_business_id(auth()->id()))->paginate(per_page());
+            $cards = CustomerVirtualCards::where('business_id', get_business_id(auth()->id()))->paginate(per_page())->withQueryString();
             return paginate_yativo($cards);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -41,7 +44,10 @@ class CustomerVirtualCardsController extends Controller
             $verify = $this->card->verifyUser();
             return get_success_response(['verify' => $verify]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -68,6 +74,12 @@ class CustomerVirtualCardsController extends Controller
             $cust = Customer::whereCustomerId($request->customer_id)->first();
             if (!$cust) {
                 return get_error_response(['error' => "Customer not found!"]);
+            }
+
+            if(($cust->can_create_vc == true) && (null != $cust->vc_customer_id))  {
+                return get_error_response([
+                    "error" => "Customer already enrolled and activated"
+                ], 421);
             }
 
             $validatedData = $validate->validated();
@@ -104,15 +116,17 @@ class CustomerVirtualCardsController extends Controller
 
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
-            $validatedData["idImage"] = $cust->customer_idFront;
-            $validatedData["country"] = $cust->customer_address['country'];
+            $validatedData["idImage"] = convertToBase64ImageUrl(decryptCustomerData($cust->customer_idFront));
+            $validatedData["country"] = $cust->customer_country;
             $validatedData["city"] = $cust->customer_address['city'];
             $validatedData["state"] = $cust->customer_address['state'];
             $validatedData["zipCode"] = $cust->customer_address['zipcode'];
             $validatedData["line1"] = $cust->customer_address['street'];
             $validatedData["houseNumber"] = $cust->customer_address['number'];
             $validatedData["idType"] = "NATIONAL_ID";
-            $validatedData["idNumber"] = $cust->customer_idNumber;
+            $validatedData["idNumber"] = decryptCustomerData($cust->customer_idNumber);
+
+            // return response()->json($validatedData); exit;
 
             $req = $this->card->regUser($validatedData);
 
@@ -131,12 +145,15 @@ class CustomerVirtualCardsController extends Controller
                     'success' => "Customer activated successfully."
                 ]);
             } else {
-                $result = $req; // get_error_response(['error' => "User registration failed, please check your payload is correct."]);
+                $result = get_error_response($req); // get_error_response(['error' => "User registration failed, please check your payload is correct."]);
             }
 
             return $result;
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -165,9 +182,12 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => "Customer with the provided ID not found!"]);
             }
 
-            if ((bool)$cust->can_create_vc === false || $cust->vc_customer_id == null) {
-                return get_error_response(['error' => "Customer not approved for this service"]);
-            }
+            // if ((bool)$cust->can_create_vc === false || $cust->vc_customer_id == null) {
+            //     return get_error_response(['error' => "Customer not approved for this service"]);
+            // }
+
+            // debit user for card creation
+            debit_user_wallet(settings('virtual_card_creation', 5), "USD", "Virtual Card Creation");
 
             // Ensure the customer_email field is available and correctly fetched
             if (!$cust->customer_email) {
@@ -188,7 +208,7 @@ class CustomerVirtualCardsController extends Controller
                 'business_id' => get_business_id(auth()->id())
             ])->count();
 
-            if ($cardCount >= 3) {
+            if ($cardCount >= 2) {
                 return get_error_response(['error' => "Customer can create at most 3 cards"]);
             }
 
@@ -235,15 +255,20 @@ class CustomerVirtualCardsController extends Controller
             }
 
             if (isset($create['errorCode']) || isset($create['error'])) {
+                // credit_user_wallet();
                 return get_error_response($create["message"] ?? $create);
             }
 
             if (isset($create['statusCode']) || isset($create['error'])) {
+                // credit_user_wallet();
                 return get_error_response($create["message"] ?? $create);
             }
         } catch (\Throwable $th) {
             Log::error("Bitnob error:", $th->getTrace());
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -255,6 +280,10 @@ class CustomerVirtualCardsController extends Controller
             $card = $this->card->getCard($cardId);
 
             // var_dump($card);exit;
+
+            if(empty($card)) {
+                return get_error_response(['error' => "Card not found!"], 404);
+            }
 
             // Define the keys to be removed from the card data
             $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
@@ -273,9 +302,12 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // If only the array data is requested, return it
+            
             if ($arrOnly) {
                 return $arrData;
             }
+
+            // return response()->json($arrData);
 
             if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int)$arrData['statusCode'] === 500)) {
                 return get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
@@ -285,7 +317,10 @@ class CustomerVirtualCardsController extends Controller
             return get_success_response($arrData);
         } catch (\Exception $e) {
             // Return the error response with the exception message
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -304,7 +339,10 @@ class CustomerVirtualCardsController extends Controller
             $card = $this->card->action($request->action, $cardId);
             return get_success_response(['action' => $card['message']]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -319,7 +357,10 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response(['error' => "Error encountered, please check your request"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -363,7 +404,10 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response($bitnob);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -373,7 +417,10 @@ class CustomerVirtualCardsController extends Controller
             $card = $this->card->getTransaction($cardId);
             return get_success_response(['transactions' => $card]);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $e->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 }

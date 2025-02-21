@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BusinessRequest;
+use App\Jobs\VerifyBusinessJob;
 use App\Models\Business;
 use App\Models\BusinessConfig;
 use App\Models\BusinessUbo;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -19,27 +21,37 @@ class BusinessController extends Controller
         try {
             $validated = $request->validated();
             $validated['user_id'] = auth()->id();
+            $validated['ip_address'] = $request->ip();
 
-            // make call to shufti pro for business name verification
-            if($request->incorporation_country)
+            if ($request->incorporation_country) {
                 $jurisdiction = $request->incorporation_country;
-
-            if (Business::whereUserId($validated['user_id'])->exists()) {
-                return get_error_response(['error' => 'Record already exist, please use update record']);
             }
 
-            $business = Business::create($validated);
+            $business = Business::updateOrCreate(
+                ['user_id' => $validated['user_id']],
+                $validated
+            );
 
             if (!empty($business->business_legal_name)) {
                 $user = auth()->user();
-                $user->is_kyc_submitted = true;
-                $user->membership_id = uuid(9, "B");
-                $user->kyc_status = null;
-                $user->user_type = "business";
-                $user->bussinessName = $business->business_operating_name;
-                $user->save();
+                $user->update([
+                    'is_kyc_submitted' => true,
+                    'membership_id' => uuid(9, "B"),
+                    // 'kyc_status' => null,
+                    'user_type' => "business",
+                    'bussinessName' => $business->business_operating_name
+                ]);
             }
-            return get_success_response($business, 201);
+
+            if (
+                !empty($business->business_legal_name) &&
+                !empty($business->business_registration_number) &&
+                !empty($business->incorporation_country)
+            ) {
+                dispatch($this->verifyBusiness($business))->afterResponse();
+            }
+            return get_success_response(['business' => $business, 'user' => auth()->user()], 201);
+
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 500);
         }
@@ -49,9 +61,9 @@ class BusinessController extends Controller
     public function show()
     {
         try {
-            if (request()->user()->is_business != true) {
-                return get_error_response(['error' => 'Please enable the Bussiness option in your profile to get access to this feature'], 403);
-            }
+            // if (request()->user()->is_business != true) {
+            //     return get_error_response(['error' => 'Please enable the Bussiness option in your profile to get access to this feature'], 403);
+            // }
             $business = Business::whereUserId(auth()->id())->with(['business_ubo', 'preference'])->first();
             return get_success_response($business, 200);
         } catch (\Exception $e) {
@@ -65,7 +77,14 @@ class BusinessController extends Controller
         try {
             $business = Business::whereUserId(auth()->id())->first();
             $business->update($request->validated());
-            return get_success_response($business, 200);
+            if (
+                !empty($business->business_legal_name) &&
+                !empty($business->business_registration_number) &&
+                !empty($business->incorporation_country)
+            ) {
+                dispatch($this->verifyBusiness($business))->afterResponse();
+            }
+            return get_success_response(['business' => $business, 'user' => auth()->user()], 200);
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 404);
         }
@@ -83,12 +102,10 @@ class BusinessController extends Controller
         }
     }
 
-    public function verifyBusiness(Request $request)
+    public function verifyBusiness($bis)
     {
-        // try {
-        //     $validate = Validator::make($request->all(), [
-        //         'token' =>'required|string|min:32|max:32'
-        //     ]);
+        \Log::info("starting business verification for $bis->business_legal_name with ID $bis->id", ["ip_address" => request()->ip()]);
+        return new VerifyBusinessJob($bis);
     }
 
     /**
@@ -128,7 +145,7 @@ class BusinessController extends Controller
 
             if ($uboExists && $uboExists->ubo_verification_status != 'pending') {
                 return get_error_response(['error' => "UBO verification already process and the current status is: $uboExists->ubo_verification_status"]);
-            } elseif (!$uboExists) {
+            } elseif (!$uboExists || $uboExists->created_at > Carbon::now()->subHours(24)) {
                 $shufti = new ShuftiProServices();
                 $response = $curl = $shufti->getShuftiUrl(auth()->user());
 
@@ -191,7 +208,14 @@ class BusinessController extends Controller
             }
             return get_error_response(['No UBO found'], 404);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            Mail::send('emails.error', ['error' => $th->getMessage()], function ($message) {
+                $message->to("env('MAIL_TO_ADDRESS')")
+                    ->subject('Error in Yativo live platform');
+            });
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -202,7 +226,7 @@ class BusinessController extends Controller
 
             if (!$businessConfig) {
                 // If not, create a new one
-                $businessConfig = new BusinessConfig([
+                $businessConfig = BusinessConfig::create([
                     'user_id' => $request->user()->id,
                     'configs' => [
                         "can_issue_visa_card" => false,
@@ -221,17 +245,22 @@ class BusinessController extends Controller
                 ]);
             }
 
-            return get_success_response($businessConfig, 200);
+            return get_success_response($businessConfig?->configs, 200);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
     }
 
+    /**
+     * Update business prefences
+     * @param \Illuminate\Http\Request $request
+     * @return mixed|\Illuminate\Http\JsonResponse
+     */
     public function updatePreference(Request $request)
     {
         try {
             $validate = Validator::make($request->all(), [
-                'key' => 'required|string',
+                'key' => 'required',
                 'value' => 'required',
             ]);
 
@@ -239,42 +268,47 @@ class BusinessController extends Controller
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
-            $businessConfig = $request->user()->businessConfig;
+            // Retrieve the authenticated user's business configuration
+            $user = $request->user();
+            $businessConfig = $user->businessConfig;
 
+            // If no business configuration exists, create a default one
             if (!$businessConfig) {
-                // If not, create a new one
-                $businessConfig = new BusinessConfig([
-                    'user_id' => $request->user()->id,
+                $businessConfig = BusinessConfig::create([
+                    'user_id' => $user->id,
                     'configs' => [
-                        "can_issue_visa_card" => false,
-                        "can_issue_master_card" => false,
-                        "can_issue_bra_virtual_account" => false,
-                        "can_issue_mxn_virtual_account" => false,
-                        "can_issue_arg_virtual_account" => false,
-                        "can_issue_usdt_wallet" => false,
-                        "can_issue_usdc_wallet" => false,
-                        "charge_business_for_deposit_fees" => false,
-                        "charge_business_for_payout_fees" => false,
-                        "can_hold_balance" => false,
-                        "can_use_wallet_module" => false,
-                        "can_use_checkout_api" => false
+                        "can_issue_visa_card" => "disabled",
+                        "can_issue_master_card" => "disabled",
+                        "can_issue_bra_virtual_account" => "disabled",
+                        "can_issue_mxn_virtual_account" => "disabled",
+                        "can_issue_arg_virtual_account" => "disabled",
+                        "can_issue_usdt_wallet" => "disabled",
+                        "can_issue_usdc_wallet" => "disabled",
+                        "charge_business_for_deposit_fees" => "disabled",
+                        "charge_business_for_payout_fees" => "disabled",
+                        "can_hold_balance" => "disabled",
+                        "can_use_wallet_module" => "disabled",
+                        "can_use_checkout_api" => "disabled"
                     ]
                 ]);
             }
 
+            // Update the specified key-value pair in the configs
             $configs = $businessConfig->configs;
             $configs[$request->key] = $request->value;
             $businessConfig->configs = $configs;
 
+            // Save the updated business configuration
             if ($businessConfig->save()) {
                 return get_success_response(['success' => "Preference updated successfully"]);
             }
 
             return get_error_response(['error' => 'Unable to update data']);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
-
     }
-
 }

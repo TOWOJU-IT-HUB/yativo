@@ -37,6 +37,7 @@ class AdvcashController extends Controller
             "user_id" => auth()->id()
         ];
 
+        update_deposit_gateway_id($deposit_id, $deposit_id);
         $checkoutUrl = route('advcash.checkout.url', encrypt($deposit), true);
         return $checkoutUrl;
     }
@@ -62,58 +63,93 @@ class AdvcashController extends Controller
 
     public function withdrawal($quoteId, $currency, $payoutObject)
     {
+        $gateway = (object) [];
         $amount = $payoutObject->amount;
         $description = "Payout from Yativo";
         $curl = $this->initiatePayment($amount, $currency);
+        if ($gateway->payment_mode == "advcash_card") {
+            $this->sendMoneyToBankCard($amount, $currency, $payoutObject);
+        }
         if (is_string($curl)) {
             if (strpos($curl, 'error') !== false) {
                 return ['error' => $curl];
             }
-            return [''];
+            return ['message' => $curl];
         }
     }
 
     public function handleCallback(Request $request)
     {
-        $payload = file_get_contents("php://input");
-        Log::info("Processing AdvCash payin:", ['info' => $payload]);
-        $amount = $payload['ac_amount'] ?? 0;
-        $quoteId = $payload['ac_order_id'];
+        // Extract query parameters from the URL
+        $queryParams = $request->all();
+        Log::info("Advcash parameters:", ['query_params' => $queryParams]);
 
+        // Extract specific parameters from query
+        $amount = $queryParams['ac_amount'] ?? 0;
+        $quoteId = $queryParams['ac_order_id'] ?? null;
+
+        if (!$quoteId) {
+            http_response_code(200);
+            return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+        }
+
+        $depo = Deposit::whereId($quoteId)->first()->toArray();
+        Log::info("deposit info to be processed", $depo);
         // Process the PayIn transaction
         $order = TransactionRecord::where("transaction_id", $quoteId)->latest()->first();
 
-        switch ($order->transaction_type) {
-            case "deposit":
-                Log::channel("deposit_log")->info("Processing Local payment webhook", $order->toArray());
-                $this->processDeposit($order->id, 'deposit');
-                break;
-            default:
-                SendMoney::where('quote_id', $quoteId)->where('status', 'pending')->first();
-                CompleteSendMoneyJob::dispatchAfterResponse($quoteId);
-                break;
+        if (!$order) {
+            Log::error("Transaction record not found for quote ID: {$quoteId}");
+            return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
         }
+
+        if (strtoupper($queryParams['ac_transaction_status']) == "COMPLETED") {
+            Log::channel("deposit_log")->info("Processing AdvCash Deposit webhook", $order->toArray());
+            $this->processDeposit($depo['id'], 'deposit');
+        }
+
         http_response_code(200);
+        return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+
+        // return response()->json(['message' => 'Callback processed successfully'], 200);
     }
 
-    public function sendMoneyToBankCard($amount, $currency, $note)
+    public function sendMoneyToBankCard($amount, $currency, $payoutObject)
     {
         try {
-            $action = "sendMoneyToBankCard";
-            $payload = [
-                'amount' => '1.00',
-                'currency' => 'USD',
-                'cardNumber' => '4149605912035536',
-                'expiryMonth' => '08',
-                'expiryYear' => '17',
-                'note' => 'Some note',
-                'savePaymentTemplate' => 'false',
-                'cardHolder' => 'John Smith',
-                'cardHolderCountry' => 'DE',
-                'cardHolderCity' => 'Town',
-                'cardHolderDOB' => '1985-04-04',
-                'cardHolderMobilePhoneNumber' => '79011234567'
+            $currencies = [
+                "USD" => "US Dollar",
+                "EUR" => "Euro",
+                "RUR" => "Russian Ruble",
+                "GBP" => "Pound Sterling",
+                "UAH" => "Ukrainian Hryvnia",
+                "KZT" => "Kazakhstani Tenge",
+                "BRL" => "Brazilian Real",
+                "TRY" => "Turkish Lira",
+                "VND" => "Vietnamese Dong"
             ];
+
+            if (!array_key_exists($currency, $currencies)) {
+                return ['error' => 'Invalid currency'];
+            }
+
+            $action = "sendMoneyToBankCard";
+
+            $payload = [
+                'note' => $payoutObject->note,
+                'amount' => $amount,
+                'currency' => $currency,
+                'cardNumber' => $payoutObject->cardNumber,
+                'expiryMonth' => $payoutObject->expiryMonth,
+                'expiryYear' => $payoutObject->expiryYear,
+                'cardHolder' => $payoutObject->cardHolder,
+                'cardHolderCity' => $payoutObject->cardHolderCity,
+                'cardHolderDOB' => $payoutObject->cardHolderDOB,
+                'cardHolderCountry' => $payoutObject->cardHolderCountry,
+                'savePaymentTemplate' => false,
+                'cardHolderMobilePhoneNumber' => $payoutObject->cardHolderMobilePhoneNumber
+            ];
+
             $curl = $this->advCashService->processAdvCashPayout($action, $payload);
             return $curl;
         } catch (\Throwable $th) {
@@ -154,13 +190,15 @@ class AdvcashController extends Controller
     private function processDeposit($quoteId, $productName)
     {
         Log::notice("AdvCash Webhook for Deposit for: {$quoteId}");
-        $order = TransactionRecord::whereId($quoteId)
-            ->where('transaction_type', $productName)
-            ->first();
+        $where = [
+            "transaction_memo" => "payin",
+            "transaction_id" => $quoteId
+        ];
 
+        $order = TransactionRecord::where($where)->first();
         if ($order) {
             $deposit_services = new DepositService();
-            $deposit_services->process_deposit($order->id);
+            $deposit_services->process_deposit($order->transaction_id);
         } else {
             Log::error("Order with the Provided ID not found!. ID: {$quoteId}");
         }

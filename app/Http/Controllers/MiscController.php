@@ -8,12 +8,14 @@ use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\JurisdictionCodes;
 use App\Models\PayinMethods;
+use App\Models\payoutMethods;
 use App\Models\State;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Str;
 
 class MiscController extends Controller
 {
@@ -59,7 +61,10 @@ class MiscController extends Controller
             });
             return get_success_response($countries);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -83,7 +88,10 @@ class MiscController extends Controller
             return get_success_response($states);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -102,7 +110,10 @@ class MiscController extends Controller
             });
             return get_success_response($cities);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -115,7 +126,10 @@ class MiscController extends Controller
             });
             return get_success_response($record);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -128,7 +142,10 @@ class MiscController extends Controller
             }
             return response()->json(["status" => true]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
@@ -150,28 +167,79 @@ class MiscController extends Controller
                 "gateway_id" => $request->method_id,
                 "rate_type" => $request->method_type,
             ];
+
+            if($request->method_type == 'payin') {
+                $method = PayinMethods::whereId($request->method_id)->first();
+            } else if($request->method_type == 'payout') {
+                $method = payoutMethods::whereId($request->method_id)->first();
+            } 
+            
+            if (
+                strtolower($request->method_type) == 'payout' && 
+                strtolower($request->to_currency) != strtolower($method->currency)
+            ) {
+                return get_error_response(['error' => "To currency for selected gateway must be: {$method->currency}"]);
+            }
+            
+            if (
+                strtolower($request->method_type) == 'payin' && 
+                strtolower($request->from_currency) != strtolower($method->currency)
+            ) {
+                return get_error_response(['error' => "From currency for selected gateway must be: {$method->currency}"]);
+            }
+            
+
+            $allowedCurrencies = [];
+            $allowedCurrencies = explode(',', $method->base_currency);
+           
+            if (strtolower($request->method_type) == 'payout') {
+                if (!in_array(strtolower($request->from_currency), array_map('strtolower', $allowedCurrencies))) {
+                    return get_error_response([
+                        'error' => "Allowed From currencies: " . implode(', ', $allowedCurrencies)
+                    ], 400);
+                }
+            }
+            
+            if (strtolower($request->method_type) == 'payin') {
+                if (!in_array(strtolower($request->to_currency), array_map('strtolower', $allowedCurrencies))) {
+                    return get_error_response([
+                        'error' => "Allowed To currencies: " . implode(', ', $allowedCurrencies)
+                    ], 400);
+                }
+            }            
+
             // float_percentage
-            $ExchangeRate = ExchangeRate::where($where)->first();
-            if ($ExchangeRate) {
+            $ExchangeRate = $method->exchange_rate_float ?? 0;
+
+            
+            // if ($ExchangeRate) {
                 $from_currency = $request->from_currency;
                 $to_currency = $request->to_currency;
-                $rate = exchange_rates($from_currency, $to_currency);
+                $rate = exchange_rates(strtoupper($from_currency), strtoupper($to_currency));
                 $amount = 1;
                 // calculate the float rate $rate + $floatRate percentage
-                $floatRate = ($rate * $ExchangeRate->float_percentage) / 100 ?? 0;
+                $floatRate = ($rate * $ExchangeRate) / 100 ?? 0;
                 $converted_amount = ($amount * $rate) + $floatRate;
+
+                if($request->method_type == 'payout') {
+                    $converted_amount = ($amount * $rate) - $floatRate;
+                }
+                
                 return get_success_response([
                     "from_currency" => $from_currency,
                     "to_currency" => $to_currency,
-                    "rate" => $rate,
-                    "amount" => $amount,
-                    "converted_amount" => $converted_amount,
+                    "rate" => number_format($converted_amount, 8),
+                    "amount" => number_format($amount, 8),
+                    "converted_amount" => "1{$from_currency} - 1 {$to_currency}",
                 ]);
-            }
-            return get_error_response(['error' => "Exchange is currently unavailable for this currency pair and payout method"], 422);
+            // }
+            // return get_error_response(['error' => "Exchange is currently unavailable for this currency pair and payout method"], 422);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please contact support']);
         }
     }
 
@@ -281,17 +349,13 @@ class MiscController extends Controller
                 ]
             ];
 
-            if ($user->user_type == 'individual') {
-                $loc = $user->registration_country;
-            } elseif ($user->is_business && $user->user_type == 'business' && isset($business->incorporation_country) && $business->incorporation_country !== null) {
-                if (isset($regions[$business->incorporation_country])) {
-                    $loc = $regions[$business->incorporation_country]['iso3'];
-                }
+            if (isset($regions[$business->incorporation_country])) {
+                $loc = $regions[$business->incorporation_country]['iso3'];
             } else {
                 return get_error_response(['error' => 'Please update your country/country of incorporation (for businesses)']);
             }
 
-            $payinMethods = PayinMethods::whereCountry($loc)->get();
+            $payinMethods = PayinMethods::whereCountry($loc)->orWhere('country', 'global')->get();
             $country = Country::where('iso3', $loc)->first();
             $iso2 = strtolower($country->iso2);
             $country['flag_svg'] = "https://cdn.yativo.com/{$iso2}.svg";
@@ -300,4 +364,41 @@ class MiscController extends Controller
             return get_error_response(['error' => 'An error occurred: ' . $e->getMessage()]);
         }
     }
+    
+    public static function uploadBase64ImageToCloudflare($imageBase64)
+    {
+        $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $imageBase64));
+
+        // Generate a unique filename with the appropriate extension
+        $fileName = Str::uuid() . '.png';
+
+        // Save the decoded image temporarily
+        $tempFilePath = storage_path("app/public/{$fileName}");
+        file_put_contents($tempFilePath, $imageData);
+
+        try {
+            // Make a POST request to upload the image to Cloudflare
+            if ($imgUrl = save_base64_image("bitnob", $tempFilePath)) {
+                return $imgUrl;
+            } else {
+                return [
+                    'success' => false,
+                    'error' => 'Failed to upload image to Cloudflare.',
+                ];
+            }
+        } catch (\Exception $e) {
+            // Handle exceptions
+            return [
+                'success' => false,
+                'message' => 'An error occurred while uploading image.',
+                'error' => $e->getMessage(),
+            ];
+        } finally {
+            if (file_exists($tempFilePath)) {
+                unlink($tempFilePath);
+            }
+        }
+    }
+
+
 }

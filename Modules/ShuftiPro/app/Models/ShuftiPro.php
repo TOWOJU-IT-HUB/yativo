@@ -22,11 +22,13 @@ class ShuftiPro extends Model
         "user_id",
         "reference",
         "status",
-        "payload"
+        "payload",
+        "response",
     ];
 
     protected $casts = [
-        "payload" => "array"
+        "payload" => "array",
+        "response" => "array"
     ];
 
     public function user()

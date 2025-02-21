@@ -23,6 +23,7 @@ class Configuration
         $this->credentials['X_Trans_Key'] = getenv('VITA_X_TRANS_KEY');
         $this->credentials['secret'] = getenv('VITA_SECRET');
         $this->credentials['env'] = getenv('VITA_MODE');
+        $this->credentials['BASE_URL'] = env('VITA_BASE_URL');
     }
 
     public static function getInstance()

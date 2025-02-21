@@ -77,7 +77,7 @@ class DojahServices
             "first_name" => $amlData['first_name'],
             "middle_name" => $amlData['middle_name'],
             "last_name" => $amlData['last_name'],
-            "date_of_birth" => $amlData['dob']
+            "date_of_birth" => $amlData['dob'] ?? $amlData['date_of_birth']
         ];
 
         return $this->curl("aml/screening", "post", $data);
@@ -94,7 +94,7 @@ class DojahServices
             "first_name" => $userData['first_name'],
             "middle_name" => $userData['middle_name'],
             "last_name" => $userData['last_name'],
-            "date_of_birth" => $userData['dob']
+            "date_of_birth" => $userData['dob'] ?? $userData['date_of_birth']
         ];
         return $this->curl('fraud/user', "get", $data);
     }

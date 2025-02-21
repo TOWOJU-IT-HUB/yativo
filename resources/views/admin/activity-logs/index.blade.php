@@ -8,7 +8,7 @@
             <input type="text" name="search" placeholder="Search logs"
                    value="{{ request('search') }}"
                    class="border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 px-4 py-2 rounded-lg">
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg">
+            <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg">
                 Search
             </button>
         </form>

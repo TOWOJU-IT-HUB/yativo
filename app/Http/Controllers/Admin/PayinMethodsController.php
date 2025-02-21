@@ -5,14 +5,39 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PayinMethods;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+
 
 class PayinMethodsController extends Controller
 {
-    public function index()
+    /**
+     * Retrieve all payin methods and filter if query exists
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index(Request $request)
     {
-        $payinMethods = PayinMethods::all();
+        $query = PayinMethods::query();
+
+        // Get the table columns
+        $columns = Schema::getColumnListing((new PayinMethods)->getTable());
+
+        // Apply filters if query parameters exist
+        if ($request->query()) {
+            foreach ($request->query() as $key => $value) {
+                if (in_array($key, $columns)) {
+                    $query->where($key, 'like', '%' . $value . '%');
+                }
+            }
+        }
+
+        $payinMethods = $query->paginate(per_page())->withQueryString();
+
+        // Return the view with the paginated results
         return view('admin.payin_methods.index', compact('payinMethods'));
     }
+
+
 
     public function create()
     {
@@ -26,24 +51,33 @@ class PayinMethodsController extends Controller
             'gateway' => 'required|string|max:255',
             'country' => 'required|string|max:255',
             'currency' => 'required|string|max:10',
-            'payment_mode' => 'required|string|max:50',
-            'charges_type' => 'required|string|max:50',
-            'fixed_charge' => 'required|numeric',
-            'float_charge' => 'required|numeric',
-            'settlement_time' => 'required|string|max:50',
+            'payment_mode' => 'nullable|string|max:50',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
+            'fixed_charge' => 'nullable|numeric',
+            'float_charge' => 'nullable|numeric',
+            'settlement_time' => 'nullable|string|max:50',
             'pro_fixed_charge' => 'nullable|numeric',
             'pro_float_charge' => 'nullable|numeric',
-            'minimum_deposit' => 'required|numeric',
-            'maximum_deposit' => 'required|numeric',
-            'minimum_charge' => 'required|numeric',
-            'maximum_charge' => 'required|numeric',
-            'cutoff_hrs_start' => 'required|string|max:10',
-            'cutoff_hrs_end' => 'required|string|max:10',
-            'Working_hours_start' => 'required|string|max:10',
-            'Working_hours_end' => 'required|string|max:10',
+            'minimum_deposit' => 'nullable|numeric',
+            'maximum_deposit' => 'nullable|numeric',
+            'minimum_charge' => 'nullable|numeric',
+            'maximum_charge' => 'nullable|numeric',
+            'cutoff_hrs_start' => 'nullable|string|max:10',
+            'cutoff_hrs_end' => 'nullable|string|max:10',
+            'Working_hours_start' => 'nullable|string|max:10',
+            'Working_hours_end' => 'nullable|string|max:10',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes'
         ]);
+        if ($request->payment_mode == null) {
+            $validatedData['payment_mode'] = 'bankTransfer';
+        }
 
-        PayinMethods::create($validatedData);
+        if(empty($request->country)) {
+            $validatedData['country'] = 'global';
+        }
+        
+        PayinMethods::create(array_filter($validatedData));
         return redirect()->route('admin.payin_methods.index')->with('success', 'Payment method created successfully.');
     }
 
@@ -65,25 +99,30 @@ class PayinMethodsController extends Controller
             'method_name' => 'required|string|max:255',
             'gateway' => 'required|string|max:255',
             'country' => 'required|string|max:255',
-            'currency' => 'required|string|max:10',
-            'payment_mode' => 'required|string|max:50',
-            'charges_type' => 'required|string|max:50',
-            'fixed_charge' => 'required|numeric',
-            'float_charge' => 'required|numeric',
-            'settlement_time' => 'required|string|max:50',
+            'currency' => 'sometimes|string|max:10',
+            'payment_mode' => 'nullable|string|max:50',
+            'charges_type' => 'required|string|in:fixed,percentage,combined',
+            'fixed_charge' => 'nullable|numeric',
+            'float_charge' => 'nullable|numeric',
+            'settlement_time' => 'nullable|string|max:50',
             'pro_fixed_charge' => 'nullable|numeric',
             'pro_float_charge' => 'nullable|numeric',
-            'minimum_deposit' => 'required|numeric',
-            'maximum_deposit' => 'required|numeric',
-            'minimum_charge' => 'required|numeric',
-            'maximum_charge' => 'required|numeric',
-            'cutoff_hrs_start' => 'required|string|max:10',
-            'cutoff_hrs_end' => 'required|string|max:10',
-            'Working_hours_start' => 'required|string|max:10',
-            'Working_hours_end' => 'required|string|max:10',
+            'minimum_deposit' => 'nullable|numeric',
+            'maximum_deposit' => 'nullable|numeric',
+            'minimum_charge' => 'nullable|numeric',
+            'maximum_charge' => 'nullable|numeric',
+            'cutoff_hrs_start' => 'nullable|string|max:10',
+            'cutoff_hrs_end' => 'nullable|string|max:10',
+            'Working_hours_start' => 'nullable|string|max:10',
+            'Working_hours_end' => 'nullable|string|max:10',
+            'exchange_rate_float' => 'sometimes',
+            'base_currency' => 'sometimes'
         ]);
+        if ($request->payment_mode == null) {
+            $validatedData['payment_mode'] = 'bankTransfer';
+        }
 
-        $payinMethod->update($validatedData);
+        $payinMethod->update(array_filter($validatedData));
         return redirect()->route('admin.payin_methods.index')->with('success', 'Payment method updated successfully.');
     }
 

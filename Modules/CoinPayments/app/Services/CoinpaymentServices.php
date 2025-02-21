@@ -70,11 +70,14 @@ class CoinpaymentServices
             'address' => $address,
             'ipn_url' => $ipn_url,
         );
+        // var_dump($req); exit;
+
         return $this->api_call('create_transaction', $req);
     }
 
     public function CreateTransaction($req)
     {
+        // var_dump($req); exit;
         // See https://www.coinpayments.net/apidoc-create-transaction for parameters
         return $this->api_call('create_transaction', $req);
     }

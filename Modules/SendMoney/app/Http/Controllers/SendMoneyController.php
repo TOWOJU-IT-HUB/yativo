@@ -98,7 +98,7 @@ class SendMoneyController extends Controller
 				[
 					'send_amount' => 'required', // Amount to Receive by beneficiary
 					'send_gateway' => 'required', // ID of the deposit/payin method
-					'beneficiary_id' => 'required', // payment beneficiary ID
+					'beneficiary_id' => 'sometimes', // payment beneficiary ID
 					'payment_method_id' => 'required', // ID of the beneficiary payment method 
 					'transfer_purpose' => 'sometimes',
 				]
@@ -219,7 +219,10 @@ class SendMoneyController extends Controller
 
 			return get_success_response($params->with('quote')->first()->toArray());
 		} catch (\Throwable $th) {
-			return get_error_response(['error' => $th->getMessage()]);
+			if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
 		}
 	}
 
@@ -367,7 +370,10 @@ class SendMoneyController extends Controller
 				return get_success_response($init_payout); //['message' => 'Bulk payout request initiated']);
 			}
 		} catch (\Throwable $th) {
-			return get_error_response(['error' => $th->getMessage()]);
+			if(env('APP_ENV') == 'local') {
+                return get_error_response(['error' => $th->getMessage()]);
+            }
+            return get_error_response(['error' => 'Something went wrong, please try again later']);
 		}
 	}
 

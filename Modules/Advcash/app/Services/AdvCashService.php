@@ -71,7 +71,7 @@ class AdvCashService
                 'arg0' => [
                     'apiName' => 'Yativo 1',
                     'authenticationToken' => $this->advToken(),
-                    'accountEmail' => 'michael@zeenah.app'
+                    'accountEmail' => env("ADVCASH_EMAIL"),
                 ],
 
                 'arg1' => $arg1
@@ -88,12 +88,12 @@ class AdvCashService
 
     private function advToken()
     {
-        $apiPassword = 'Thisisyativo2024$';
+        $apiPassword = env('ADVCASH_PASSWORD');
         $date = Carbon::now('UTC');
         $dateString = $date->format('Ymd');
         $timeString = $date->format('H');
         $textToHash = "$apiPassword:$dateString:$timeString";
-        $authenticationToken = hash('sha256', $textToHash);
+        $authenticationToken = hash('sha256', data: $textToHash);
         return ($authenticationToken);
     }
 }
