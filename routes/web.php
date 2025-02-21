@@ -48,7 +48,6 @@ use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 
 Route::view('onramp', 'welcome');
 
-
 Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
