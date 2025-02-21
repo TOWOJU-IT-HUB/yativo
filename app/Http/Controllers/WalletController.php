@@ -86,8 +86,8 @@ class WalletController extends Controller
                 foreach ($wallets as $key => $wallet) {
                     // Ensure $wallets is defined or initialized before using it
                     $slug = strtoupper($wallet->slug);
-                    $usdRateResponse = exchange_rates($from, "USD");
-                    $total_balance += floatval($wallet->balance * $usdRateResponse);
+                    $usdRateResponse = convertToUSD($from, $wallet->balance);
+                    $total_balance += $usdRateResponse;
                 }
                 // Return total balance
                 return get_success_response(['total_balance' => $total_balance]);

@@ -57,7 +57,7 @@ class ChargeWalletMiddleware
                     // Store values in session
                     session([
                         'transaction_fee' => $transaction_fee,
-                        'total_amount_charged' => $convertedAmount
+                        'total_amount_charged' => floatval($convertedAmount + $transaction_fee)
                     ]);
 
                     // Validate allowed currencies
