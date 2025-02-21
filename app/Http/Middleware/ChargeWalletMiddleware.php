@@ -97,6 +97,8 @@ class ChargeWalletMiddleware
                                 "fixed_fee_in_local_currency" => session()->get("fixed_fee_in_local_currency"),
                                 "floating_fee_in_local_currency" => session()->get("floating_fee_in_local_currency"),
                                 "total_charge" => session()->get("total_charge"),
+                                "minimum_charge" => session()->get("minimum_charge"),
+                                "maximum_charge" => session()->get("maximum_charge"),
                             ]
                         ]); exit;
                     }

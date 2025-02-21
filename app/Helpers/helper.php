@@ -1127,12 +1127,6 @@ if (!function_exists('get_transaction_fee')) {
         // Calculate total charge in local currency
         $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
 
-        session([
-            "fixed_fee_in_local_currency" => $fixed_fee_in_local_currency,
-            "floating_fee_in_local_currency" => $floating_fee_in_local_currency,
-            "total_charge" => $total_charge,
-        ]);
-
         // Apply minimum and maximum charge constraints
         $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
         $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
@@ -1142,6 +1136,16 @@ if (!function_exists('get_transaction_fee')) {
         } elseif ($total_charge > $maximum_charge) {
             $total_charge = $maximum_charge;
         }
+
+
+        session([
+            "fixed_fee_in_local_currency" => $fixed_fee_in_local_currency,
+            "floating_fee_in_local_currency" => $floating_fee_in_local_currency,
+            "total_charge" => $total_charge,
+            "minimum_charge" => $minimum_charge,
+            "maximum_charge" => $maximum_charge,
+        ]);
+
 
         return round($total_charge, 2);
     }
