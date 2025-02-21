@@ -84,15 +84,15 @@ class ChargeWalletMiddleware
                         'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
-                    // var_dump([
-                    //     "exchange_rate" => $exchange_rate,
-                    //     "transaction_fee" => $transaction_fee,
-                    //     "payout_amount" => $convertedAmount,
-                    //     'total_amount_charged' => $xtotal,
-                    //     'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                    //     "amount_to_be_charged" => $totalAmountInDebitCurrency,
-                    //     "feeInWalletCurrency" => $feeInWalletCurrency
-                    // ]); exit;
+                    var_dump([
+                        "exchange_rate" => $exchange_rate,
+                        "transaction_fee" => $transaction_fee,
+                        "payout_amount" => $convertedAmount,
+                        'total_amount_charged' => $xtotal,
+                        'error' => $chargeNow['error'] ?? 'Insufficient wallet balance',
+                        "amount_to_be_charged" => $totalAmountInDebitCurrency,
+                        "feeInWalletCurrency" => $feeInWalletCurrency
+                    ]); exit;
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
