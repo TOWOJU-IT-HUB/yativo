@@ -62,7 +62,7 @@
             <!-- Estimated Delivery -->
             <div>
                 <label class="block text-gray-700 dark:text-gray-200">Estimated Delivery</label>
-                <input type="text" name="estimated_delivery" value="{{ $payoutMethod->estimated_delivery }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+                <input type="text" step="any" name="estimated_delivery" value="{{ $payoutMethod->estimated_delivery }}" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             </div>
 
             <!-- Pro Fixed Charge -->
