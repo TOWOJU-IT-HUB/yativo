@@ -107,6 +107,19 @@ class ChargeWalletMiddleware
                         ]); exit;
                     }
 
+                    session()->forget([
+                        "fixed_fee_in_local_currency",
+                        "floating_fee_in_local_currency",
+                        "total_charge",
+                        "minimum_charge",
+                        "maximum_charge",
+                        "fixed_charge",
+                        "float_charge",
+                        "base_exchange_rate",
+                        "exchange_rate",
+                    ]);
+
+
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
                     }
