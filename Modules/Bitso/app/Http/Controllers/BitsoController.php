@@ -145,90 +145,151 @@ class BitsoController extends Controller
                 return response()->json(['error' => 'Invalid webhook payload'], 400);
             }
     
-            $payload = $webhookData['payload'];
-    
             // Check if the event is 'funding' and the status is 'complete'
-            if ($webhookData['event'] !== 'funding' || $payload['status'] !== 'complete') {
-                return response()->json(['error' => 'Invalid webhook event or status'], 400);
+            if ($webhookData['event'] === 'funding'){
+                $complete_action = $this->handleClabeDeposit($webhookData);
             }
-    
-            // Prevent duplicate processing
-            if (BitsoWebhookLog::where('fid', $payload['fid'])->exists()) {
-                return response()->json(['error' => 'Deposit already processed'], 200);
-            }
-    
-            // Find deposit record
-            $deposit = Deposit::where('txn_id', $payload['fid'])->first();
-            if (!$deposit) {
-                Log::error("Bitso: Deposit record not found.", ['fid' => $payload['fid']]);
-                return response()->json(['error' => 'Deposit record not found'], 404);
-            }
-    
-            // Find user
-            $user = User::find($deposit->user_id);
-            if (!$user) {
-                Log::error("Bitso: User not found.", ['user_id' => $deposit->user_id]);
-                return response()->json(['error' => 'User not found'], 404);
-            }
-    
-            // Get deposit amount & currency
-            $amount = $payload['amount'];
-            $currency = strtolower($payload['currency']);
-    
-            // Update deposit status
-            $deposit->update([
-                'status' => 'completed',
-                'raw_data' => json_encode($webhookData),
-            ]);
-    
-            // Find user's wallet
-            $wallet = $user->getWallet($currency);
-            if (!$wallet) {
-                Log::error("Bitso: Wallet not found for user.", ['user_id' => $user->id, 'currency' => $currency]);
-                return response()->json(['error' => 'Wallet not found'], 404);
-            }
-    
-            // Deposit funds into wallet
-            $wallet->deposit($amount * 100, ['description' => 'Wallet deposit top-up']);
-    
-            // Log the webhook
-            BitsoWebhookLog::create([
-                'fid' => $payload['fid'],
-                'status' => $payload['status'],
-                'currency' => $payload['currency'],
-                'method' => $payload['method'],
-                'method_name' => $payload['method_name'],
-                'amount' => $amount,
-                'details' => json_encode($payload['details'] ?? []), // Ensure JSON storage
-            ]);
-    
-            // Create a transaction record
-            TransactionRecord::create([
-                'user_id' => $user->id,
-                'amount' => $amount,
-                'currency' => strtoupper($currency),
-                'type' => 'deposit',
-                'status' => 'completed',
-                'reference' => $payload['fid'],
-                'description' => 'Deposit via ' . $payload['method_name'],
-            ]);
-    
-            // Create tracking record
-            Track::create([
-                'quote_id' => $payload['fid'],
-                'tracking_status' => 'Deposit completed successfully',
-                'raw_data' => json_encode($webhookData),
-            ]);
-    
-            // Notify user
-            $user->notifyNow(new WalletNotification($amount, "Deposit", $currency));
-    
+
+
             return response()->json(['success' => 'Deposit processed successfully'], 200);
         } catch (\Exception $e) {
             Log::error("Bitso: Error processing deposit webhook.", ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
+    
+
+    public static function handleWebhook(array $webhookData): void
+    {
+        $webhookData = isset($webhookData[0]) ? $webhookData : [$webhookData];
+
+        foreach ($webhookData as $event) {
+            if (self::isDuplicate($event['payload'])) {
+                Log::info('Duplicate webhook received', ['event' => $event]);
+                continue;
+            }
+
+            self::logWebhook($event);
+
+            switch ($event['event']) {
+                case 'funding':
+                    self::handleFunding($event['payload']);
+                    break;
+                case 'withdrawal':
+                    self::handleWithdrawal($event['payload']);
+                    break;
+                case 'trade':
+                    self::handleTrade($event['payload']);
+                    break;
+                default:
+                    Log::warning('Unknown Bitso event type', ['event' => $event]);
+                    break;
+            }
+        }
+    }
+
+    protected static function handleFunding(array $payload): void
+    {
+        $amount = (float) $payload['amount'];
+        $currency = strtoupper($payload['currency']);
+
+        BitsoWebhookLog::create([
+            'fid' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $payload['currency'],
+            'method' => $payload['method'],
+            'method_name' => $payload['method_name'],
+            'amount' => $amount,
+            'details' => ($payload['details'] ?? []),
+        ]);
+
+        Deposit::create([
+            'transaction_id' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $payload['currency'],
+            'amount' => $payload['amount'],
+            'method' => $payload['method_name'],
+            'network' => $payload['network'],
+            'sender_name' => $payload['details']['sender_name'] ?? null,
+            'sender_clabe' => $payload['details']['sender_clabe'] ?? null,
+            'receiver_clabe' => $payload['details']['receive_clabe'] ?? null,
+            'sender_bank' => $payload['details']['sender_bank'] ?? null,
+            'concept' => $payload['details']['concepto'] ?? null,
+        ]);
+
+        TransactionRecord::create([
+            'user_id' => User::where('email', $payload['details']['sender_name'] ?? '')->first()->id ?? null,
+            'amount' => $amount,
+            'currency' => $currency,
+            'type' => 'deposit',
+            'status' => 'completed',
+            'reference' => $payload['fid'],
+            'description' => 'Deposit via ' . $payload['method_name'],
+        ]);
+
+        Track::create([
+            'quote_id' => $payload['fid'],
+            'tracking_status' => 'Deposit completed successfully',
+            'raw_data' => ($payload),
+        ]);
+    }
+
+    protected static function handleWithdrawal(array $payload): void
+    {
+        BitsoWebhookLog::create([
+            'fid' => $payload['wid'],
+            'status' => $payload['status'],
+            'currency' => $payload['currency'],
+            'method' => $payload['method'],
+            'amount' => $payload['amount'],
+            'details' => ($payload['details'] ?? []),
+        ]);
+
+        Withdrawal::create([
+            'transaction_id' => $payload['wid'],
+            'status' => $payload['status'],
+            'currency' => $payload['currency'],
+            'amount' => $payload['amount'],
+            'method' => $payload['method'],
+            'destination' => $payload['details']['destination'] ?? null,
+        ]);
+    }
+
+    protected static function handleTrade(array $payload): void
+    {
+        BitsoWebhookLog::create([
+            'fid' => $payload['tid'],
+            'status' => $payload['status'],
+            'currency' => $payload['pair'],
+            'amount' => $payload['amount'],
+            'details' => ($payload ?? []),
+        ]);
+
+        Trade::create([
+            'trade_id' => $payload['tid'],
+            'status' => $payload['status'],
+            'pair' => $payload['pair'],
+            'side' => $payload['side'],
+            'amount' => $payload['amount'],
+            'price' => $payload['price'],
+        ]);
+    }
+
+    protected static function logWebhook(array $event): void
+    {
+        BitsoWebhookLog::create([
+            'event' => $event['event'],
+            'payload' => ($event['payload']),
+            'received_at' => now(),
+        ]);
+    }
+
+    protected static function isDuplicate(array $payload): bool
+    {
+        return BitsoWebhookLog::where('fid', $payload['fid'] ?? $payload['wid'] ?? null)->exists();
+    }
+
+
 
     public function getDepositStatus($fid)
     {

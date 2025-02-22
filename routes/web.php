@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Modules\Advcash\app\Http\Controllers\AdvcashController;
 use Modules\Bitso\app\Http\Controllers\BitsoController as ControllersBitsoController;
+use Modules\Bitso\app\Services\BitsoServices;
 use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
@@ -50,6 +51,13 @@ Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
     return redirect()->to('https://yativo.com');
+});
+
+Route::post('add-bitso-webhook', function(){
+    $r = request();
+    $bitsoService = new BitsoServices("/api/v3/webhooks/");
+    $result = $bitsoService->sendRequest(['callback_url' => $r->callback_url], 'POST');
+    return response()->json($result);
 });
 
 
