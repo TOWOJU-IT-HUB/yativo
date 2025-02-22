@@ -53,7 +53,7 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
-Route::post('add-bitso-webhook', function(){
+Route::any('add-bitso-webhook', function(){
     $r = request();
     $bitsoService = new BitsoServices("/api/v3/webhooks/");
     $result = $bitsoService->sendRequest(['callback_url' => $r->callback_url], 'POST');
