@@ -56,7 +56,7 @@ Route::get('/', function () {
 Route::any('add-bitso-webhook', function(){
     $r = request();
     $bitsoService = new BitsoServices("/api/v3/webhooks/");
-    $result = $bitsoService->sendRequest(['callback_url' => $r->callback_url], 'POST');
+    $result = $bitsoService->sendRequest(['callback_url' => route('bitso.cop.deposit')], 'POST');
     return response()->json($result);
 });
 
