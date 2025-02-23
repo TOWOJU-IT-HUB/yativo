@@ -36,38 +36,38 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
                     }
 
-                    // ✅ Convert Charges from FromCurrency → ToCurrency
-                    $floatCharge = floatval($payoutMethod->float_charge ?? 0) / 100;
-                    $fixedCharge = floatval($payoutMethod->fixed_charge ?? 0);
+                    // ✅ Exchange Rate Float Adjustment (Only if fromCurrency ≠ toCurrency)
+                    $exchangeRateFloat = ($fromCurrency !== $toCurrency) ? (floatval($payoutMethod->exchange_rate_float ?? 0) / 100) : 0;
+                    $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
 
-                    if ($fromCurrency !== $toCurrency) {
-                        // Convert fees to the beneficiary currency (ToCurrency)
-                        $floatFeeConverted = round($floatCharge * $exchangeRate, 6);
-                        $fixedChargeConverted = round($fixedCharge * $exchangeRate, 6);
-                    } else {
-                        $floatFeeConverted = round($floatCharge, 6);
-                        $fixedChargeConverted = round($fixedCharge, 6);
+                    // ✅ Convert Charges from USD to Debit Wallet Currency
+                    $usdToDebitRate = $this->getLiveExchangeRate('USD', $fromCurrency);
+                    if (!$usdToDebitRate || $usdToDebitRate <= 0) {
+                        return get_error_response(['error' => 'Unable to fetch USD exchange rate.'], 400);
                     }
 
-                    $transactionFee = round($floatFeeConverted + $fixedChargeConverted, 6);
+                    $gatewayFloatChargeUSD = floatval($payoutMethod->float_charge ?? 0) / 100;
+                    $gatewayFixedChargeUSD = floatval($payoutMethod->fixed_charge ?? 0);
 
-                    // ✅ Convert Amount and Fees
+                    // Convert Fees to Debit Currency
+                    $floatFee = round($gatewayFloatChargeUSD * $usdToDebitRate, 6);
+                    $fixedCharge = round($gatewayFixedChargeUSD * $usdToDebitRate, 6);
+                    $transactionFee = round($floatFee + $fixedCharge, 6);
+
+                    // ✅ Compute Total Amount Due
                     $amount = floatval($request->amount);
-                    $convertedAmount = round($amount * $exchangeRate, 6);
-                    $totalAmountDueInToCurrency = round($convertedAmount + $transactionFee, 6);
+                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedCharge, 6);
 
-                    // ✅ Convert Back to FromCurrency if Needed
-                    if ($fromCurrency !== $toCurrency) {
-                        $totalAmountDueInFromCurrency = round($totalAmountDueInToCurrency / $exchangeRate, 6);
-                    } else {
-                        $totalAmountDueInFromCurrency = $totalAmountDueInToCurrency;
-                    }
+                    // ✅ Convert to Debit Wallet Currency
+                    $totalAmountInDebitCurrency = round($totalAmountDue / $exchangeRate, 6);
+                    $transactionFeeInDebitCurrency = round($transactionFee / $exchangeRate, 6);
 
                     // ✅ Store in Session
                     session([
                         'transaction_fee' => $transactionFee,
-                        'total_amount_due_in_to_currency' => $totalAmountDueInToCurrency,
-                        'total_amount_due_in_from_currency' => $totalAmountDueInFromCurrency
+                        'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
+                        'total_amount_due' => $totalAmountDue,
+                        'total_amount_due_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
                     // ✅ Debug Mode - Dump All Parameters
@@ -76,15 +76,19 @@ class ChargeWalletMiddleware
                             "from_currency" => $fromCurrency,
                             "to_currency" => $toCurrency,
                             "exchange_rate" => $exchangeRate,
-                            "float_charge (%)" => $floatCharge * 100,
-                            "fixed_charge" => $fixedCharge,
-                            "float_fee_converted" => $floatFeeConverted,
-                            "fixed_charge_converted" => $fixedChargeConverted,
-                            "transaction_fee" => $transactionFee,
+                            "exchange_rate_float_applied" => ($fromCurrency !== $toCurrency) ? 'Yes' : 'No',
+                            "exchange_rate_float (%)" => $exchangeRateFloat * 100,
+                            "adjusted_exchange_rate" => $adjustedExchangeRate,
+                            "usd_to_debit_rate" => $usdToDebitRate,
+                            "gateway_float_charge (%)" => $gatewayFloatChargeUSD * 100,
+                            "gateway_fixed_charge (USD)" => $gatewayFixedChargeUSD,
+                            "float_fee (converted)" => $floatFee,
+                            "fixed_charge (converted)" => $fixedCharge,
+                            "transaction_fee (converted)" => $transactionFee,
                             "amount" => $amount,
-                            "converted_amount" => $convertedAmount,
-                            "total_amount_due_in_to_currency" => $totalAmountDueInToCurrency,
-                            "total_amount_due_in_from_currency" => $totalAmountDueInFromCurrency
+                            "total_amount_due" => $totalAmountDue,
+                            "total_amount_in_debit_currency" => $totalAmountInDebitCurrency,
+                            'payoutMethod' => $payoutMethod
                         ]);
                     }
 
@@ -97,10 +101,11 @@ class ChargeWalletMiddleware
                     }
 
                     // ✅ Deduct from User's Wallet
-                    $chargeNow = debit_user_wallet(floatval($totalAmountDueInFromCurrency * 100), $fromCurrency, "Payout transaction", [
+                    $chargeNow = debit_user_wallet(floatval($totalAmountInDebitCurrency * 100), $fromCurrency, "Payout transaction", [
                         'transaction_fee' => $transactionFee,
-                        'total_amount_due_in_to_currency' => $totalAmountDueInToCurrency,
-                        'total_amount_due_in_from_currency' => $totalAmountDueInFromCurrency
+                        'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
+                        'total_amount_due' => $totalAmountDue,
+                        'total_amount_due_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
