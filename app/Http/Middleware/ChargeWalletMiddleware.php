@@ -43,19 +43,19 @@ class ChargeWalletMiddleware
                     $finalExchangeRate = $baseExchangeRate - ($baseExchangeRate * $exchangeRateFloat / 100);
 
                     // ✅ Convert amount to beneficiary's currency
-                    $convertedAmount = round($finalExchangeRate * floatval($request->amount), 4);
+                    $convertedAmount = number_format($finalExchangeRate * floatval($request->amount), 4);
 
                     // ✅ Compute Transaction Fee (Inline)
                     $fixedFee = floatval($payoutMethod->fixed_fee ?? 0);
                     $percentageFee = floatval($payoutMethod->percentage_fee ?? 0);
                     $percentageCharge = ($percentageFee / 100) * floatval($request->amount);
 
-                    $transactionFee = round($fixedFee + $percentageCharge, 4);
+                    $transactionFee = number_format($fixedFee + $percentageCharge, 4);
 
                     // ✅ Calculate total charge
                     $xtotal = $convertedAmount + $transactionFee;
-                    $totalAmountInDebitCurrency = round($xtotal / $finalExchangeRate, 4);
-                    $transactionFeeInDebitCurrency = round($transactionFee / $finalExchangeRate, 4);
+                    $totalAmountInDebitCurrency = number_format($xtotal / $finalExchangeRate, 4);
+                    $transactionFeeInDebitCurrency = number_format($transactionFee / $finalExchangeRate, 4);
 
                     // ✅ Store values in session
                     session([
