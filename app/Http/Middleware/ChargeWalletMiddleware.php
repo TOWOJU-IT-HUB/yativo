@@ -46,7 +46,7 @@ class ChargeWalletMiddleware
 
                     // ✅ Exchange Rate Float Adjustment (Only if currencies differ)
                     $exchangeRateFloat = ($fromCurrency !== $toCurrency) 
-                        ? (floatval($payoutMethod->exchange_rate_float ?? 0) / 100 
+                        ? (floatval($payoutMethod->exchange_rate_float ?? 0) / 100) 
                         : 0;
                     $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
 
