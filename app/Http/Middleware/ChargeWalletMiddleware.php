@@ -27,125 +27,137 @@ class ChargeWalletMiddleware
                     if (!$payoutMethod) {
                         return get_error_response(['error' => 'Invalid payout method selected']);
                     }
+                    $walletCurrency      = $request->debit_wallet;
+                    $beneficiaryCurrency = $payoutMethod->currency;
+                    $amount              = $request->amount;
+                    $floatFeePercentage  = $payoutMethod->float_charge; // i.e. 0.2%
+                    $fixedFeeUsd         = $payoutMethod->fixed_charge;
 
-                    // ✅ Get Live Exchange Rates
-                    $fromCurrency = strtoupper($request->debit_wallet);
-                    $toCurrency = strtoupper($beneficiary->currency);
                     
-                    // Key rates for calculations
-                    $exchangeRate = $this->getLiveExchangeRate($fromCurrency, $toCurrency);
-                    $usdToDebitRate = $this->getLiveExchangeRate('USD', $fromCurrency);
-                    $adjustedExchangeRate = $exchangeRate;
-
-                    // ✅ Exchange Rate Float Adjustment
-                    if ($fromCurrency !== $toCurrency) {
-                        $exchangeRateFloat = floatval($payoutMethod->exchange_rate_float ?? 0) / 100;
-                        $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
-                    }
-
-                    // ✅ Calculate Transaction Fee using formula: T = [(A × F/100) × E] + (FC × U)
-                    $amount = floatval($request->amount);
-                    $F = floatval($payoutMethod->float_charge ?? 0) / 100;  // Convert percentage to decimal
-                    $FC = floatval($payoutMethod->fixed_charge ?? 0);
-                    $U = $usdToDebitRate;
-                    $E = $adjustedExchangeRate;
-
-                    // Formula implementation
-                    $floatFee = round(($amount * $F) * $E, 6);
-                    $fixedCharge = round($FC * $U, 6);
-                    $transactionFee = round($floatFee + $fixedCharge, 6);
-
-                    // ✅ Total Amount Calculation
-                    $totalAmountInDebitCurrency = round($amount + $transactionFee, 6);
-                    $beneficiaryAmount = round($amount * $adjustedExchangeRate, 6);
-
-                    // ✅ Store in Session
-                    session([
-                        'transaction_fee' => $transactionFee,
-                        'total_amount_due' => $totalAmountInDebitCurrency,
-                        'beneficiary_amount' => $beneficiaryAmount,
-                        'exchange_rate' => $adjustedExchangeRate
-                    ]);
-
-                    // ✅ Debug Mode
-                    if ($request->has('debug')) {
-                        dd([
-                            "formula_parameters" => [
-                                "A (amount)" => $amount,
-                                "F (float charge %)" => $F * 100,
-                                "E (adjusted rate)" => $E,
-                                "FC (fixed charge USD)" => $FC,
-                                "U (USD->debit rate)" => $U,
-                            ],
-                            "calculations" => [
-                                "float_fee" => $floatFee,
-                                "fixed_charge" => $fixedCharge,
-                                "transaction_fee" => $transactionFee,
-                                "total_debit" => $totalAmountInDebitCurrency,
-                                "beneficiary_receives" => $beneficiaryAmount
-                            ]
-                        ]);
-                    }
-
-                    // ✅ Validate Allowed Currencies
-                    $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
-                    if (!in_array($fromCurrency, $allowedCurrencies)) {
-                        return get_error_response([
-                            'error' => "Currency not supported. Allowed: " . $payoutMethod->base_currency
-                        ], 400);
-                    }
-
-                    // ✅ Deduct from Wallet
-                    $chargeNow = debit_user_wallet(
-                        $totalAmountInDebitCurrency * 100,  // Convert to cents if needed
-                        $fromCurrency,
-                        "Payout transaction",
-                        [
-                            'transaction_fee' => $transactionFee,
-                            'total_charged' => $totalAmountInDebitCurrency,
-                            'beneficiary_amount' => $beneficiaryAmount
-                        ]
+                    $totalFeeInLocal = $this->calculateTotalFee(
+                        $walletCurrency,
+                        $beneficiaryCurrency,
+                        $amount,
+                        $floatFeePercentage,
+                        $fixedFeeUsd
                     );
 
-                    if (!$chargeNow || isset($chargeNow['error'])) {
-                        return get_error_response(['error' => 'Insufficient balance']);
+                    if($request->has('debug')) {
+                        dd([
+                            "walletCurrency" => $walletCurrency,
+                            "beneficiaryCurrency" => $beneficiaryCurrency,
+                            "amount" => $amount,
+                            "floatFeePercentage" => $floatFeePercentage,
+                            "fixedFeeUsd" => $fixedFeeUsd,
+                            "totalFeeInLocal" => $totalFeeInLocal
+                        ]);
                     }
                 }
 
                 return $next($request);
             }
 
-            return get_error_response(['error' => "Transaction failed"]);
+            return get_error_response(['error' => "Sorry, we're currently unable to process your transaction"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
 
+
     private function getLiveExchangeRate($from, $to)
     {
-        if ($from === $to) return 1.0;
+        // If both currencies are the same, rate = 1.0
+        if ($from === $to) {
+            return 1.0;
+        }
 
-        $cacheKey = "exrate_{$from}_{$to}";
+        // Cache key to avoid repeated calls
+        $cacheKey = "exchange_rate_{$from}_{$to}";
+
         return cache()->remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new \GuzzleHttp\Client();
-            $endpoints = [
-                "https://min-api.cryptocompare.com/data/price?fsym={$from}&tsyms={$to}",
-                "https://api.coinbase.com/v2/exchange-rates?currency={$from}"
+            $apis = [
+                "https://min-api.cryptocompare.com/data/price" => [
+                    'query' => [
+                        'fsym'  => $from,
+                        'tsyms' => $to
+                    ]
+                ],
+                "https://api.coinbase.com/v2/exchange-rates" => [
+                    'query' => [
+                        'currency' => $from
+                    ]
+                ],
             ];
 
-            foreach ($endpoints as $url) {
+            foreach ($apis as $url => $params) {
                 try {
-                    $response = json_decode($client->get($url)->getBody(), true);
-                    $rate = str_contains($url, 'cryptocompare') 
+                    $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
+                    $rate = ($url === "https://min-api.cryptocompare.com/data/price")
                         ? ($response[$to] ?? null)
                         : ($response['data']['rates'][$to] ?? null);
 
-                    if ($rate) return (float) $rate;
+                    if ($rate) {
+                        return (float) $rate;
+                    }
                 } catch (\Exception $e) {
-                    Log::error("Exchange rate error: " . $e->getMessage());
+                    Log::error("Error fetching exchange rate from $url: " . $e->getMessage());
                 }
             }
+
+            // Fallback if all APIs fail
             return 0;
         });
+    }
+
+    /**
+     * Calculate the total fee in the beneficiary's local currency.
+     *
+     * Formula:
+     *   Total Fee = (A / E_{W->USD}) * (R / 100) * E_{USD->Local} + (F * E_{USD->Local})
+     *
+     * Where:
+     *   A = amount to be paid out in wallet currency
+     *   R = floating fee percentage
+     *   F = fixed fee in USD
+     *   E_{W->USD}     = exchange rate from wallet currency to USD (if wallet is USD, set to 1)
+     *   E_{USD->Local} = exchange rate from USD to beneficiary currency
+     *
+     * @param  string  $walletCurrency        e.g. "USD", "EUR", etc.
+     * @param  string  $beneficiaryCurrency   e.g. "CLP", "EUR", etc.
+     * @param  float   $amount                amount in the wallet currency
+     * @param  float   $floatFeePercentage    floating fee percentage (e.g. 0.2% => 0.2)
+     * @param  float   $fixedFeeUsd           fixed fee in USD
+     * @return float                          total fee in the beneficiary's local currency
+     */
+    public function calculateTotalFee(
+        string $walletCurrency,
+        string $beneficiaryCurrency,
+        float $amount,
+        float $floatFeePercentage,
+        float $fixedFeeUsd
+    ): float {
+        // 1. Get the exchange rate from wallet currency -> USD
+        $EwUsd = $this->getLiveExchangeRate($walletCurrency, 'USD');
+
+        // 2. Get the exchange rate from USD -> beneficiary's local currency
+        $EusdLocal = $this->getLiveExchangeRate('USD', $beneficiaryCurrency);
+
+        // Optional: Handle any failure case (e.g. if either rate is 0, return 0 or throw an exception)
+        if ($EwUsd <= 0 || $EusdLocal <= 0) {
+            Log::error("Invalid exchange rate(s): E_{W->USD}=$EwUsd, E_{USD->Local}=$EusdLocal");
+            return 0.0;
+        }
+
+        // 3. Calculate the floating fee portion in local currency
+        $floatFeeLocal = ($amount / $EwUsd) * ($floatFeePercentage / 100.0) * $EusdLocal;
+
+        // 4. Calculate the fixed fee portion in local currency
+        $fixedFeeLocal = $fixedFeeUsd * $EusdLocal;
+
+        // 5. Total fee in local currency
+        $totalFee = $floatFeeLocal + $fixedFeeLocal;
+
+        return $totalFee;
     }
 }
