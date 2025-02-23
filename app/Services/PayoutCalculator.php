@@ -6,7 +6,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use App\Models\PayoutMethods;
+use App\Models\payoutMethods as PayoutMethods;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
 class PayoutCalculator
