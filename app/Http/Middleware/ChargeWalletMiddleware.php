@@ -49,6 +49,8 @@ class ChargeWalletMiddleware
                             "amount" => $amount,
                             "floatFeePercentage" => $floatFeePercentage,
                             "fixedFeeUsd" => $fixedFeeUsd,
+                            "EwUsd" => session()->get("EwUsd"),
+                            "EusdLocal" => session()->get("EusdLocal"),
                             "totalFeeInLocal" => $totalFeeInLocal
                         ]);
                     }
@@ -157,6 +159,13 @@ class ChargeWalletMiddleware
 
         // 5. Total fee in local currency
         $totalFee = $floatFeeLocal + $fixedFeeLocal;
+
+
+        session([
+            "EwUsd" => $EwUsd,
+            "EusdLocal" => $EusdLocal,
+        ]);
+
 
         return $totalFee;
     }
