@@ -28,7 +28,7 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Invalid payout method selected']);
                     }
 
-                    // ✅ Get Live Exchange Rate
+                    // ✅ Define Currency Pair
                     $fromCurrency = strtoupper($request->debit_wallet);
                     $toCurrency = strtoupper($beneficiary->currency);
                     $exchangeRate = $this->getLiveExchangeRate($fromCurrency, $toCurrency);
@@ -36,55 +36,48 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
                     }
 
-                    // ✅ Convert Charges from FromCurrency → ToCurrency
-                    $floatCharge = floatval($payoutMethod->float_charge ?? 0) / 100;
+                    // ✅ Define Charges (percentage & fixed)
+                    $floatChargePercent = floatval($payoutMethod->float_charge ?? 0) / 100;
                     $fixedCharge = floatval($payoutMethod->fixed_charge ?? 0);
-
-                    if ($fromCurrency !== $toCurrency) {
-                        // Convert fees to the beneficiary currency (ToCurrency)
-                        $floatFeeConverted = round($floatCharge * $exchangeRate, 6);
-                        $fixedChargeConverted = round($fixedCharge * $exchangeRate, 6);
-                    } else {
-                        $floatFeeConverted = round($floatCharge, 6);
-                        $fixedChargeConverted = round($fixedCharge, 6);
-                    }
-
-                    $transactionFee = round($floatFeeConverted + $fixedChargeConverted, 6);
-
-                    // ✅ Convert Amount and Fees
                     $amount = floatval($request->amount);
-                    $convertedAmount = round($amount * $exchangeRate, 6);
-                    $totalAmountDueInToCurrency = round($convertedAmount + $transactionFee, 6);
 
-                    // ✅ Convert Back to FromCurrency if Needed
-                    if ($fromCurrency !== $toCurrency) {
-                        $totalAmountDueInFromCurrency = round($totalAmountDueInToCurrency / $exchangeRate, 6);
+                    if ($fromCurrency === $toCurrency) {
+                        // ✅ Case 1: Same Currency Pair
+                        $floatFee = round($amount * $floatChargePercent, 6);
+                        $transactionFee = round($floatFee + $fixedCharge, 6);
+                        $totalAmountDue = round($amount + $transactionFee, 6);
                     } else {
-                        $totalAmountDueInFromCurrency = $totalAmountDueInToCurrency;
+                        // ✅ Case 2: Different Currency Pair
+                        // Convert fees from USD to `fromCurrency`
+                        $floatFeeConverted = round(($amount * $floatChargePercent) * $exchangeRate, 6);
+                        $fixedChargeConverted = round($fixedCharge * $exchangeRate, 6);
+                        $transactionFee = round($floatFeeConverted + $fixedChargeConverted, 6);
+
+                        // Convert transaction amount
+                        $convertedAmount = round($amount * $exchangeRate, 6);
+                        $totalAmountDueInToCurrency = round($convertedAmount + $transactionFee, 6);
+
+                        // Convert back to FromCurrency if necessary
+                        $totalAmountDue = round($totalAmountDueInToCurrency / $exchangeRate, 6);
                     }
 
                     // ✅ Store in Session
                     session([
                         'transaction_fee' => $transactionFee,
-                        'total_amount_due_in_to_currency' => $totalAmountDueInToCurrency,
-                        'total_amount_due_in_from_currency' => $totalAmountDueInFromCurrency
+                        'total_amount_due' => $totalAmountDue
                     ]);
 
-                    // ✅ Debug Mode - Dump All Parameters
+                    // ✅ Debugging Mode (Optional)
                     if ($request->has('debug')) {
                         dd([
                             "from_currency" => $fromCurrency,
                             "to_currency" => $toCurrency,
                             "exchange_rate" => $exchangeRate,
-                            "float_charge (%)" => $floatCharge * 100,
+                            "float_charge (%)" => $floatChargePercent * 100,
                             "fixed_charge" => $fixedCharge,
-                            "float_fee_converted" => $floatFeeConverted,
-                            "fixed_charge_converted" => $fixedChargeConverted,
                             "transaction_fee" => $transactionFee,
                             "amount" => $amount,
-                            "converted_amount" => $convertedAmount,
-                            "total_amount_due_in_to_currency" => $totalAmountDueInToCurrency,
-                            "total_amount_due_in_from_currency" => $totalAmountDueInFromCurrency
+                            "total_amount_due" => $totalAmountDue
                         ]);
                     }
 
@@ -97,10 +90,9 @@ class ChargeWalletMiddleware
                     }
 
                     // ✅ Deduct from User's Wallet
-                    $chargeNow = debit_user_wallet(floatval($totalAmountDueInFromCurrency * 100), $fromCurrency, "Payout transaction", [
+                    $chargeNow = debit_user_wallet(floatval($totalAmountDue * 100), $fromCurrency, "Payout transaction", [
                         'transaction_fee' => $transactionFee,
-                        'total_amount_due_in_to_currency' => $totalAmountDueInToCurrency,
-                        'total_amount_due_in_from_currency' => $totalAmountDueInFromCurrency
+                        'total_amount_due' => $totalAmountDue
                     ]);
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
