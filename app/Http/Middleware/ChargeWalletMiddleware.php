@@ -83,48 +83,47 @@ class ChargeWalletMiddleware
                         'total_amount_charged_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
 
+
+        
+                    if ($request->has('debug')) {
+                        var_dump([
+                            "exchange_rate" => $exchange_rate,
+                            "transaction_fee" => $transaction_fee,
+                            "payout_amount" => $convertedAmount,
+                            "total_amount_charged" => $xtotal,
+                            "error" => $chargeNow['error'] ?? 'Insufficient wallet balance',
+                            "amount_to_be_charged" => $totalAmountInDebitCurrency,
+                            "feeInWalletCurrency" => $feeInWalletCurrency,
+                            "fee_breakdown" => [
+                                "fixed_fee_in_local_currency" => session()->get("fixed_fee_in_local_currency"),
+                                "floating_fee_in_local_currency" => session()->get("floating_fee_in_local_currency"),
+                                "total_charge" => session()->get("total_charge"),
+                                "minimum_charge" => session()->get("minimum_charge"),
+                                "maximum_charge" => session()->get("maximum_charge"),
+                                "fixed_charge" => session()->get("fixed_charge"),
+                                "float_charge" => session()->get("float_charge"),
+                                "base_exchange_rate" => session("base_exchange_rate"),
+                                "exchange_rate" => session("exchange_rate"),
+                            ]
+                        ]); 
+                        session()->forget([
+                            "fixed_fee_in_local_currency",
+                            "floating_fee_in_local_currency",
+                            "total_charge",
+                            "minimum_charge",
+                            "maximum_charge",
+                            "fixed_charge",
+                            "float_charge",
+                            "base_exchange_rate",
+                            "exchange_rate",
+                        ]);
+                        exit;
+                    }
+
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
                     }
                 }
-
-
-    
-                if ($request->has('debug')) {
-                    var_dump([
-                        "exchange_rate" => $exchange_rate,
-                        "transaction_fee" => $transaction_fee,
-                        "payout_amount" => $convertedAmount,
-                        "total_amount_charged" => $xtotal,
-                        "error" => $chargeNow['error'] ?? 'Insufficient wallet balance',
-                        "amount_to_be_charged" => $totalAmountInDebitCurrency,
-                        "feeInWalletCurrency" => $feeInWalletCurrency,
-                        "fee_breakdown" => [
-                            "fixed_fee_in_local_currency" => session()->get("fixed_fee_in_local_currency"),
-                            "floating_fee_in_local_currency" => session()->get("floating_fee_in_local_currency"),
-                            "total_charge" => session()->get("total_charge"),
-                            "minimum_charge" => session()->get("minimum_charge"),
-                            "maximum_charge" => session()->get("maximum_charge"),
-                            "fixed_charge" => session()->get("fixed_charge"),
-                            "float_charge" => session()->get("float_charge"),
-                            "base_exchange_rate" => session("base_exchange_rate"),
-                            "exchange_rate" => session("exchange_rate"),
-                        ]
-                    ]); 
-                    session()->forget([
-                        "fixed_fee_in_local_currency",
-                        "floating_fee_in_local_currency",
-                        "total_charge",
-                        "minimum_charge",
-                        "maximum_charge",
-                        "fixed_charge",
-                        "float_charge",
-                        "base_exchange_rate",
-                        "exchange_rate",
-                    ]);
-                    exit;
-                }
-
                 return $next($request);
             }
 
