@@ -24,6 +24,7 @@ class VirtualAccount extends Model
     ];
 
     protected $hidden = [
+        'status',
         'extra_data',
         'updated_at',
         'id',

@@ -2,6 +2,8 @@ on:
     push:
         branches:
             - vita-test
+            
+    workflow_dispatch: # Allows manual trigger of the workflow
 name: 🚀 Deploy website on push
 
 jobs:
