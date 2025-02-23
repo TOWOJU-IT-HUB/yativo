@@ -41,20 +41,20 @@ class ChargeWalletMiddleware
                     $gatewayFloatCharge = floatval($payoutMethod->exchange_rate_float ?? 0) / 100;
                     $gatewayFixedCharge = floatval($payoutMethod->fixed_fee ?? 0);
 
-                    $floatFee = round($gatewayFloatCharge * $exchangeRate, 6);
-                    $fixedFee = round($gatewayFixedCharge * $exchangeRate, 6);
-                    $transactionFee = round($fixedFee + $floatFee, 6);
+                    $floatFee = number_format($gatewayFloatCharge * $exchangeRate, 6);
+                    $fixedFee = number_format($gatewayFixedCharge * $exchangeRate, 6);
+                    $transactionFee = number_format($fixedFee + $floatFee, 6);
 
                     // ✅ Adjust Exchange Rate
-                    $adjustedExchangeRate = round($exchangeRate - $floatFee, 6);
+                    $adjustedExchangeRate = number_format($exchangeRate - $floatFee, 6);
 
                     // ✅ Compute Total Amount Due
                     $amount = floatval($request->amount);
-                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedFee, 6);
+                    $totalAmountDue = number_format(($amount * $adjustedExchangeRate) + $fixedFee, 6);
 
                     // ✅ Convert to Debit Wallet Currency
-                    $totalAmountInDebitCurrency = round($totalAmountDue / $exchangeRate, 6);
-                    $transactionFeeInDebitCurrency = round($transactionFee / $exchangeRate, 6);
+                    $totalAmountInDebitCurrency = number_format($totalAmountDue / $exchangeRate, 6);
+                    $transactionFeeInDebitCurrency = number_format($transactionFee / $exchangeRate, 6);
 
                     // ✅ Store in Session
                     session([
@@ -63,6 +63,22 @@ class ChargeWalletMiddleware
                         'total_amount_due' => $totalAmountDue,
                         'total_amount_due_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
+
+                    // ✅ Debug Mode - Dump All Parameters
+                    if ($request->has('debug')) {
+                        dd([
+                            "exchange_rate" => $exchangeRate,
+                            "gateway_float_charge (%)" => $gatewayFloatCharge * 100,
+                            "gateway_fixed_charge" => $gatewayFixedCharge,
+                            "float_fee" => $floatFee,
+                            "fixed_fee" => $fixedFee,
+                            "transaction_fee" => $transactionFee,
+                            "adjusted_exchange_rate" => $adjustedExchangeRate,
+                            "amount" => $amount,
+                            "total_amount_due" => $totalAmountDue,
+                            "total_amount_in_debit_currency" => $totalAmountInDebitCurrency,
+                        ]);
+                    }
 
                     // ✅ Validate Allowed Currencies
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
@@ -79,26 +95,6 @@ class ChargeWalletMiddleware
                         'total_amount_due' => $totalAmountDue,
                         'total_amount_due_in_debit_currency' => $totalAmountInDebitCurrency
                     ]);
-
-                    if ($request->has('debug')) {
-                        var_dump([
-                            "exchange_rate" => $exchangeRate,
-                            "float_fee" => $floatFee,
-                            "fixed_fee" => $fixedFee,
-                            "transaction_fee" => $transactionFee,
-                            "adjusted_exchange_rate" => $adjustedExchangeRate,
-                            "total_amount_due" => $totalAmountDue,
-                            "amount_to_be_charged" => $totalAmountInDebitCurrency
-                        ]);
-                        session()->forget([
-                            "fixed_fee",
-                            "float_fee",
-                            "total_charge",
-                            "base_exchange_rate",
-                            "adjusted_exchange_rate"
-                        ]);
-                        exit;
-                    }
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
