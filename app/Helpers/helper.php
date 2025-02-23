@@ -804,6 +804,7 @@ if (!function_exists('add_transaction_details')) {
 if (!function_exists('add_usd_virtual_card_deposit')) {
     function add_usd_virtual_card_deposit($data)
     {
+        return true;
         // TransactionRecord::create([
         //     "user_id" => $data['user_id'],
         //     "transaction_beneficiary_id" => $data['user_id'],

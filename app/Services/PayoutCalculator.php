@@ -19,8 +19,14 @@ class PayoutCalculator
         float $exchangeRateFloat = 0
     ): array {
         // Get beneficiary and payout method
-        $beneficiary = BeneficiaryPaymentMethod::findOrFail($paymentMethodId);
-        $payoutMethod = PayoutMethods::findOrFail($beneficiary->gateway_id);
+        $request = request();
+        if($request->has('method_id') && !empty($request->method_id)) {
+            $gatewayId = $paymentMethodId;
+        } else {
+            $beneficiary = BeneficiaryPaymentMethod::findOrFail($paymentMethodId);
+            $gatewayId = $beneficiary->gateway_id;
+        }
+        $payoutMethod = PayoutMethods::findOrFail($gatewayId);
         $targetCurrency = $beneficiary->currency;
 
         // Get exchange rates
@@ -71,7 +77,7 @@ class PayoutCalculator
         string $walletCurrency,
         string $targetCurrency,
         float $floatPercent,
-        float $fixedFeeUSD
+        float $fixedFeeUSD,
     ): array {
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
 

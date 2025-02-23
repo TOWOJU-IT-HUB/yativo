@@ -640,25 +640,25 @@ class BridgeController extends Controller
     public function createWallet($customerId)
     {
         return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
-        $endpoint = "v0/customers/{$customerId}/wallets";
-        $curl = $this->sendRequest($endpoint, "POST", $payload = [
-            'chain' => 'solana'
-        ]);
+        // $endpoint = "v0/customers/{$customerId}/wallets";
+        // $curl = $this->sendRequest($endpoint, "POST", $payload = [
+        //     'chain' => 'solana'
+        // ]);
 
-        if(isset($curl['address'])) {
-            return $curl['address'];
-        }
+        // if(isset($curl['address'])) {
+        //     return $curl['address'];
+        // }
 
-        return false;
+        // return false;
     }
 
     public function BridgeWebhook(Request $request)
     {
-        if($this->processEvent() !== true) {
+        if($this->processEvent($request) !== true) {
             return http_respnose_code(200);
         }
         // Get the request body
-        $incoming = $request()->all();
+        $incoming = $request->all();
         if(isset($request->event_object)) {
             $data = (array)$request->event_object;
             if($request->event_type == "customer.created" OR $request->event_type == "customer.updated.status_transitioned") {
@@ -690,15 +690,13 @@ class BridgeController extends Controller
                 return $this->processVirtualAccountWebhook($data);
             }
         }
-
-
           
-        return get_success_response($bridgeData);
+        return get_success_response($incoming);
     }
 
     private function processVirtualAccountWebhook($incomingData)
     {
-        $customer = Customer::where("bridge_customer_id", $bridgeCustomerId)->first();
+        $customer = Customer::where("bridge_customer_id", $incomingData['customer_id'])->first();
         $vc = VirtualAccount::where("customer_id", $customer->id)->first();
 
         $userId = $vc->user_id;
@@ -756,10 +754,10 @@ class BridgeController extends Controller
     {
         $signatureHeader = $request->header('X-Webhook-Signature');
         
-        if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
-            return false; // $this->render400('Malformed signature header');
-        }
-
+        // if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
+        //     return false; // $this->render400('Malformed signature header');
+        // }
+        $matches = [];
         [, $timestamp, $signature] = $matches;
 
         if (!$timestamp || !$signature) {
@@ -812,7 +810,7 @@ class BridgeController extends Controller
 
         // TODO: Store event for asynchronous processing
         return true;
-        return response()->json(['message' => 'Event processing OK!'], 200);
+        // return response()->json(['message' => 'Event processing OK!'], 200);
     }
 
     private function getPublicKey()
