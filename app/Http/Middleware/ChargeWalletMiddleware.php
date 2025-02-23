@@ -52,7 +52,7 @@ class ChargeWalletMiddleware
 
                     // ✅ Convert Fees from USD to Debit Currency
                     $gatewayFloatChargeUSD = floatval(($payoutMethod->float_charge ?? 0) / 100) * $request->amount; // 0.2% -> 0.002
-                    $gatewayFixedChargeUSD = floatval($payoutMethod->fixed_charge ?? 0); // 1.0 USD
+                    $gatewayFixedChargeUSD = floatval($payoutMethod->fixed_charge ?? 0) * $request->amount;  // 1.0 USD
 
                     $floatFee = round($gatewayFloatChargeUSD * $usdToDebitRate, 6);
                     $fixedCharge = round($gatewayFixedChargeUSD * $usdToDebitRate, 6);
