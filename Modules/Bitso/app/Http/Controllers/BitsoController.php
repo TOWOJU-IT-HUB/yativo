@@ -140,6 +140,8 @@ class BitsoController extends Controller
             $input = $request->getContent();
             $webhookData = json_decode($input, true);
     
+            Log::info("Incoming Bitso webhook data", ['incoming' => $webhookData]);
+
             if (!isset($webhookData['event'], $webhookData['payload'])) {
                 Log::error("Bitso: Invalid webhook payload received.", ['payload' => $input]);
                 return response()->json(['error' => 'Invalid webhook payload'], 400);
