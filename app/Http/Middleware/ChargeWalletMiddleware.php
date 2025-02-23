@@ -39,16 +39,16 @@ class ChargeWalletMiddleware
                     $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
 
                     // ✅ Compute Transaction Fee
-                    $gatewayFloatCharge = floatval($payoutMethod->gateway_float_charge ?? 0) / 100;
-                    $gatewayFixedCharge = floatval($payoutMethod->fixed_fee ?? 0);
+                    $gatewayFloatCharge = floatval($payoutMethod->float_charge ?? 0) / 100;
+                    $gatewayFixedCharge = floatval($payoutMethod->fixed_charge ?? 0);
 
                     $floatFee = round($gatewayFloatCharge * $exchangeRate, 6);
-                    $fixedFee = round($gatewayFixedCharge * $exchangeRate, 6);
-                    $transactionFee = round($floatFee + $fixedFee, 6);
+                    $fixedCharge = round($gatewayFixedCharge * $exchangeRate, 6);
+                    $transactionFee = round($floatFee + $fixedCharge, 6);
 
                     // ✅ Compute Total Amount Due
                     $amount = floatval($request->amount);
-                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedFee, 6);
+                    $totalAmountDue = round(($amount * adjustedExchangeRate) + $fixedCharge, 6);
 
                     // ✅ Convert to Debit Wallet Currency
                     $totalAmountInDebitCurrency = round($totalAmountDue / $exchangeRate, 6);
@@ -71,12 +71,11 @@ class ChargeWalletMiddleware
                             "gateway_float_charge (%)" => $gatewayFloatCharge * 100,
                             "gateway_fixed_charge" => $gatewayFixedCharge,
                             "float_fee" => $floatFee,
-                            "fixed_fee" => $fixedFee,
+                            "fixed_charge" => $fixedCharge,
                             "transaction_fee" => $transactionFee,
                             "amount" => $amount,
                             "total_amount_due" => $totalAmountDue,
                             "total_amount_in_debit_currency" => $totalAmountInDebitCurrency,
-                            'payoutMethod' => $payoutMethod
                         ]);
                     }
 
