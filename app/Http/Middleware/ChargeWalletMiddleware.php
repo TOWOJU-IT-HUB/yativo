@@ -28,72 +28,91 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Invalid payout method selected']);
                     }
 
-                    // ✅ Get Live Exchange Rate
-                    $exchangeRate = $this->getLiveExchangeRate($request->debit_wallet, $beneficiary->currency);
+                    // ✅ Get Live Exchange Rates
+                    $fromCurrency = strtoupper($request->debit_wallet);
+                    $toCurrency = strtoupper($beneficiary->currency);
+                    
+                    // Rate from debit currency to beneficiary currency
+                    $exchangeRate = $this->getLiveExchangeRate($fromCurrency, $toCurrency);
                     if (!$exchangeRate || $exchangeRate <= 0) {
                         return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
                     }
 
-                    // ✅ Exchange Rate Float Adjustment
-                    $exchangeRateFloat = floatval($payoutMethod->exchange_rate_float ?? 0) / 100;
+                    // Rate from USD to debit currency (for fee conversion)
+                    $usdToDebitRate = $this->getLiveExchangeRate('USD', $fromCurrency);
+                    if (!$usdToDebitRate || $usdToDebitRate <= 0) {
+                        return get_error_response(['error' => 'Unable to fetch USD exchange rate.'], 400);
+                    }
+
+                    // ✅ Exchange Rate Float Adjustment (Only if currencies differ)
+                    $exchangeRateFloat = ($fromCurrency !== $toCurrency) 
+                        ? (floatval($payoutMethod->exchange_rate_float ?? 0) / 100 
+                        : 0;
                     $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
 
-                    // ✅ Compute Transaction Fee
-                    $gatewayFloatCharge = floatval($payoutMethod->float_charge ?? 0) / 100;
-                    $gatewayFixedCharge = floatval($payoutMethod->fixed_charge ?? 0);
+                    // ✅ Convert Fees from USD to Debit Currency
+                    $gatewayFloatChargeUSD = floatval($payoutMethod->float_charge ?? 0) / 100; // 0.2% -> 0.002
+                    $gatewayFixedChargeUSD = floatval($payoutMethod->fixed_charge ?? 0); // 1.0 USD
 
-                    $floatFee = round($gatewayFloatCharge * $exchangeRate, 6);
-                    $fixedCharge = round($gatewayFixedCharge * $exchangeRate, 6);
+                    $floatFee = round($gatewayFloatChargeUSD * $usdToDebitRate, 6);
+                    $fixedCharge = round($gatewayFixedChargeUSD * $usdToDebitRate, 6);
                     $transactionFee = round($floatFee + $fixedCharge, 6);
 
-                    // ✅ Compute Total Amount Due
+                    // ✅ Compute Total Amount to Deduct (in debit currency)
                     $amount = floatval($request->amount);
-                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedCharge, 6);
+                    $totalAmountInDebitCurrency = round($amount + $transactionFee, 6);
 
-                    // ✅ Convert to Debit Wallet Currency
-                    $totalAmountInDebitCurrency = number_format(floatval($totalAmountDue) / floatval($exchangeRate), 6);
-                    $transactionFeeInDebitCurrency = round($transactionFee / $exchangeRate, 6);
+                    // ✅ Amount sent to beneficiary (in their currency)
+                    $beneficiaryAmount = round($amount * $adjustedExchangeRate, 6);
 
                     // ✅ Store in Session
                     session([
                         'transaction_fee' => $transactionFee,
-                        'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
-                        'total_amount_due' => $totalAmountDue,
-                        'total_amount_due_in_debit_currency' => $totalAmountInDebitCurrency
+                        'total_amount_due' => $totalAmountInDebitCurrency,
+                        'beneficiary_amount' => $beneficiaryAmount,
+                        'exchange_rate' => $adjustedExchangeRate
                     ]);
 
                     // ✅ Debug Mode - Dump All Parameters
                     if ($request->has('debug')) {
                         dd([
+                            "from_currency" => $fromCurrency,
+                            "to_currency" => $toCurrency,
                             "exchange_rate" => $exchangeRate,
+                            "usd_to_debit_rate" => $usdToDebitRate,
+                            "exchange_rate_float_applied" => ($fromCurrency !== $toCurrency) ? 'Yes' : 'No',
                             "exchange_rate_float (%)" => $exchangeRateFloat * 100,
                             "adjusted_exchange_rate" => $adjustedExchangeRate,
-                            "gateway_float_charge (%)" => $gatewayFloatCharge * 100,
-                            "gateway_fixed_charge" => $gatewayFixedCharge,
-                            "float_fee" => $floatFee,
-                            "fixed_charge" => $fixedCharge,
-                            "transaction_fee" => $transactionFee,
-                            "amount" => $amount,
-                            "total_amount_due" => $totalAmountDue,
-                            "total_amount_in_debit_currency" => $totalAmountInDebitCurrency,
+                            "gateway_float_charge (%)" => $gatewayFloatChargeUSD * 100,
+                            "gateway_fixed_charge (USD)" => $gatewayFixedChargeUSD,
+                            "float_fee (converted)" => $floatFee,
+                            "fixed_charge (converted)" => $fixedCharge,
+                            "transaction_fee (converted)" => $transactionFee,
+                            "amount_in_debit_currency" => $amount,
+                            "total_amount_due" => $totalAmountInDebitCurrency,
+                            "beneficiary_amount" => $beneficiaryAmount
                         ]);
                     }
 
                     // ✅ Validate Allowed Currencies
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
-                    if (!in_array($request->debit_wallet, $allowedCurrencies)) {
+                    if (!in_array($fromCurrency, $allowedCurrencies)) {
                         return get_error_response([
-                            'error' => "The selected wallet is not supported for the selected gateway. Allowed currencies: " . $payoutMethod->base_currency
+                            'error' => "Wallet currency not supported. Allowed: " . $payoutMethod->base_currency
                         ], 400);
                     }
 
                     // ✅ Deduct from User's Wallet
-                    $chargeNow = debit_user_wallet(floatval($totalAmountInDebitCurrency * 100), $request->debit_wallet, "Payout transaction", [
-                        'transaction_fee' => $transactionFee,
-                        'transaction_fee_in_debit_currency' => $transactionFeeInDebitCurrency,
-                        'total_amount_due' => $totalAmountDue,
-                        'total_amount_due_in_debit_currency' => $totalAmountInDebitCurrency
-                    ]);
+                    $chargeNow = debit_user_wallet(
+                        floatval($totalAmountInDebitCurrency * 100), // Convert to cents if needed
+                        $fromCurrency,
+                        "Payout transaction",
+                        [
+                            'transaction_fee' => $transactionFee,
+                            'total_amount_due' => $totalAmountInDebitCurrency,
+                            'beneficiary_amount' => $beneficiaryAmount
+                        ]
+                    );
 
                     if (!$chargeNow || isset($chargeNow['error'])) {
                         return get_error_response(['error' => 'Insufficient wallet balance']);
@@ -103,9 +122,9 @@ class ChargeWalletMiddleware
                 return $next($request);
             }
 
-            return get_error_response(['error' => "Sorry, we're currently unable to process your transaction"]);
+            return get_error_response(['error' => "Transaction processing failed"]);
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
+            return get_error_response(['error' => $th->getMessage()]);
         }
     }
 
@@ -130,10 +149,9 @@ class ChargeWalletMiddleware
 
                     if ($rate) return (float) $rate;
                 } catch (\Exception $e) {
-                    Log::error("Error fetching exchange rate from $url: " . $e->getMessage());
+                    Log::error("Exchange rate fetch error from $url: " . $e->getMessage());
                 }
             }
-
             return 0;
         });
     }
