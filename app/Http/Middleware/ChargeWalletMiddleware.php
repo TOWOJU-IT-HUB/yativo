@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class ChargeWalletMiddleware
 {
-    /**
-     * Handle an incoming request.
-     */
     public function handle(Request $request, Closure $next)
     {
         try {
@@ -26,7 +23,7 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Beneficiary not found']);
                     }
 
-                    $payoutMethod = PayoutMethods::find($beneficiary->gateway_id);
+                    $payoutMethod = payoutMethods::find($beneficiary->gateway_id);
                     if (!$payoutMethod) {
                         return get_error_response(['error' => 'Invalid payout method selected']);
                     }
@@ -37,24 +34,25 @@ class ChargeWalletMiddleware
                         return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
                     }
 
+                    // ✅ Exchange Rate Float Adjustment
+                    $exchangeRateFloat = floatval($payoutMethod->exchange_rate_float ?? 0) / 100;
+                    $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
+
                     // ✅ Compute Transaction Fee
-                    $gatewayFloatCharge = floatval($payoutMethod->exchange_rate_float ?? 0) / 100;
+                    $gatewayFloatCharge = floatval($payoutMethod->gateway_float_charge ?? 0) / 100;
                     $gatewayFixedCharge = floatval($payoutMethod->fixed_fee ?? 0);
 
-                    $floatFee = number_format($gatewayFloatCharge * $exchangeRate, 6);
-                    $fixedFee = number_format($gatewayFixedCharge * $exchangeRate, 6);
-                    $transactionFee = number_format($fixedFee + $floatFee, 6);
-
-                    // ✅ Adjust Exchange Rate
-                    $adjustedExchangeRate = number_format($exchangeRate - $floatFee, 6);
+                    $floatFee = round($gatewayFloatCharge * $exchangeRate, 6);
+                    $fixedFee = round($gatewayFixedCharge * $exchangeRate, 6);
+                    $transactionFee = round($floatFee + $fixedFee, 6);
 
                     // ✅ Compute Total Amount Due
                     $amount = floatval($request->amount);
-                    $totalAmountDue = number_format(($amount * $adjustedExchangeRate) + $fixedFee, 6);
+                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedFee, 6);
 
                     // ✅ Convert to Debit Wallet Currency
-                    $totalAmountInDebitCurrency = number_format($totalAmountDue / $exchangeRate, 6);
-                    $transactionFeeInDebitCurrency = number_format($transactionFee / $exchangeRate, 6);
+                    $totalAmountInDebitCurrency = round($totalAmountDue / $exchangeRate, 6);
+                    $transactionFeeInDebitCurrency = round($transactionFee / $exchangeRate, 6);
 
                     // ✅ Store in Session
                     session([
@@ -68,15 +66,17 @@ class ChargeWalletMiddleware
                     if ($request->has('debug')) {
                         dd([
                             "exchange_rate" => $exchangeRate,
+                            "exchange_rate_float (%)" => $exchangeRateFloat * 100,
+                            "adjusted_exchange_rate" => $adjustedExchangeRate,
                             "gateway_float_charge (%)" => $gatewayFloatCharge * 100,
                             "gateway_fixed_charge" => $gatewayFixedCharge,
                             "float_fee" => $floatFee,
                             "fixed_fee" => $fixedFee,
                             "transaction_fee" => $transactionFee,
-                            "adjusted_exchange_rate" => $adjustedExchangeRate,
                             "amount" => $amount,
                             "total_amount_due" => $totalAmountDue,
                             "total_amount_in_debit_currency" => $totalAmountInDebitCurrency,
+                            'payoutMethod' => $payoutMethod
                         ]);
                     }
 
@@ -110,17 +110,13 @@ class ChargeWalletMiddleware
         }
     }
 
-    /**
-     * Get live exchange rate for currency conversion.
-     */
     private function getLiveExchangeRate($from, $to)
     {
-        if ($from === $to) return 1.0; // Same currency
+        if ($from === $to) return 1.0;
 
         $cacheKey = "exchange_rate_{$from}_{$to}";
         return cache()->remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new \GuzzleHttp\Client();
-
             $apis = [
                 "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
                 "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
