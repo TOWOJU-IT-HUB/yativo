@@ -18,17 +18,22 @@ class PayoutCalculator
         int $paymentMethodId,
         float $exchangeRateFloat = 0
     ): array {
-        // Get beneficiary and payout method
         $request = request();
-        if($request->has('method_id') && !empty($request->method_id)) {
+    
+        if ($request->has('method_id') && !empty($request->method_id)) {
+            // Direct gateway mode - use request currencies
             $gatewayId = $paymentMethodId;
+            $targetCurrency = strtoupper($request->to_currency);
+            $walletCurrency = strtoupper($request->from_currency); // Override parameter
         } else {
+            // Beneficiary mode - get from stored beneficiary
             $beneficiary = BeneficiaryPaymentMethod::findOrFail($paymentMethodId);
             $gatewayId = $beneficiary->gateway_id;
+            $targetCurrency = $beneficiary->currency;
         }
+    
         $payoutMethod = PayoutMethods::findOrFail($gatewayId);
-        $targetCurrency = $beneficiary->currency;
-
+    
         // Get exchange rates
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
         
@@ -40,13 +45,13 @@ class PayoutCalculator
             $payoutMethod->float_charge,
             $payoutMethod->fixed_charge
         );
-
+    
         // Calculate adjusted exchange rate
         $adjustedRate = $this->applyExchangeRateFloat(
             $rates['wallet_to_target'],
             $exchangeRateFloat
         );
-
+    
         // Calculate final amounts
         return $this->compileResults(
             $amount,
