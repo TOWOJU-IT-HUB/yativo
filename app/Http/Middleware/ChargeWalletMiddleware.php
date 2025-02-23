@@ -25,7 +25,11 @@ class ChargeWalletMiddleware
 
             // Validate allowed currencies
             if (!in_array($request->debit_wallet, $result['base_currencies'])) {
-                // Return error
+                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
+            }
+
+            if($request->has('debug')) {
+                dd($result);
             }
 
             // Deduct from wallet
@@ -39,24 +43,7 @@ class ChargeWalletMiddleware
             return $next($request);
 
         } catch (\Throwable $th) {
-            // Handle exceptions
+            return get_error_response(['error' => $th->getMessage()]);
         }
     }
 }
-
-// In a controller
-// public function preview(Request $request, PayoutCalculator $calculator)
-// {
-//     try {
-//         $result = $calculator->calculate(
-//             $request->amount,
-//             $request->wallet_currency,
-//             $request->payment_method_id
-//         );
-
-//         return response()->json($result);
-//     } catch (\Exception $e) {
-//         return response()->json(['error' => $e->getMessage()], 400);
-//     }
-// }
-// }
