@@ -4,7 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\PayoutMethods;
+use App\Models\PayinMethods;
+use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Illuminate\Support\Facades\Log;
 
