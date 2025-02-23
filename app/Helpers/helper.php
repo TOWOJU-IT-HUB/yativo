@@ -153,37 +153,22 @@ if (!function_exists('get_transaction_rate')) {
         Log::info(json_encode([$send_currency, $receive_currency, $Id, $type]));
 
         $result = 0;
-        $rate = 0; // Default rate
-        $gatewayId = $Id; // Define $gatewayId
+        $rate = 0;
+        $gatewayId = $Id;
 
-        // Fetch exchange rate details based on gateway and type
-        if ($type == "payout" || $type == "payoutMethod") {
-            // Get the payout method
-            $gateway = payoutMethods::whereId($gatewayId)->first();
-            if ($gateway) {
-                $rate = $gateway->exchange_rate_float ?? 0;
-            }
+        if ($type == "payout") {
+            $gateway = PayoutMethods::whereId($gatewayId)->first();
+            $rate = $gateway->exchange_rate_float ?? 0;
         } else {
-            // get the payin data
             $gateway = PayinMethods::whereId($gatewayId)->first();
-            if ($gateway) {
-                $rate = $gateway->exchange_rate_float ?? 0;
-            }
+            $rate = $gateway->exchange_rate_float ?? 0;
         }
 
-        // Fetch base rate from external service or function
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
 
         if ($rate > 0 && $baseRate > 0) {
-            // Calculate floated amount
             $rate_floated_amount = ($rate / 100) * $baseRate;
-
-            // Adjust calculation based on type
-            if ($type == "payout" || $type == "payoutMethod") {
-                $result = $baseRate - $rate_floated_amount; // Subtract for payouts
-            } else {
-                $result = $baseRate + $rate_floated_amount; // Add for others
-            }
+            $result = ($type == "payout") ? ($baseRate * (1 - $rate / 100)) : ($baseRate * (1 + $rate / 100));
         } elseif ($baseRate > 0) {
             $result = $baseRate;
         } else {
@@ -192,6 +177,7 @@ if (!function_exists('get_transaction_rate')) {
 
         return floatval($result);
     }
+
 }
 
 if (!function_exists('exchange_rates')) {

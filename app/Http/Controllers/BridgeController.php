@@ -76,25 +76,23 @@ class BridgeController extends Controller
 
         return $bridgeData;
     }
-        /**
-         * Check if any API response field contains "technical difficulties".
-         */
-        private function containsTechnicalDifficulties(array $data): bool
-        {
-            foreach ($data as $key => $value) {
-                if (is_string($value) && str_contains($value, 'technical difficulties')) {
+    
+    /**
+     * Check if any API response field contains "technical difficulties".
+     */
+    private function containsTechnicalDifficulties(array $data): bool
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($value) && str_contains($value, 'technical difficulties')) {
+                return true;
+            } elseif (is_array($value)) {
+                if ($this->containsTechnicalDifficulties($value)) {
                     return true;
-                } elseif (is_array($value)) {
-                    if ($this->containsTechnicalDifficulties($value)) {
-                        return true;
-                    }
                 }
             }
-            return false;
         }
-        
-
-
+        return false;
+    }
 
     // if KYC returns a technical error auto initiat customer update process
     public function autoUpdateCustomer($payload)
@@ -174,9 +172,7 @@ class BridgeController extends Controller
     
         // Call autoUpdateCustomer with the array
         return $this->autoUpdateCustomer($payload);
-    }
-    
-    
+    }   
 
     public function getCustomerRegistrationCountries(Request $request)
     {
@@ -241,6 +237,7 @@ class BridgeController extends Controller
 
         return $data;
     }
+
     public function getCustomer($customerId)
     {
         $customer = Customer::where('customer_id', $customerId)->first();
@@ -304,8 +301,6 @@ class BridgeController extends Controller
             'bio_data' => $customer
         ]);
     }
-    
-    
 
     public function createCustomerBridgeWallet($customerId)
     {
