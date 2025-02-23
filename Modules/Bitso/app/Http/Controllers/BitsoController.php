@@ -64,7 +64,7 @@ class BitsoController extends Controller
             if (isset($result['success']) && $result['success'] == true) {
                 $payload = $result['payload'];
                 $account = new BitsoAccounts();
-                $account->customer_id = $customerId;
+                $account->customer_id = $customer->customer_id ?? null;
                 $account->user_id = $user->id;
                 $account->account_number = $payload['clabe'];
                 $account->provider_response = $payload;
