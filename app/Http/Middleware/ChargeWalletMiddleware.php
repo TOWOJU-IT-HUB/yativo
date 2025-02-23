@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use App\Models\PayoutMethods;
 
-class CalculateTransactionFees
+class ChargeWalletMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
