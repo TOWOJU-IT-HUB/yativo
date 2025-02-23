@@ -73,13 +73,24 @@ class ChargeWalletMiddleware
                             "from_currency" => $fromCurrency,
                             "to_currency" => $toCurrency,
                             "exchange_rate" => $exchangeRate,
-                            "float_charge (%)" => $floatChargePercent * 100,
-                            "fixed_charge" => $fixedCharge,
+                            "original_amount" => $amount,
+                            
+                            // Fees before conversion
+                            "float_charge_percent" => $floatChargePercent * 100,
+                            "fixed_charge_usd" => $fixedCharge,
+                            
+                            // Fees after conversion (for different currencies)
+                            "converted_float_fee" => isset($floatFeeConverted) ? $floatFeeConverted : "N/A",
+                            "converted_fixed_charge" => isset($fixedChargeConverted) ? $fixedChargeConverted : "N/A",
+                            
+                            // Final amounts
                             "transaction_fee" => $transactionFee,
-                            "amount" => $amount,
-                            "total_amount_due" => $totalAmountDue
+                            "converted_amount" => isset($convertedAmount) ? $convertedAmount : "N/A",
+                            "total_amount_due_in_to_currency" => isset($totalAmountDueInToCurrency) ? $totalAmountDueInToCurrency : "N/A",
+                            "final_total_amount_due" => $totalAmountDue
                         ]);
                     }
+                    
 
                     // ✅ Validate Allowed Currencies
                     $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
