@@ -48,7 +48,7 @@ class ChargeWalletMiddleware
 
                     // ✅ Compute Total Amount Due
                     $amount = floatval($request->amount);
-                    $totalAmountDue = round(($amount * adjustedExchangeRate) + $fixedCharge, 6);
+                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedCharge, 6);
 
                     // ✅ Convert to Debit Wallet Currency
                     $totalAmountInDebitCurrency = round($totalAmountDue / $exchangeRate, 6);
