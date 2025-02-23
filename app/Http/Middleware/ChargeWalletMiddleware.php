@@ -36,23 +36,23 @@ class ChargeWalletMiddleware
 
                     // ✅ Exchange Rate Float Adjustment
                     $exchangeRateFloat = floatval($payoutMethod->exchange_rate_float ?? 0) / 100;
-                    $adjustedExchangeRate = round($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
+                    $adjustedExchangeRate = number_format($exchangeRate - ($exchangeRate * $exchangeRateFloat), 6);
 
                     // ✅ Compute Transaction Fee
                     $gatewayFloatCharge = floatval($payoutMethod->float_charge ?? 0) / 100;
                     $gatewayFixedCharge = floatval($payoutMethod->fixed_charge ?? 0);
 
-                    $floatFee = round($gatewayFloatCharge * $exchangeRate, 6);
-                    $fixedCharge = round($gatewayFixedCharge * $exchangeRate, 6);
-                    $transactionFee = round($floatFee + $fixedCharge, 6);
+                    $floatFee = number_format($gatewayFloatCharge * $exchangeRate, 6);
+                    $fixedCharge = number_format($gatewayFixedCharge * $exchangeRate, 6);
+                    $transactionFee = number_format($floatFee + $fixedCharge, 6);
 
                     // ✅ Compute Total Amount Due
                     $amount = floatval($request->amount);
-                    $totalAmountDue = round(($amount * $adjustedExchangeRate) + $fixedCharge, 6);
+                    $totalAmountDue = number_format(($amount * $adjustedExchangeRate) + $fixedCharge, 6);
 
                     // ✅ Convert to Debit Wallet Currency
-                    $totalAmountInDebitCurrency = round($totalAmountDue / $exchangeRate, 6);
-                    $transactionFeeInDebitCurrency = round($transactionFee / $exchangeRate, 6);
+                    $totalAmountInDebitCurrency = number_format($totalAmountDue / $exchangeRate, 6);
+                    $transactionFeeInDebitCurrency = number_format($transactionFee / $exchangeRate, 6);
 
                     // ✅ Store in Session
                     session([
