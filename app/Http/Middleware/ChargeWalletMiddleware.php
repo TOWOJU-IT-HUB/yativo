@@ -4,73 +4,120 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\payoutMethods as PayoutMethods;
+use App\Models\payoutMethods;
+use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
+use Illuminate\Support\Facades\Log;
 
 class ChargeWalletMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        $fromCurrency = $request->input('from_currency');
-        $toCurrency = $request->input('to_currency');
-        $amount = (float) $request->input('amount');
+        try {
+            if ($request->has('amount')) {
+                $user = $request->user();
 
-        // Fetch payout method details for the target currency
-        $payoutMethod = PayoutMethods::where('currency', $toCurrency)->first();
-        if (!$payoutMethod) {
-            return response()->json(['error' => 'Invalid payout method'], 400);
+                if ($request->has('payment_method_id')) {
+                    // Fetch Beneficiary & Payout Method
+                    $beneficiary = BeneficiaryPaymentMethod::find($request->payment_method_id);
+                    if (!$beneficiary) {
+                        return get_error_response(['error' => 'Beneficiary not found']);
+                    }
+
+                    $payoutMethod = payoutMethods::find($beneficiary->gateway_id);
+                    if (!$payoutMethod) {
+                        return get_error_response(['error' => 'Invalid payout method selected']);
+                    }
+
+                    // ✅ Get Live Exchange Rate
+                    $fromCurrency = strtoupper($request->debit_wallet);
+                    $toCurrency = strtoupper($beneficiary->currency);
+                    $exchangeRate = $this->getLiveExchangeRate($fromCurrency, $toCurrency);
+                    if (!$exchangeRate || $exchangeRate <= 0) {
+                        return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
+                    }
+
+                    // ✅ Convert Charges from FromCurrency → ToCurrency
+                    $floatCharge = floatval($payoutMethod->float_charge ?? 0) / 100;
+                    $fixedCharge = floatval($payoutMethod->fixed_charge ?? 0);
+
+                    if ($fromCurrency !== $toCurrency) {
+                        // Convert fees to the beneficiary currency (ToCurrency)
+                        $floatFeeConverted = round($floatCharge * $exchangeRate, 6);
+                        $fixedChargeConverted = round($fixedCharge * $exchangeRate, 6);
+                    } else {
+                        $floatFeeConverted = round($floatCharge, 6);
+                        $fixedChargeConverted = round($fixedCharge, 6);
+                    }
+
+                    $transactionFee = round($floatFeeConverted + $fixedChargeConverted, 6);
+
+                    // ✅ Convert Amount and Fees
+                    $amount = floatval($request->amount);
+                    $convertedAmount = round($amount * $exchangeRate, 6);
+                    $totalAmountDueInToCurrency = round($convertedAmount + $transactionFee, 6);
+
+                    // ✅ Convert Back to FromCurrency if Needed
+                    if ($fromCurrency !== $toCurrency) {
+                        $totalAmountDueInFromCurrency = round($totalAmountDueInToCurrency / $exchangeRate, 6);
+                    } else {
+                        $totalAmountDueInFromCurrency = $totalAmountDueInToCurrency;
+                    }
+
+                    // ✅ Store in Session
+                    session([
+                        'transaction_fee' => $transactionFee,
+                        'total_amount_due_in_to_currency' => $totalAmountDueInToCurrency,
+                        'total_amount_due_in_from_currency' => $totalAmountDueInFromCurrency
+                    ]);
+
+                    // ✅ Debug Mode - Dump All Parameters
+                    if ($request->has('debug')) {
+                        dd([
+                            "from_currency" => $fromCurrency,
+                            "to_currency" => $toCurrency,
+                            "exchange_rate" => $exchangeRate,
+                            "float_charge (%)" => $floatCharge * 100,
+                            "fixed_charge" => $fixedCharge,
+                            "float_fee_converted" => $floatFeeConverted,
+                            "fixed_charge_converted" => $fixedChargeConverted,
+                            "transaction_fee" => $transactionFee,
+                            "amount" => $amount,
+                            "converted_amount" => $convertedAmount,
+                            "total_amount_due_in_to_currency" => $totalAmountDueInToCurrency,
+                            "total_amount_due_in_from_currency" => $totalAmountDueInFromCurrency
+                        ]);
+                    }
+
+                    // ✅ Validate Allowed Currencies
+                    $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
+                    if (!in_array($fromCurrency, $allowedCurrencies)) {
+                        return get_error_response([
+                            'error' => "The selected wallet is not supported for the selected gateway. Allowed currencies: " . $payoutMethod->base_currency
+                        ], 400);
+                    }
+
+                    // ✅ Deduct from User's Wallet
+                    $chargeNow = debit_user_wallet(floatval($totalAmountDueInFromCurrency * 100), $fromCurrency, "Payout transaction", [
+                        'transaction_fee' => $transactionFee,
+                        'total_amount_due_in_to_currency' => $totalAmountDueInToCurrency,
+                        'total_amount_due_in_from_currency' => $totalAmountDueInFromCurrency
+                    ]);
+
+                    if (!$chargeNow || isset($chargeNow['error'])) {
+                        return get_error_response(['error' => 'Insufficient wallet balance']);
+                    }
+                }
+
+                return $next($request);
+            }
+
+            return get_error_response(['error' => "Sorry, we're currently unable to process your transaction"]);
+        } catch (\Throwable $th) {
+            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
-
-        // Retrieve fees stored in USD
-        $fixedChargeUSD = (float) $payoutMethod->fixed_charge;
-        $floatChargePercent = (float) $payoutMethod->float_charge; // As a decimal (e.g., 0.2 for 20%)
-
-        // Get exchange rate
-        $exchangeRate = $this->getExchangeRate($fromCurrency, $toCurrency); // Implement this function
-
-        // Exchange rate float applies **only when currencies differ**
-        $exchangeRateFloat = ($fromCurrency !== $toCurrency) ? (float) $payoutMethod->exchange_rate_float : 0;
-
-        // Convert fixed fee & float fee from USD to target currency
-        $convertedFixedCharge = $fixedChargeUSD * $exchangeRate;
-        $convertedFloatFee = ($floatChargePercent * $exchangeRate) * $amount;
-
-        // Adjust exchange rate by subtracting exchange rate float
-        $adjustedExchangeRate = $exchangeRate - $exchangeRateFloat;
-
-        // Calculate transaction fee and total amount due
-        $transactionFee = $convertedFixedCharge + $convertedFloatFee;
-        $convertedAmount = $amount * $adjustedExchangeRate;
-        $totalAmountDue = $convertedAmount + $convertedFixedCharge;
-
-        // Debugging: Dump full data if debug mode is enabled
-        if ($request->has('debug')) {
-            dd([
-                "from_currency" => $fromCurrency,
-                "to_currency" => $toCurrency,
-                "exchange_rate" => $exchangeRate,
-                "exchange_rate_float" => $exchangeRateFloat,
-                "original_amount" => $amount,
-                "float_charge_percent" => $floatChargePercent * 100, // Convert to percentage
-                "fixed_charge_usd" => $fixedChargeUSD,
-                "converted_fixed_charge" => $convertedFixedCharge,
-                "converted_float_fee" => $convertedFloatFee,
-                "adjusted_exchange_rate" => $adjustedExchangeRate,
-                "transaction_fee" => $transactionFee,
-                "converted_amount" => $convertedAmount,
-                "total_amount_due" => $totalAmountDue,
-            ]);
-        }
-
-        // Add computed values to the request for further processing
-        $request->merge([
-            'transaction_fee' => $transactionFee,
-            'total_amount_due' => $totalAmountDue,
-        ]);
-
-        return $next($request);
     }
 
-    private function getExchangeRate($from, $to)
+    private function getLiveExchangeRate($from, $to)
     {
         if ($from === $to) return 1.0;
 
