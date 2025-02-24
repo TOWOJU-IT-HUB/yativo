@@ -40,12 +40,16 @@ class ChargeWalletMiddleware
             }
 
             // Deduct from wallet
-            debit_user_wallet(
+            $chargeNow = debit_user_wallet(
                 $result['debit_amount'] * 100,
                 $request->debit_wallet,
                 "Payout transaction",
                 $result
             );
+
+            if (!$chargeNow || isset($chargeNow['error'])) {
+                return get_error_response(['error' => 'Insufficient wallet balance']);
+            }
 
             return $next($request);
 
