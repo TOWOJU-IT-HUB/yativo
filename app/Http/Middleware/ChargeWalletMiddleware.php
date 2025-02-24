@@ -35,7 +35,7 @@ class ChargeWalletMiddleware
             }
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
-                $result['debit_amount'] * 100,
+                floatval($result['debit_amount'] * 100),
                 $request->debit_wallet,
                 "Payout transaction",
                 $result
