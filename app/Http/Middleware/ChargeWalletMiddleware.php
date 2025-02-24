@@ -29,6 +29,7 @@ class ChargeWalletMiddleware
             }
 
             if($request->has('debug')) {
+                // $array = array_merge($re)
                 dd($result);
             }
 

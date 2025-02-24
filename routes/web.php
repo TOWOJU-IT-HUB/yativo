@@ -34,6 +34,7 @@ use App\Models\User;
 use Bavix\Wallet\Models\Wallet;
 use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
+use App\Models\Business\VirtualAccount;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,13 +54,16 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
-// Route::any('add-bitso-webhook', function(){
-//     $r = request();
-//     $bitsoService = new BitsoServices("/api/v3/webhooks/");
-//     $payload = json_encode(['callback_url' => route('bitso.cop.deposit')]);
-//     $result = $bitsoService->sendRequest($payload, 'POST');
-//     return response()->json($result);
-// });
+Route::any('add-bitso-webhook', function(){
+    $user = User::whereEmail('towojuads@gmail.com')->first();
+    if($user) {
+        // get virtual accounts of the user
+        $accounts = VirtualAccount::whereUserId($user->id);
+        foreach($accounts as $account) {
+            $account->delete();
+        }
+    }
+});
 
 
 Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
