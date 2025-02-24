@@ -148,6 +148,16 @@ class BitsoController extends Controller
             }
     
             // Check if the event is 'funding' and the status is 'complete'
+            if ($webhookData['event'] === 'funding' && isset($webhookData['clave'])){
+                $complete_action = $this->handleClabeDeposit($webhookData);
+            }
+
+            // Check if the event is 'funding' and the status is 'complete'
+            if ($webhookData['event'] === 'funding'){
+                $complete_action = $this->handleClabeDeposit($webhookData);
+            }
+
+            // Check if the event is 'funding' and the status is 'complete'
             if ($webhookData['event'] === 'funding'){
                 $complete_action = $this->handleClabeDeposit($webhookData);
             }
@@ -160,7 +170,76 @@ class BitsoController extends Controller
         }
     }
     
-    public function handleClabeDeposit()
+    private function handleClabeDeposit($payload)
+    {
+        $amount = (float) $payload['amount'];
+        $currency = strtoupper($payload['currency']);
+
+        $acc = VirtualAccount::where('account_number', $payload['details']['receive_clabe'])->first();
+        if(!$acc) {
+            die(200);
+        }
+
+
+        $user = User::whereId($acc->user_id)->first();
+
+        BitsoWebhookLog::create([
+            'fid' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $payload['currency'],
+            'method' => $payload['method'],
+            'method_name' => $payload['method_name'],
+            'amount' => $amount,
+            'details' => ($payload['details'] ?? []),
+        ]);
+
+         // record deposit info into the DB
+        $deposit = new Deposit();
+        $deposit->currency = $payload['currency'];
+        $deposit->deposit_currency = $payload['currency'];
+        $deposit->user_id = $user->id;
+        $deposit->amount = $payload['amount'];
+        $deposit->gateway = 0;
+        $deposit->status = "complete";
+        $deposit->receive_amount = floatval($payload['amount']);
+        $deposit->meta = [
+            'transaction_id' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $payload['currency'],
+            'amount' => $payload['amount'],
+            'method' => $payload['method_name'],
+            'network' => $payload['network'],
+            'sender_name' => $payload['details']['sender_name'] ?? null,
+            'sender_clabe' => $payload['details']['sender_clabe'] ?? null,
+            'receiver_clabe' => $payload['details']['receive_clabe'] ?? null,
+            'sender_bank' => $payload['details']['sender_bank'] ?? null,
+            'concept' => $payload['details']['concepto'] ?? null,
+        ];
+        $deposit->save();
+
+
+        TransactionRecord::create([
+            "user_id" => $user->id,
+            "transaction_beneficiary_id" => $user->id,
+            "transaction_id" => $payload['fid'],
+            "transaction_amount" => $payload['amount'],
+            "gateway_id" => null,
+            "transaction_status" => "completed",
+            "transaction_type" => 'virtual_account',
+            "transaction_memo" => "payin",
+            "transaction_currency" => $payload['currency'] ?? "MXN",
+            "base_currency" => $payload['currency'] ?? "MXN",
+            "secondary_currency" => $payload['currency'] ?? "MXN",
+            "transaction_purpose" => "VIRTUAL ACCOUNT DEPOSIT",
+            "transaction_payin_details" => ['payin_data' => $payload],
+            "transaction_payout_details" => null,
+        ]);
+        
+        $wallet = $user->getWallet('mxn');
+        if($wallet) {
+            $wallet->deposit(floatval($payload['amount'] * 100));
+        }
+    }
 
     public static function handleWebhook(array $webhookData): void
     {
