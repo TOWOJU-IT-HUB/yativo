@@ -19,6 +19,7 @@ use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use App\Services\PayoutCalculator;
 
 /**
  * WithdrawalConntroller handles withdrawal requests.
