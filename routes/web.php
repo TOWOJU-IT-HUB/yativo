@@ -35,7 +35,7 @@ use Bavix\Wallet\Models\Wallet;
 use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 use App\Models\Business\VirtualAccount;
-
+use Illuminate\Support\Facades\Schema;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -55,14 +55,30 @@ Route::get('/', function () {
 });
 
 Route::any('add-bitso-webhook', function(){
-    $user = User::whereEmail('towojuads@gmail.com')->first();
-    if($user) {
-        // get virtual accounts of the user
-        $accounts = VirtualAccount::whereUserId($user->id);
-        foreach($accounts as $account) {
-            $account->delete();
-        }
+
+    // if (!Schema::hasColumn('cache', 'key')) {
+    //     Schema::table('cache', function (Blueprint $table) {
+    //         $table->longText('key')->change();
+    //     });
+    // }
+    $acc = VirtualAccount::where('account_number', '10969000047052963')->first();
+    // get user
+    $user = User::whereId($acc->user_id);
+    $wallet = $user->getWallet('mxn');
+    if($wallet) {
+        $wallet->deposit(100 * 100);
     }
+    
+
+
+    // $user = User::whereEmail('towojuads@gmail.com')->first();
+    // if($user) {
+    //     // get virtual accounts of the user
+    //     $accounts = VirtualAccount::whereUserId($user->id);
+    //     foreach($accounts as $account) {
+    //         $account->delete();
+    //     }
+    // }
 });
 
 

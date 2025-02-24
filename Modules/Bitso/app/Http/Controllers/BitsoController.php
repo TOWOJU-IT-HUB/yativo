@@ -160,6 +160,7 @@ class BitsoController extends Controller
         }
     }
     
+    public function handleClabeDeposit()
 
     public static function handleWebhook(array $webhookData): void
     {
