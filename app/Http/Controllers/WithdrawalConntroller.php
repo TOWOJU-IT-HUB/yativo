@@ -124,104 +124,110 @@ class WithdrawalConntroller extends Controller
                     $table->string('debit_wallet')->nullable();
                 });
             }
-
+    
             $validate = Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:1',
                 'payment_method_id' => 'required',
                 'customer_id' => 'sometimes|exists:customers,customer_id',
                 'debit_wallet' => 'required|string'
             ]);
-
+    
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
-
+    
             $validated = $validate->validated();
-            $is_beneficiary = BeneficiaryPaymentMethod::with('user')->find($validated['payment_method_id']);
             $beneficiary = BeneficiaryPaymentMethod::find($validated['payment_method_id']);
-
-            if (!$is_beneficiary) {
+    
+            if (!$beneficiary) {
                 return get_error_response(['error' => "Payment method not found"]);
             }
-
-            if (empty($is_beneficiary->gateway_id) || !is_numeric($is_beneficiary->gateway_id)) {
+    
+            if (empty($beneficiary->gateway_id) || !is_numeric($beneficiary->gateway_id)) {
                 return get_error_response(['error' => "The selected beneficiary has no valid payout method"]);
             }
-
-            $payoutMethod = payoutMethods::find($is_beneficiary->gateway_id);
+    
+            $payoutMethod = PayoutMethods::find($beneficiary->gateway_id);
             if (!$payoutMethod) {
                 return get_error_response(['error' => "The chosen withdrawal method is invalid or currently unavailable"]);
             }
-
+    
             $allowedCurrencies = explode(',', $payoutMethod->base_currency ?? '');
             if (!in_array($validated['debit_wallet'], $allowedCurrencies)) {
                 return get_error_response([
                     'error' => "Allowed debit currencies: " . implode(', ', $allowedCurrencies)
                 ], 400);
             }
-
-            // Get the exchange rate from debit_wallet to beneficiary's currency
-            $exchange_rate = get_transaction_rate($validated['debit_wallet'], $is_beneficiary->currency, $payoutMethod->id, "payout");
-            if (!$exchange_rate || $exchange_rate <= 0) {
+    
+            // Calculate using PayoutCalculator
+            $calculator = new PayoutCalculator();
+            $result = $calculator->calculate(
+                $validated['amount'],
+                $validated['debit_wallet'],
+                $validated['payment_method_id'],
+                $payoutMethod->exchange_rate_float
+            );
+    
+            if ($result['adjusted_rate'] <= 0) {
                 return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
             }
-
-            $exchange_rate = floatval($exchange_rate);
-            $deposit_float = floatval($payoutMethod->exchange_rate_float ?? 0);
-            $exchange_rate -= ($exchange_rate * $deposit_float / 100);
-
-            // Convert amount to beneficiary's currency
-            $convertedAmount = $exchange_rate * $validated['amount'];
-
-            // Convert min & max withdrawal limits to beneficiary's currency
+    
+            $convertedAmount = $result['total_amount'] - $result['total_fee'];
             $minWithdrawal = $payoutMethod->minimum_withdrawal;
             $maxWithdrawal = $payoutMethod->maximum_withdrawal;
-
+    
             if ($convertedAmount < $minWithdrawal) {
                 return get_error_response([
-                    'error' => "The minimum withdrawable amount is " . number_format($minWithdrawal, 2) . " " . $is_beneficiary->currency
+                    'error' => "The minimum withdrawable amount is " . number_format($minWithdrawal, 2) . " " . $beneficiary->currency
                 ]);
             }
-
+    
             if ($convertedAmount > $maxWithdrawal) {
                 return get_error_response([
-                    'error' => "The maximum withdrawable amount is " . number_format($maxWithdrawal, 2) . " " . $is_beneficiary->currency
+                    'error' => "The maximum withdrawable amount is " . number_format($maxWithdrawal, 2) . " " . $beneficiary->currency
                 ]);
             }
-
-            // Prepare withdrawal data transaction_fee - 
+    
+            // Prepare withdrawal data
             $validated['user_id'] = auth()->id();
             $validated['gateway'] = $payoutMethod->gateway;
-            $validated['gateway_id'] = $is_beneficiary->gateway_id;
+            $validated['gateway_id'] = $beneficiary->gateway_id;
             $validated['currency'] = $payoutMethod->currency;
             $validated['beneficiary_id'] = $validated['payment_method_id'];
+            
+            // Calculate fee details
+            $transaction_fee = $result['total_fee'];
+            $total_amount_charged = $result['total_amount'];
+            $transaction_fee_in_debit = $transaction_fee / $result['exchange_rate'];
+            $total_amount_charged_in_debit = $result['debit_amount'];
+    
             $validated['raw_data'] = [
                 "incoming_request" => $request->all(),
-                "deposit_float" => $deposit_float,
-                "exchange_rate" => $exchange_rate,
+                "deposit_float" => $payoutMethod->exchange_rate_float,
+                "exchange_rate" => $result['exchange_rate'],
+                "adjusted_rate" => $result['adjusted_rate'],
                 "minWithdrawal" => $minWithdrawal,
                 "maxWithdrawal" => $maxWithdrawal,
                 "convertedAmount" => $convertedAmount,
-                "transaction_fee" => session()->get('transaction_fee'),
-                "total_amount_charged" => session()->get('total_amount_charged'),
-                'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
-                'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
+                "transaction_fee" => $transaction_fee,
+                "total_amount_charged" => $total_amount_charged,
+                'transaction_fee_in_debit_currency' => $transaction_fee_in_debit,
+                'total_amount_charged_in_debit_currency' => $total_amount_charged_in_debit,
                 'debit_currency' => $request->debit_wallet
             ]; 
             unset($validated['payment_method_id']);
-
-
+    
             $userData = [
                 "beneficiary" => $beneficiary,
-                "exchange_rate" => $exchange_rate,
-                "transaction_fee" => session()->get('transaction_fee'),
-                "total_amount_charged" => session()->get('total_amount_charged'),
-                'transaction_fee_in_debit_currency' => session()->get('transaction_fee_in_debit_currency'),
-                'total_amount_charged_in_debit_currency' => session()->get('total_amount_charged_in_debit_currency'),
+                "exchange_rate" => $result['exchange_rate'],
+                "adjusted_rate" => $result['adjusted_rate'],
+                "transaction_fee" => $transaction_fee,
+                "total_amount_charged" => $total_amount_charged,
+                'transaction_fee_in_debit_currency' => $transaction_fee_in_debit,
+                'total_amount_charged_in_debit_currency' => $total_amount_charged_in_debit,
                 'debit_currency' => $request->debit_wallet
             ];
-
-            session()->forget(['transaction_fee', 'total_amount_charged', 'transaction_fee_in_debit_currency', 'total_amount_charged_in_debit_currency']);
+    
             // Create withdrawal
             $create = Withdraw::create($validated);
             return get_success_response(array_merge($create->toArray(), ['payout_data' => $userData]), 201, "Withdrawal request received and will be processed shortly.");
