@@ -228,12 +228,12 @@ class WithdrawalConntroller extends Controller
                 'currency' => $payoutMethod->currency,
                 'fees' => [
                     'total' => $result['total_fee'],
-                    'breakdown' => $result['fee_breakdown']
+                    // 'breakdown' => $result['fee_breakdown']
                 ],
-                'exchange_rate' => [
-                    'base' => $result['exchange_rate'],
-                    'adjusted' => $result['adjusted_rate']
-                ],
+                // 'exchange_rate' => [
+                //     'base' => $result['exchange_rate'],
+                //     'adjusted' => $result['adjusted_rate']
+                // ],
                 'processed_at' => $withdrawal->created_at
             ];
     
