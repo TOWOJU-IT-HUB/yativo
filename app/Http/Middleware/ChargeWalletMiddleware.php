@@ -54,7 +54,7 @@ class ChargeWalletMiddleware
             return $next($request);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
 }
