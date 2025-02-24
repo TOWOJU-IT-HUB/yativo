@@ -33,7 +33,7 @@ class ChargeWalletMiddleware
             if (!in_array($request->debit_wallet, $result['base_currencies'])) {
                 return get_error_response(['error' => 'Currency pair error. Supported are: '.$result['base_currencies']], 400);
             }
-            
+
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
                 floatval($result['debit_amount'] * 100),
@@ -42,15 +42,13 @@ class ChargeWalletMiddleware
                 $result
             );
 
-            var_dump($chargeNow); exit;
-
-            if (!$chargeNow || isset($chargeNow['error'])) {
-                return get_error_response(['error' => 'Insufficient wallet balance']);
-            }
-
             if($request->has('debug')) {
                 // $array = array_merge($re)
                 dd($result);
+            }
+
+            if (!$chargeNow || isset($chargeNow['error'])) {
+                return get_error_response(['error' => 'Insufficient wallet balance']);
             }
 
             return $next($request);
