@@ -41,6 +41,8 @@ class ChargeWalletMiddleware
                 $result
             );
 
+            var_dump($chargeNow); exit;
+
             if (!$chargeNow || isset($chargeNow['error'])) {
                 return get_error_response(['error' => 'Insufficient wallet balance']);
             }
