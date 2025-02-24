@@ -14,6 +14,12 @@ class ChargeWalletMiddleware
     public function handle(Request $request, Closure $next)
     {
         try {
+            $request->validate([
+                "amount" => "required",
+                "debit_wallet" => "required",
+                "payment_method_id" => "required",
+            ]);
+            
             $calculator = new PayoutCalculator();
             
             $result = $calculator->calculate(
