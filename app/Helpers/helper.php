@@ -946,33 +946,6 @@ if (!function_exists('debit_user_wallet')) {
             return ['error' => "Insufficient balance or invalid debit wallet."];
         }
         try {
-            // if (!$wallet) { // wallet not found
-            //     $usdWallet = $user->getWallet('USD');
-
-
-
-            //     // Convert the amount to USD
-            //     $convertedAmount = convertToUSD($currency, $amount);
-            //     // var_dump($convertedAmount); exit;
-
-            //     if ($convertedAmount === null || $convertedAmount <= 0) {
-            //         return ['error' => 'Currency conversion failed or insufficient balance: '];
-            //     }
-
-            //     if ($usdWallet && $usdWallet->balance >= $convertedAmount) {
-            //         // Charge the USD wallet
-            //         $usdWallet->withdraw($convertedAmount, [
-            //             'description' => $description,
-            //         ]);
-
-            //         $currency = 'USD'; // Log the transaction in USD
-            //         $amount = $convertedAmount; // Update amount to converted USD value
-            //         $wallet = $usdWallet; // Update wallet to USD wallet for further processing
-            //     } else {
-            //         return ['error' => 'Insufficient balance in USD wallet'];
-            //     }
-            // }
-
             // Try to charge the wallet
             $charge = $wallet->withdraw($amount, [
                 'description' => $description,

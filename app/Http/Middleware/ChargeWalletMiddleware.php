@@ -41,14 +41,13 @@ class ChargeWalletMiddleware
                 $result
             );
 
+            if (!$chargeNow || isset($chargeNow['error'])) {
+                return get_error_response(['error' => 'Insufficient wallet balance']);
+            }
+
             if($request->has('debug')) {
                 // $array = array_merge($re)
                 dd($result);
-            }
-
-
-            if (!$chargeNow || isset($chargeNow['error'])) {
-                return get_error_response(['error' => 'Insufficient wallet balance']);
             }
 
             return $next($request);
