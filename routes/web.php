@@ -54,35 +54,6 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
-Route::any('add-bitso-webhook', function(){
-
-    // if (!Schema::hasColumn('cache', 'key')) {
-    //     Schema::table('cache', function (Blueprint $table) {
-    //         $table->longText('key')->change();
-    //     });
-    // }
-    $acc = VirtualAccount::where('account_number', '10969000047052963')->first();
-    // get user
-    $user = User::whereId($acc->user_id);
-    $wallet = $user->getWallet('mxn');
-    if($wallet) {
-        $wallet->deposit(100 * 100);
-        return response()->json(['message' => "Deposit completed"]);
-    }
-
-    
-
-
-    // $user = User::whereEmail('towojuads@gmail.com')->first();
-    // if($user) {
-    //     // get virtual accounts of the user
-    //     $accounts = VirtualAccount::whereUserId($user->id);
-    //     foreach($accounts as $account) {
-    //         $account->delete();
-    //     }
-    // }
-});
-
 
 Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
 Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOnrampUrl']);
