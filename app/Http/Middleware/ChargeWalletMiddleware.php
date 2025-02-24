@@ -19,7 +19,7 @@ class ChargeWalletMiddleware
                 "debit_wallet" => "required",
                 "payment_method_id" => "required",
             ]);
-            
+
             $calculator = new PayoutCalculator();
             
             $result = $calculator->calculate(
@@ -30,8 +30,8 @@ class ChargeWalletMiddleware
             );
 
             // Validate allowed currencies
-            if (!in_array($request->debit_wallet, $result['base_currencies'])) {
-                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
+            if (!in_array($request->debit_wallet, $result['base_currency'])) {
+                return get_error_response(['error' => 'Currency pair error.'], 400);
             }
 
             if($request->has('debug')) {
