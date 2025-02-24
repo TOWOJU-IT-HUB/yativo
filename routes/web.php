@@ -67,7 +67,9 @@ Route::any('add-bitso-webhook', function(){
     $wallet = $user->getWallet('mxn');
     if($wallet) {
         $wallet->deposit(100 * 100);
+        return response()->json(['message' => "Deposit completed"]);
     }
+
     
 
 
