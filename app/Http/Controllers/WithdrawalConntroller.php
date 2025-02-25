@@ -100,7 +100,7 @@ class WithdrawalConntroller extends Controller
                 'user_id' => auth()->id(),
                 'payout_id' => $payoutId
             ];
-            $payout = Withdraw::where($where)->with('beneficiary')->first()->makeHidden(['raw_data']);
+            $payout = Withdraw::where($where)->with('beneficiary')->first()->makeHidden(['raw_data', "user_id", "bridge_id", "bridge_customer_id", "bridge_response"]);
             if(request()->has('debug')) {
                 dd($payout);
             }

@@ -32,6 +32,11 @@ class BeneficiaryPaymentMethod extends Model
     ];
 
     protected $casts = [
+        "bridge_id",
+        "bridge_customer_id",
+        "bridge_response",
+        "user_id",
+        "address",
         'payment_data' => 'array',
         'bridge_response' => 'array',
         'payment_data.address' => PaymentDataAddressCast::class,
