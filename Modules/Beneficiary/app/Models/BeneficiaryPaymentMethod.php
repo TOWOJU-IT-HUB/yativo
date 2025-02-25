@@ -44,6 +44,7 @@ class BeneficiaryPaymentMethod extends Model
         'deleted_at',
         "user_id",
         'bridge_id',
+        "beneficiary_id",
         'bridge_response',
         'bridge_customer_id',
         'updated_at',
