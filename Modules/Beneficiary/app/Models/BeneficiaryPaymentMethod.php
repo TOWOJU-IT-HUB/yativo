@@ -32,11 +32,7 @@ class BeneficiaryPaymentMethod extends Model
     ];
 
     protected $casts = [
-        "bridge_id",
-        "bridge_customer_id",
-        "bridge_response",
-        "user_id",
-        "address",
+        "address" => 'array',
         'payment_data' => 'array',
         'bridge_response' => 'array',
         'payment_data.address' => PaymentDataAddressCast::class,
@@ -46,9 +42,10 @@ class BeneficiaryPaymentMethod extends Model
 
     protected $hidden = [
         'deleted_at',
-        // 'bridge_id',
-        // 'bridge_response',
-        // 'bridge_customer_id',
+        "user_id",
+        'bridge_id',
+        'bridge_response',
+        'bridge_customer_id',
         'updated_at',
     ];
 
