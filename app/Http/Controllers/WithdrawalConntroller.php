@@ -100,11 +100,11 @@ class WithdrawalConntroller extends Controller
                 'user_id' => auth()->id(),
                 'payout_id' => $payoutId
             ];
-            $payout = Withdraw::where($where)->with('beneficiary')->first()->makeHidden(['raw_data', "user_id", "bridge_id", "bridge_customer_id", "bridge_response"]);
-            if(request()->has('debug')) {
-                dd($payout);
+            $payout = Withdraw::where($where)->with('beneficiary')->first();
+            if(!$payout) {
+                return get_error_response(['error' => "Payout not found"]);
             }
-            return get_success_response($payout);
+            return get_success_response($payout->makeHidden(['raw_data', "user_id", "bridge_id", "bridge_customer_id", "bridge_response"]));
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
