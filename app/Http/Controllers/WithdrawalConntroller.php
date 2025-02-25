@@ -97,7 +97,7 @@ class WithdrawalConntroller extends Controller
     {
         try {
             $where = [
-                'user_id' => auth()->id(),
+                // 'user_id' => auth()->id(),
                 'payout_id' => $payoutId
             ];
             $payout = Withdraw::where($where)->with('beneficiary')->first()->makeHidden(['raw_data']);
