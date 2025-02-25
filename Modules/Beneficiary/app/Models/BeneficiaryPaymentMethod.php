@@ -48,6 +48,7 @@ class BeneficiaryPaymentMethod extends Model
         'bridge_response',
         'bridge_customer_id',
         'updated_at',
+        "address",
     ];
 
 
