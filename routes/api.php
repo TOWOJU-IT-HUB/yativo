@@ -143,7 +143,7 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
 
         Route::get('payouts', [WalletController::class, 'index']);
         Route::post('payout', [WithdrawalConntroller::class, 'store'])->middleware('chargeWallet')->name('wallet.payout');
-        Route::get('payout/{id}', [WithdrawalConntroller::class, 'getWithdrawalStatus']);
+        Route::get('payout/{id}', [WithdrawalConntroller::class, 'show']);
 
         Route::get('balance', [WalletController::class, 'balance']);
         Route::get('balance/{total}', [WalletController::class, 'balance']);
