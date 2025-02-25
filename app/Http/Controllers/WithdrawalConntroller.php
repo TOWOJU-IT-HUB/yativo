@@ -101,6 +101,9 @@ class WithdrawalConntroller extends Controller
                 'payout_id' => $payoutId
             ];
             $payout = Withdraw::where($where)->with('beneficiary')->first()->makeHidden(['raw_data']);
+            if(request()->has('debug')) {
+                dd($payout);
+            }
             return get_success_response($payout);
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
