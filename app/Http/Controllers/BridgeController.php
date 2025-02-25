@@ -192,7 +192,7 @@ class BridgeController extends Controller
             'email' => $customer['customer_email'],
             'type' => $customer['customer_type'] ?? 'individual',
             'endorsements' => ['sepa'],
-            'redirect_uri' => $customer['redirect_uri'] ?? env('WEB_URL'),
+            'redirect_uri' => request()->redirect_url ?? $customer['redirect_uri'] ?? env('WEB_URL', request()->redirect_url),
         ];
 
         $kycResponse = $this->sendRequest($endpoint, 'POST', $payload);

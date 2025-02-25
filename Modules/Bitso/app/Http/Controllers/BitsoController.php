@@ -148,7 +148,7 @@ class BitsoController extends Controller
             }
     
             // Check if the event is 'funding' and the status is 'complete'
-            if ($webhookData['event'] === 'funding' && isset($webhookData['clave'])){
+            if (strtolower($webhookData['event']) === 'funding' && isset($payload['details']['receive_clabe'])){
                 $complete_action = $this->handleClabeDeposit($webhookData);
             }
 

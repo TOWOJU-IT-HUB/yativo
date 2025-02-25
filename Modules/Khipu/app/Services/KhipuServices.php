@@ -39,8 +39,8 @@ class KhipuServices
         try {
             $opts = array(
                 "transaction_id" => $txn_id,
-                "return_url" => env("WEB_URL", "https://app.yativo.com"),
-                "cancel_url" => env("WEB_URL", "https://app.yativo.com"),
+                "return_url" => request()->redirect_url ?? env("WEB_URL", "https://app.yativo.com"),
+                "cancel_url" => request()->redirect_url ?? env("WEB_URL", "https://app.yativo.com"),
                 "picture_url" => "https://www.khipu.com/wp-content/uploads/2022/01/Logo-color.png",
                 "notify_url" => "http://mi-ecomerce.com/backend/notify",
             );

@@ -133,6 +133,7 @@ class DepositController extends Controller
             $deposit->user_id = active_user();
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
+            $deposit->redirect_url = $request->redirect_url;
             $deposit->receive_amount = floatval($request->amount * $exchange_rate);
             $transaction_fee = floatval($exchange_rate * get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin"));
 

@@ -46,7 +46,7 @@ class TransFiController extends Controller
                 "currency" => $currency,
                 "paymentType" => "bank_transfer",
                 "purposeCode" => request()->purposeCode ?? "other",
-                "redirectUrl" => env("WEB_URL"),
+                "redirectUrl" => request()->redirect_url ?? env("WEB_URL"),
                 "type" => "individual",
                 "partnerContext" => [
                     "deposit_id" => $deposit_id,
@@ -174,7 +174,7 @@ class TransFiController extends Controller
                 $deposit_services->process_deposit($order->transaction_id);
             }
         }
-        return redirect()->to(env('WEB_URL'));
+        return redirect()->to(request()->redirect_url ?? env('WEB_URL'));
     }
 
     private function getCustomerInfo()
