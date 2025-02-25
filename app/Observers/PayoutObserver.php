@@ -15,11 +15,11 @@ class PayoutObserver
     {
         // dispatch a webhook notification for payout notification
         $webhook_url = Webhook::whereUserId($withdraw->user_id)->first();
-
+        $withdrwal = Withdraw::whereId($withdraw->id)->with(['beneficiary', 'user'])->first();
         if ($webhook_url) {
             WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
                 "event.type" => "payout.updated",
-                "payload" => $withdraw
+                "payload" => $withdrwal
             ])->dispatchSync();
         }
     }
