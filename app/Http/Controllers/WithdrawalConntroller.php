@@ -179,14 +179,14 @@ class WithdrawalConntroller extends Controller
             if ($validated['amount'] < $payoutMethod->minimum_withdrawal) {
                 return get_error_response([
                     'error' => "Minimum withdrawal: " . number_format($payoutMethod->minimum_withdrawal, 2) 
-                            . " " . $validated['debit_wallet']
+                            . " " . $payoutMethod->currency
                 ]);
             }
     
             if ($validated['amount'] > $payoutMethod->maximum_withdrawal) {
                 return get_error_response([
                     'error' => "Maximum withdrawal: " . number_format($payoutMethod->maximum_withdrawal, 2)
-                            . " " . $validated['debit_wallet']
+                            . " " . $payoutMethod->currency
                 ]);
             }
     

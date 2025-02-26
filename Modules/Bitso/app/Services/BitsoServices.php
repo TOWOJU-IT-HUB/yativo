@@ -210,7 +210,7 @@ class BitsoServices
         }
     }
 
-    public function getDepositStatus($fid)
+    public function getDepositStatus($fid, $payload)
     {
         $this->requestPath = "/api/v3/fundings/{$fid}";
         $request = $this->sendRequest($payload, 'GET');
