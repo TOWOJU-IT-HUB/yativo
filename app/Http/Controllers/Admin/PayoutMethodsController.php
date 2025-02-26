@@ -102,7 +102,7 @@ class payoutMethodsController extends Controller
             'charges_type' => 'required|string|in:fixed,percentage,combined',
             'fixed_charge' => 'nullable|numeric',
             'float_charge' => 'nullable|numeric',
-            'estimated_delivery' => 'nullable|integer',
+            'estimated_delivery' => 'nullable|numeric',
             'pro_fixed_charge' => 'nullable|numeric',
             'pro_float_charge' => 'nullable|numeric',
             'minimum_withdrawal' => 'nullable|numeric',

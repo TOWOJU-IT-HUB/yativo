@@ -46,7 +46,7 @@ class TransFiController extends Controller
                 "currency" => $currency,
                 "paymentType" => "bank_transfer",
                 "purposeCode" => request()->purposeCode ?? "other",
-                "redirectUrl" => env("WEB_URL"),
+                "redirectUrl" => request()->redirect_url ?? env("WEB_URL"),
                 "type" => "individual",
                 "partnerContext" => [
                     "deposit_id" => $deposit_id,
@@ -174,7 +174,7 @@ class TransFiController extends Controller
                 $deposit_services->process_deposit($order->transaction_id);
             }
         }
-        return redirect()->to(env('WEB_URL'));
+        return redirect()->to(request()->redirect_url ?? env('WEB_URL'));
     }
 
     private function getCustomerInfo()
@@ -359,15 +359,19 @@ class TransFiController extends Controller
 
         // if event type is deposit then call the right class to complete the deposit
         if (isset($responseData['status']) && $responseData['status'] === "fund_settled") {
+            $deposit = Deposit::where('gateway_deposit_id', $responseData['orderId'])->first();
+            if(!$deposit) {
+                \Log::info("Webhook notification not found", ['transfi' => $responseData]);
+            }
             $where = [
                 "transaction_memo" => "payin",
-                "transaction_id" => $deposit->deposit_id
+                "transaction_id" => $deposit->id
             ];
             $order = TransactionRecord::where($where)->first();
             if ($order) {
                 $deposit_services = new DepositService();
                 $deposit_services->process_deposit($order->transaction_id);
-                $this->updateTracking($deposit->id, $verify['data']['status'], $verify);
+                // $this->updateTracking($deposit->id, $verify['data']['status'], $verify);
             }
         }
 

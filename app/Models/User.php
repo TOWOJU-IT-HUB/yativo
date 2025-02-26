@@ -102,6 +102,7 @@ class User extends Authenticatable implements JWTSubject
         'idExpiryDate',
         'idIssueDate',
         'verificationDocument',
+        'brla_subaccount_id',
         // 'kyc_status',
         // 'is_kyc_submitted',
         'idNumber',

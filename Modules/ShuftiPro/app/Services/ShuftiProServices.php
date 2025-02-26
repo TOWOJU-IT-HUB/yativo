@@ -77,7 +77,7 @@ class ShuftiProServices
             "reference" => $ref_code,
             "journey_id" => "NrTOXhlR1720800102",
             "email" => $user->email,
-            'callback_url' => env("WEB_URL", "https://app.yativo.com")
+            'callback_url' => request()->redirect_url ?? env("WEB_URL", "https://app.yativo.com")
         ];
         $post_data = json_encode($verification_request);
 

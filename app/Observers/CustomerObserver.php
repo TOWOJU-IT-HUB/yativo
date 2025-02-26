@@ -14,7 +14,7 @@ class CustomerObserver
     public function created(Customer $customer): void
     {
         // dispatch a webhook notification
-        $webhook_url = Webhook::whereUserId($deposit->user_id)->first();
+        $webhook_url = Webhook::whereUserId($customer->user_id)->first();
 
         if ($webhook_url) {
             WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([
@@ -30,7 +30,7 @@ class CustomerObserver
     public function updated(Customer $customer): void
     {
         // dispatch a webhook notification
-        $webhook_url = Webhook::whereUserId($deposit->user_id)->first();
+        $webhook_url = Webhook::whereUserId($customer->user_id)->first();
 
         if ($webhook_url) {
             WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload([

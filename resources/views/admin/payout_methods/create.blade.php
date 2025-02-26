@@ -86,7 +86,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Fixed Charge</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="fixed_charge" 
                         placeholder="Enter fixed charge" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -97,7 +97,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Float Charge</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="float_charge" 
                         placeholder="Enter float charge" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -121,7 +121,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Pro Fixed Charge</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="pro_fixed_charge" 
                         placeholder="Enter pro fixed charge" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -134,7 +134,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Pro Float Charge</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="pro_float_charge" 
                         placeholder="Enter pro float charge" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -145,7 +145,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Minimum Withdrawal</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="minimum_withdrawal" 
                         placeholder="Enter minimum withdrawal" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -158,7 +158,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Maximum Withdrawal</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="maximum_withdrawal" 
                         placeholder="Enter maximum withdrawal" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -169,7 +169,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Minimum Charge</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="minimum_charge" 
                         placeholder="Enter minimum charge" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
@@ -182,7 +182,7 @@
                 <div class="w-full xl:w-1/2">
                     <label class="mb-3 block text-sm font-medium text-black dark:text-white">Maximum Charge</label>
                     <input 
-                        type="number" 
+                        type="text" 
                         name="maximum_charge" 
                         placeholder="Enter maximum charge" 
                         class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"

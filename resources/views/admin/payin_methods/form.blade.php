@@ -112,7 +112,7 @@
     <div class="form-group">
         <label for="fixed_charge" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Fixed
             Charge</label>
-        <input type="number" step="0.01" id="fixed_charge" name="fixed_charge"
+        <input type="text" step="any" id="fixed_charge" name="fixed_charge"
             value="{{ old('fixed_charge', $method->fixed_charge) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('fixed_charge')
@@ -127,7 +127,7 @@
     <div class="form-group">
         <label for="float_charge" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Float
             Charge</label>
-        <input type="number" step="0.01" id="float_charge" name="float_charge"
+        <input type="text" step="any" id="float_charge" name="float_charge"
             value="{{ old('float_charge', $method->float_charge) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('float_charge')
@@ -139,7 +139,7 @@
     <div class="form-group">
         <label for="settlement_time" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Settlement Time
             (hours)</label>
-        <input type="number" id="settlement_time" name="settlement_time"
+        <input type="text" id="settlement_time" name="settlement_time"
             value="{{ old('settlement_time', $method->settlement_time) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('settlement_time')
@@ -154,7 +154,7 @@
     <div class="form-group">
         <label for="pro_fixed_charge" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Pro Fixed
             Charge</label>
-        <input type="number" step="0.01" id="pro_fixed_charge" name="pro_fixed_charge"
+        <input type="text" step="any" id="pro_fixed_charge" name="pro_fixed_charge"
             value="{{ old('pro_fixed_charge', $method->pro_fixed_charge) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('pro_fixed_charge')
@@ -166,7 +166,7 @@
     <div class="form-group">
         <label for="pro_float_charge" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Pro Float
             Charge</label>
-        <input type="number" step="0.01" id="pro_float_charge" name="pro_float_charge"
+        <input type="text" step="any" id="pro_float_charge" name="pro_float_charge"
             value="{{ old('pro_float_charge', $method->pro_float_charge) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('pro_float_charge')
@@ -181,7 +181,7 @@
     <div class="form-group">
         <label for="minimum_deposit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Minimum
             Deposit</label>
-        <input type="number" step="0.01" id="minimum_deposit" name="minimum_deposit"
+        <input type="text" step="any" id="minimum_deposit" name="minimum_deposit"
             value="{{ old('minimum_deposit', $method->minimum_deposit) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('minimum_deposit')
@@ -193,7 +193,7 @@
     <div class="form-group">
         <label for="maximum_deposit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Maximum
             Deposit</label>
-        <input type="number" step="0.01" id="maximum_deposit" name="maximum_deposit"
+        <input type="text" step="any" id="maximum_deposit" name="maximum_deposit"
             value="{{ old('maximum_deposit', $method->maximum_deposit) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('maximum_deposit')
@@ -208,7 +208,7 @@
     <div class="form-group">
         <label for="minimum_charge" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Minimum
             Charge</label>
-        <input type="number" step="0.01" id="minimum_charge" name="minimum_charge"
+        <input type="text" step="any" id="minimum_charge" name="minimum_charge"
             value="{{ old('minimum_charge', $method->minimum_charge) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('minimum_charge')
@@ -220,7 +220,7 @@
     <div class="form-group">
         <label for="maximum_charge" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Maximum
             Charge</label>
-        <input type="number" step="0.01" id="maximum_charge" name="maximum_charge"
+        <input type="text" step="any" id="maximum_charge" name="maximum_charge"
             value="{{ old('maximum_charge', $method->maximum_charge) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
         @error('maximum_charge')

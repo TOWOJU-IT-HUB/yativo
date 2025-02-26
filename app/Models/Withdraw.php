@@ -21,6 +21,7 @@ class Withdraw extends Model
      */
     protected $hidden = [
         'deleted_at',
+        'raw_data',
         'gateway',
         'gateway_id',
         'id'

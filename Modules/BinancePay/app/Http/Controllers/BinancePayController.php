@@ -49,7 +49,7 @@ class BinancePayController extends Controller
                     'goodsName' => $txn_type,
                     'goodsDetail' => 'Wallet Topup for customer ' . $user->businessName,
                 ],
-                'returnUrl' => getenv('WEB_URL') . 'dashboard',
+                'returnUrl' => request()->redirect_url ?? getenv('WEB_URL') . 'dashboard',
             ];
 
             $call = $this->api_call('/binancepay/openapi/v2/order', 'POST', $payload);

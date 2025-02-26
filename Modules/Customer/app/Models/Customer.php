@@ -62,7 +62,9 @@ class Customer extends Model
         "admin_kyc_reject_reason",
         "customer_kyc_link_id",
         "customer_kyc_link",
-        "bridge_customer_id"
+        "bridge_customer_id",
+        "can_create_vc", // can_create_virtual_card
+        "can_create_va", // can_create_virtual_account
     ];
 
     protected $casts = [

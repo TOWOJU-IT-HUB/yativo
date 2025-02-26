@@ -76,25 +76,23 @@ class BridgeController extends Controller
 
         return $bridgeData;
     }
-        /**
-         * Check if any API response field contains "technical difficulties".
-         */
-        private function containsTechnicalDifficulties(array $data): bool
-        {
-            foreach ($data as $key => $value) {
-                if (is_string($value) && str_contains($value, 'technical difficulties')) {
+    
+    /**
+     * Check if any API response field contains "technical difficulties".
+     */
+    private function containsTechnicalDifficulties(array $data): bool
+    {
+        foreach ($data as $key => $value) {
+            if (is_string($value) && str_contains($value, 'technical difficulties')) {
+                return true;
+            } elseif (is_array($value)) {
+                if ($this->containsTechnicalDifficulties($value)) {
                     return true;
-                } elseif (is_array($value)) {
-                    if ($this->containsTechnicalDifficulties($value)) {
-                        return true;
-                    }
                 }
             }
-            return false;
         }
-        
-
-
+        return false;
+    }
 
     // if KYC returns a technical error auto initiat customer update process
     public function autoUpdateCustomer($payload)
@@ -174,9 +172,7 @@ class BridgeController extends Controller
     
         // Call autoUpdateCustomer with the array
         return $this->autoUpdateCustomer($payload);
-    }
-    
-    
+    }   
 
     public function getCustomerRegistrationCountries(Request $request)
     {
@@ -196,7 +192,7 @@ class BridgeController extends Controller
             'email' => $customer['customer_email'],
             'type' => $customer['customer_type'] ?? 'individual',
             'endorsements' => ['sepa'],
-            'redirect_uri' => $customer['redirect_uri'] ?? env('WEB_URL'),
+            'redirect_uri' => request()->redirect_url ?? $customer['redirect_uri'] ?? env('WEB_URL', request()->redirect_url),
         ];
 
         $kycResponse = $this->sendRequest($endpoint, 'POST', $payload);
@@ -241,6 +237,7 @@ class BridgeController extends Controller
 
         return $data;
     }
+
     public function getCustomer($customerId)
     {
         $customer = Customer::where('customer_id', $customerId)->first();
@@ -304,8 +301,6 @@ class BridgeController extends Controller
             'bio_data' => $customer
         ]);
     }
-    
-    
 
     public function createCustomerBridgeWallet($customerId)
     {
@@ -645,25 +640,25 @@ class BridgeController extends Controller
     public function createWallet($customerId)
     {
         return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
-        $endpoint = "v0/customers/{$customerId}/wallets";
-        $curl = $this->sendRequest($endpoint, "POST", $payload = [
-            'chain' => 'solana'
-        ]);
+        // $endpoint = "v0/customers/{$customerId}/wallets";
+        // $curl = $this->sendRequest($endpoint, "POST", $payload = [
+        //     'chain' => 'solana'
+        // ]);
 
-        if(isset($curl['address'])) {
-            return $curl['address'];
-        }
+        // if(isset($curl['address'])) {
+        //     return $curl['address'];
+        // }
 
-        return false;
+        // return false;
     }
 
     public function BridgeWebhook(Request $request)
     {
-        if($this->processEvent() !== true) {
+        if($this->processEvent($request) !== true) {
             return http_respnose_code(200);
         }
         // Get the request body
-        $incoming = $request()->all();
+        $incoming = $request->all();
         if(isset($request->event_object)) {
             $data = (array)$request->event_object;
             if($request->event_type == "customer.created" OR $request->event_type == "customer.updated.status_transitioned") {
@@ -695,15 +690,13 @@ class BridgeController extends Controller
                 return $this->processVirtualAccountWebhook($data);
             }
         }
-
-
           
-        return get_success_response($bridgeData);
+        return get_success_response($incoming);
     }
 
     private function processVirtualAccountWebhook($incomingData)
     {
-        $customer = Customer::where("bridge_customer_id", $bridgeCustomerId)->first();
+        $customer = Customer::where("bridge_customer_id", $incomingData['customer_id'])->first();
         $vc = VirtualAccount::where("customer_id", $customer->id)->first();
 
         $userId = $vc->user_id;
@@ -761,10 +754,10 @@ class BridgeController extends Controller
     {
         $signatureHeader = $request->header('X-Webhook-Signature');
         
-        if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
-            return false; // $this->render400('Malformed signature header');
-        }
-
+        // if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
+        //     return false; // $this->render400('Malformed signature header');
+        // }
+        $matches = [];
         [, $timestamp, $signature] = $matches;
 
         if (!$timestamp || !$signature) {
@@ -817,7 +810,7 @@ class BridgeController extends Controller
 
         // TODO: Store event for asynchronous processing
         return true;
-        return response()->json(['message' => 'Event processing OK!'], 200);
+        // return response()->json(['message' => 'Event processing OK!'], 200);
     }
 
     private function getPublicKey()

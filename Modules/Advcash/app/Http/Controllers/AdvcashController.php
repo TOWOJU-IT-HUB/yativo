@@ -90,7 +90,7 @@ class AdvcashController extends Controller
 
         if (!$quoteId) {
             http_response_code(200);
-            return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+            return request()->redirect_url ?? redirect()->to(env('WEB_URL', "https://app.yativo.com"));
         }
 
         $depo = Deposit::whereId($quoteId)->first()->toArray();
@@ -100,7 +100,7 @@ class AdvcashController extends Controller
 
         if (!$order) {
             Log::error("Transaction record not found for quote ID: {$quoteId}");
-            return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+            return redirect()->to(request()->redirect_url ?? env('WEB_URL', "https://app.yativo.com"));
         }
 
         if (strtoupper($queryParams['ac_transaction_status']) == "COMPLETED") {
@@ -109,7 +109,7 @@ class AdvcashController extends Controller
         }
 
         http_response_code(200);
-        return redirect()->to(env('WEB_URL', "https://app.yativo.com"));
+        return redirect()->to(request()->redirect_url ?? env('WEB_URL', "https://app.yativo.com"));
 
         // return response()->json(['message' => 'Callback processed successfully'], 200);
     }
