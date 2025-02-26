@@ -32,8 +32,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Artisan::call('route:clear');
         Deposit::observe(DepositObserver::class);
-        Customer::observe(CustomerObserver::class);
         Withdraw::observe(PayoutObserver::class);
+        Customer::observe(CustomerObserver::class);
         Paginator::useTailwind();
         if (!config('app.debug')) {
             DB::listen(function ($query) {
