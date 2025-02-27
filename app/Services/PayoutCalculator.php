@@ -106,8 +106,6 @@ class PayoutCalculator
     // Live exchange rate fetch
     public function getLiveExchangeRate(string $from, string $to): float
     {
-        $from = strtoupper($from);
-        $to = strtoupper($to);
         if ($from === $to) return 1.0;
 
         return Cache::remember("exchange_rate_{$from}_{$to}", now()->addMinutes(30), 
