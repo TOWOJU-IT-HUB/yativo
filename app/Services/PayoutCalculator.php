@@ -58,6 +58,7 @@ class PayoutCalculator
             $fees,
             $rates['wallet_to_target'],
             $adjustedRate,
+            $walletCurrency,
             $targetCurrency,
             $payoutMethod
         );
@@ -143,6 +144,7 @@ class PayoutCalculator
         array $fees,
         float $exchangeRate,
         float $adjustedRate,
+        string $walletCurrency,
         string $targetCurrency,
         PayoutMethods $payoutMethod
     ): array {
