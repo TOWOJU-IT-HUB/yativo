@@ -162,7 +162,8 @@ class PayoutCalculator
             'fee_breakdown' => [
                 'float' => round($fees['float_fee'], 6),
                 'fixed' => round($fees['fixed_fee'], 6)
-            ]
+            ],
+            'debit_amount' => round($totalAmount / $exchangeRate, 6),
         ];
     }
 
