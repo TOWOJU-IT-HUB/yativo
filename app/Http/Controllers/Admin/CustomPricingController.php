@@ -31,7 +31,7 @@ class CustomPricingController extends Controller
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'gateway_type' => 'required|in:payin,payout',
-            'gateway_id' => 'required|integer|exists:payin_methods,id', // Will be dynamically handled based on gateway type
+            'gateway_id' => 'required|integer', // Will be dynamically handled based on gateway type
             'fixed_charge' => 'required|numeric',
             'float_charge' => 'required|numeric',
         ]);

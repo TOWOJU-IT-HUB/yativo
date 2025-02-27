@@ -12,7 +12,7 @@
             @foreach($walletBalances as $wallet)
             <div class="p-6 bg-white dark:bg-boxdark shadow-lg rounded-xl">
                 <p class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-3">
-                    {{ number_format($wallet->total_balance, 2) }}
+                    {{ number_format($wallet->total_balance/100, 2) }}
                 </p>
                 <p class="text-gray-500 dark:text-gray-400">{{ strtoupper($wallet->slug) }}</p>
             </div>

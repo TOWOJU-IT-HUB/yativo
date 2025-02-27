@@ -123,9 +123,9 @@ class WithdrawalConntroller extends Controller
     {
         try {
             // Add debit_wallet column if missing
-            if (!Schema::hasColumn('withdraws', 'debit_wallet')) {
+            if (!Schema::hasColumn('withdraws', 'debit_amount')) {
                 Schema::table('withdraws', function (Blueprint $table) {
-                    $table->string('debit_wallet')->nullable();
+                    $table->string('debit_amount')->nullable();
                 });
             }
     
@@ -199,6 +199,9 @@ class WithdrawalConntroller extends Controller
                 'beneficiary_id' => $validated['payment_method_id'],
                 'debit_wallet' => $validated['debit_wallet'],
                 'amount' => $validated['amount'],
+                "debit_amount" => $result['debit_amount'],
+                "send_amount" => "",
+                "customer_receive_amount" => "",
                 'raw_data' => [
                     "rates" => [
                         'base_rate' => $result['exchange_rate'],
@@ -209,6 +212,7 @@ class WithdrawalConntroller extends Controller
                         'fee_breakdown' => $result['fee_breakdown']
                     ],
                     "amounts" => [
+                        "debit_amount" => $result['debit_amount'],
                         'requested' => $validated['amount'],
                         'converted' => $result['total_amount'],
                         'debit_currency' => $validated['debit_wallet']
