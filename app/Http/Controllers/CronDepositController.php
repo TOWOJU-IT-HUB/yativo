@@ -85,11 +85,11 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $curl = $vitawallet->getTransaction($deposit->gateway_deposit_id);
-            Log::info('Vitawallet_001', ['deposit_object' => $deposit, 'deposit_id' => $deposit->gateway_deposit_id, 'response' => $curl]);
+            // Log::info('Vitawallet_001', ['deposit_object' => $deposit, 'deposit_id' => $deposit->gateway_deposit_id, 'response' => $curl]);
             if (is_array($curl) && isset($curl['transaction'])) {
                 $record = $curl['transaction'];
                 if (isset($record['status'])) {
-                    Log::info('Vitawallet_002', ['response' => $record]);
+                    // Log::info('Vitawallet_002', ['response' => $record]);
                     $transactionStatus = strtolower($record['status']);
                     
                     $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
@@ -259,14 +259,14 @@ class CronDepositController extends Controller
     
             foreach ($deposits as $deposit) {
                 try {
-                    Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
+                    // Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
                     $order = $this->getfloid(strtolower($deposit->deposit_currency), $deposit->gateway_deposit_id);
     
                     // Log the full API response
-                    Log::info("Floid API Response", [
-                        'gateway_deposit_id' => $deposit->gateway_deposit_id,
-                        'response' => $order
-                    ]);
+                    // Log::info("Floid API Response", [
+                    //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                    //     'response' => $order
+                    // ]);
 
                     if(is_array($order) && isset($order[0])) {
                         $order = $order[0];
@@ -274,26 +274,26 @@ class CronDepositController extends Controller
     
                     // Check if response has a valid status
                     if (!isset($order['status'])) {
-                        Log::error("Floid API Response Missing Status", [
-                            'gateway_deposit_id' => $deposit->gateway_deposit_id,
-                            'response' => $order
-                        ]);
+                        // Log::error("Floid API Response Missing Status", [
+                        //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                        //     'response' => $order
+                        // ]);
                         continue;
                     }
     
                     $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
                     if (!$txn) {
-                        Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
+                        // Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
                         continue;
                     }
     
                     $transactionStatus = strtolower($order['status']);
     
                     // Log transaction status
-                    Log::info("Processing Floid Deposit", [
-                        'deposit_id' => $deposit->id,
-                        'transaction_status' => $transactionStatus
-                    ]);
+                    // Log::info("Processing Floid Deposit", [
+                    //     'deposit_id' => $deposit->id,
+                    //     'transaction_status' => $transactionStatus
+                    // ]);
     
                     DB::beginTransaction();
     
@@ -308,14 +308,14 @@ class CronDepositController extends Controller
                     DB::commit();
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    Log::error("Error processing Floid deposit", [
-                        'deposit_id' => $deposit->id,
-                        'error' => $e->getMessage()
-                    ]);
+                    // Log::error("Error processing Floid deposit", [
+                    //     'deposit_id' => $deposit->id,
+                    //     'error' => $e->getMessage()
+                    // ]);
                 }
             }
         } catch (\Exception $e) {
-            Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
+            // Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
         }
     }
     
@@ -351,21 +351,21 @@ class CronDepositController extends Controller
             if(!is_array($result)) {
                 return json_decode($result, true);
             }
-            Log::info([
-                "url" => $url,
-                'payload' => $payload,
-                'token' => $authToken,
-                'currency' => $cur,
-                'response' => $response
-            ]);
+            // Log::info([
+            //     "url" => $url,
+            //     'payload' => $payload,
+            //     'token' => $authToken,
+            //     'currency' => $cur,
+            //     'response' => $response
+            // ]);
             
-            Log::info("Response from Floid for {$id} status: ", $result);
+            // Log::info("Response from Floid for {$id} status: ", $result);
             return $result;
         } catch (\Exception $e) {
-            Log::error("Error calling Floid API", [
-                'gateway_deposit_id' => $id,
-                'error' => $e->getMessage()
-            ]);
+            // Log::error("Error calling Floid API", [
+            //     'gateway_deposit_id' => $id,
+            //     'error' => $e->getMessage()
+            // ]);
             return null;
         }
     }
