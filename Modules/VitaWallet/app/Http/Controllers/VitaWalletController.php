@@ -176,7 +176,7 @@ class VitaWalletController extends Controller
                 "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
                 "Content-Type" => $headers['headers']["Content-Type"],
                 "Authorization" => $headers['headers']["Authorization"],
-            ])->get(Configuration::getTransactionsUrl($txn_id));
+            ])->get(Configuration::getPaymentOrderUrl($txn_id));
 
             Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
             $result = $response->json();
@@ -184,6 +184,28 @@ class VitaWalletController extends Controller
         }
     }
 
+    public function getPayout($txn_id)
+    {
+        if($txn_id && !empty($txn_id)) {
+            $configuration = Configuration::getInstance();
+            // Prepare headers
+            $headers = $configuration->prepareHeaders();
+
+            // Prepare HTTP request
+            $response = Http::withHeaders([
+                "X-Date" => $headers['headers']["X-Date"],
+                "X-Login" => $headers['headers']["X-Login"],
+                "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+                "Content-Type" => $headers['headers']["Content-Type"],
+                "Authorization" => $headers['headers']["Authorization"],
+            ])->get(Configuration::getTransactionsUrl($txn_id));
+
+            Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            $result = $response->json();
+            return $result;
+        }
+    }
+    
     /**
      * Summary of create_withdrawal
      * @param mixed $requestBody
