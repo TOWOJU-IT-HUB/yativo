@@ -76,7 +76,12 @@ class Configuration
         return self::getUrl() . "/transactions/{$resource}";
     }
 
-    public static function getPaymentOrderUrl(int $id = '')
+    public static function getTransactionsUrI($resource = '')
+    {
+        return self::getUrl() . "/transactions?order={$resource}";
+    }
+
+    public static function getPaymentOrderUrl($id = '')
     {
         return self::getUrl() . "/payment_orders/{$id}";
     }

@@ -121,4 +121,14 @@ class FlowController extends Controller
             return rediret()->away('https://app.yativo.com');
         }
     }
+
+
+    /**
+     * Payout code
+     */
+
+    public function payout($payload)
+    {
+        
+    }
 }
