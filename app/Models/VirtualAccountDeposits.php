@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class VirtualAccountDeposits extends Model
+class VirtualAccountDeposit extends Model
 {
     use HasFactory;
 
@@ -14,7 +14,6 @@ class VirtualAccountDeposits extends Model
 
     protected $casts = [
         "payload" => "object",
-        "response_body" => "object"
     ];
     
 }

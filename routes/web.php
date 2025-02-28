@@ -36,6 +36,7 @@ use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 use App\Models\Business\VirtualAccount;
 use Illuminate\Support\Facades\Schema;
+use App\Models\localPaymentTransactions;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -51,7 +52,9 @@ use Illuminate\Support\Facades\Schema;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
-    return redirect()->to('https://yativo.com');
+    $vs = localPaymentTransactions::all();
+    return response()->json($vs);
+    // return redirect()->to('https://yativo.com');
 });
 
 
