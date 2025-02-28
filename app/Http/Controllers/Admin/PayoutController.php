@@ -9,6 +9,7 @@ use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
+use Log;
 
 class PayoutController extends Controller
 {

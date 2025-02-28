@@ -222,4 +222,51 @@ class CronController extends Controller
             "tracking_updated_by" => "cron"
         ]);
     }
+
+    public function vitawallet()
+    {
+        $ids = $this->getGatewayPayinMethods('vitawallet');
+        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
+        $vitawallet = new VitaWalletController();
+
+        foreach ($deposits as $deposit) {
+            $curl = $vitawallet->getPayout($deposit->gateway_deposit_id);
+            if (is_array($curl) && isset($curl['transaction'])) {
+                $record = $curl['transaction'];
+                if (isset($record['status'])) {
+                    $transactionStatus = strtolower($record['status']);
+                    
+                    $now = now();
+                    $failedPayoutIds = Withdraw::query()
+                        ->with('payoutGateway:id,estimated_delivery') // Only load necessary fields
+                        ->where('status', 'pending')
+                        ->whereHas('payoutGateway', function ($query) {
+                            $query->whereNotNull('estimated_delivery');
+                        })
+                        ->get()
+                        ->filter(function ($payout) use ($now) {
+                            $estimatedDeliveryHours = $payout->payoutGateway->estimated_delivery;
+                            $deliveryThreshold = $payout->created_at->addHours(floor($estimatedDeliveryHours))
+                                ->addMinutes(($estimatedDeliveryHours - floor($estimatedDeliveryHours)) * 60);
+
+                            return $now->greaterThan($deliveryThreshold);
+                        })
+                        ->pluck('id');
+
+                    $cancelledPayoutIds = Withdraw::query()
+                        ->doesntHave('payoutGateway')
+                        ->where('status', 'pending')
+                        ->pluck('id');
+
+                    if ($failedPayoutIds->isNotEmpty()) {
+                        Withdraw::whereIn('id', $failedPayoutIds)->update(['status' => 'failed']);
+                    }
+
+                    if ($cancelledPayoutIds->isNotEmpty()) {
+                        Withdraw::whereIn('id', $cancelledPayoutIds)->update(['status' => 'cancelled']);
+                    }
+                }
+            }
+        }
+    }
 }
