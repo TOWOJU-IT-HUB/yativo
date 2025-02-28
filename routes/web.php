@@ -52,9 +52,6 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
-    Schema::table("deposits",function(Blueprint $table) {
-        $table->string("redirect_url")->nullable();
-    });
     $public_code = "2e2146e3-9ac1-4735-937c-cf50e46fca66"; // "97cdfd9d-5577-4a64-ad25-e787f812ddb3";
     $vita = new VitaWalletController();
     $response = $vita->getTransaction($public_code);
