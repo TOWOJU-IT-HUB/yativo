@@ -176,7 +176,7 @@ class VitaWalletController extends Controller
                 "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
                 "Content-Type" => $headers['headers']["Content-Type"],
                 "Authorization" => $headers['headers']["Authorization"],
-            ])->get(Configuration::getPaymentOrderUrl($txn_id));
+            ])->get(Configuration::payin());
 
             Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
             $result = $response->json();

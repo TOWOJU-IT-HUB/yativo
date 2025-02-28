@@ -76,9 +76,9 @@ class Configuration
         return self::getUrl() . "/transactions/{$resource}";
     }
 
-    public static function getPaymentOrderUrl($resource = '')
+    public static function getPaymentOrderUrl(int $id = '')
     {
-        return self::getUrl() . "/payment_orders/{$resource}";
+        return self::getUrl() . "/payment_orders/{$id}";
     }
 
     public static function createTransaction()
