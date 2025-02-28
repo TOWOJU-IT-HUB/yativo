@@ -14,7 +14,6 @@ class ChargeWalletMiddleware
     public function handle(Request $request, Closure $next)
     {
         try {
-            
             $request->validate([
                 "amount" => "required",
                 "debit_wallet" => "required",
@@ -32,25 +31,30 @@ class ChargeWalletMiddleware
 
             // Validate allowed currencies
             if (!in_array($request->debit_wallet, $result['base_currencies'])) {
-                return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
-            }
-
-            if($request->has('debug')) {
-                dd($result);
+                return get_error_response(['error' => 'Currency pair error. Supported are: '.$result['base_currencies']], 400);
             }
 
             // Deduct from wallet
-            debit_user_wallet(
-                $result['debit_amount'] * 100,
+            $chargeNow = debit_user_wallet(
+                floatval($result['debit_amount'] * 100),
                 $request->debit_wallet,
                 "Payout transaction",
                 $result
             );
 
+            if($request->has('debug')) {
+                // $array = array_merge($re)
+                dd($result);
+            }
+
+            if (!$chargeNow || isset($chargeNow['error'])) {
+                return get_error_response(['error' => 'Insufficient wallet balance']);
+            }
+
             return $next($request);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
 }
