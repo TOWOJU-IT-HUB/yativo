@@ -56,7 +56,7 @@ class VitaWalletTestController extends Controller
             'purpose_comentary' => 'This is a test',
             'country' => 'CL',
             'currency' => 'clp',
-            'amount' => 100000,
+            'amount' => 10,
             'order' => '0002',
             'transactions_type' => 'withdrawal',
             'wallet' => 'a6c44ea8-cba1-40e9-839a-1348a5701108',
