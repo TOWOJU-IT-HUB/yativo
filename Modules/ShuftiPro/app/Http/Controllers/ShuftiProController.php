@@ -106,7 +106,7 @@ class ShuftiProController extends Controller
             //throw $th;
         }
         
-        return redirect()->away(getenv('WEB_URL'));
+        return redirect()->away(request()->redirect_url ?? getenv('WEB_URL'));
     }
 
     public function business_callback(Request $request)
@@ -117,6 +117,6 @@ class ShuftiProController extends Controller
             //throw $th;
         }
         
-        return redirect()->away(getenv('WEB_URL'));
+        return redirect()->away(request()->redirect_url ?? getenv('WEB_URL'));
     }
 }

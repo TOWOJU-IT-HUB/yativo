@@ -2,6 +2,8 @@ on:
     push:
         branches:
             - vita-test
+            
+    workflow_dispatch: # Allows manual trigger of the workflow
 name: 🚀 Deploy website on push
 
 jobs:
@@ -23,7 +25,7 @@ jobs:
                     server: zinar.io
                     username: ${{ secrets.FTP_USERNAME }}
                     password: ${{ secrets.FTP_PASSWORD }}
-                    server-dir: /home/admin/domains/smtp.yativo.com/
+                    server-dir: /
                     exclude: |
                         .env
                         .git*

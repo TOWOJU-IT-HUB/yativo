@@ -41,6 +41,7 @@ class CustomerKycMiddleware
                 return $next($request);
             }
         }
+        
         return $next($request);
         // return get_error_response(['message' => 'Customer not allowed'], 403);
     }

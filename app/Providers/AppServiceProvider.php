@@ -9,7 +9,9 @@ use Illuminate\Support\ServiceProvider;
 use Log;
 use App\Observers\DepositObserver;
 use App\Observers\CustomerObserver;
+use App\Observers\PayoutObserver;
 use App\Models\Deposit;
+use App\Models\Withdraw;
 use Modules\Customer\app\Models\Customer;
 
 
@@ -30,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Artisan::call('route:clear');
         Deposit::observe(DepositObserver::class);
+        Withdraw::observe(PayoutObserver::class);
         Customer::observe(CustomerObserver::class);
         Paginator::useTailwind();
         if (!config('app.debug')) {

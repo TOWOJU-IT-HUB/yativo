@@ -25,6 +25,7 @@ class Deposit extends Model
         'deposit_id',
         'deposit_currency',
         'status',
+        'redirect_url',
         'credit_wallet' // wallet to be credited
     ];
 
@@ -38,6 +39,7 @@ class Deposit extends Model
      * @var array<int, string>
      */
     protected $hidden = [
+        'redirect_url',
         'deleted_at',
         'exchange_rate',
         'payment_gateway_id',

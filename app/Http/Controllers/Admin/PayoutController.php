@@ -90,6 +90,21 @@ class PayoutController extends Controller
             }
 
             if($payout->save() && $txn->save()) {
+
+                // if transaction is rejected refund customer
+                if(strtolower($request->status) !== "complete") {
+                    $user = User::whereId($payout->user_id)->first();
+                    if($user) {
+                        $wallet = $user->getWallet($payout->debit_wallet);
+                        $wallet->deposit($payout->debit_amount, [
+                            "description" => "refund",
+                            "full_desc" => "Refund for payout {$payout->id}",
+                            "payload" => $payout
+                        ]);
+                    }
+                }
+
+
                 return back()->with('success', 'Transaction updated successfully');
             }
         } catch(\Throwable $th) {

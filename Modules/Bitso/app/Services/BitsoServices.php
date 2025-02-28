@@ -30,6 +30,9 @@ class BitsoServices
 
     private function createSignature($nonce, $payload, $method = 'POST')
     {
+        if(is_array($payload)) {
+            $payload = json_encode($payload);
+        }
         $signatureData = $nonce . $method . $this->requestPath . $payload;
         return hash_hmac('sha256', $signatureData, $this->apiSecret);
     }
@@ -207,7 +210,7 @@ class BitsoServices
         }
     }
 
-    public function getDepositStatus($fid)
+    public function getDepositStatus($fid, $payload)
     {
         $this->requestPath = "/api/v3/fundings/{$fid}";
         $request = $this->sendRequest($payload, 'GET');

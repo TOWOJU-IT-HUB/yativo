@@ -41,7 +41,7 @@ class OnrampController extends Controller
         return response()->json($response);
     }
 
-    public function orderStatus()
+    public function orderStatus($data)
     {
         $response = $this->onrampService->orderStatus($data);
         return $response;

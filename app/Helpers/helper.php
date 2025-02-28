@@ -153,37 +153,22 @@ if (!function_exists('get_transaction_rate')) {
         Log::info(json_encode([$send_currency, $receive_currency, $Id, $type]));
 
         $result = 0;
-        $rate = 0; // Default rate
-        $gatewayId = $Id; // Define $gatewayId
+        $rate = 0;
+        $gatewayId = $Id;
 
-        // Fetch exchange rate details based on gateway and type
-        if ($type == "payout" || $type == "payoutMethod") {
-            // Get the payout method
-            $gateway = payoutMethods::whereId($gatewayId)->first();
-            if ($gateway) {
-                $rate = $gateway->exchange_rate_float ?? 0;
-            }
+        if ($type == "payout") {
+            $gateway = PayoutMethods::whereId($gatewayId)->first();
+            $rate = $gateway->exchange_rate_float ?? 0;
         } else {
-            // get the payin data
             $gateway = PayinMethods::whereId($gatewayId)->first();
-            if ($gateway) {
-                $rate = $gateway->exchange_rate_float ?? 0;
-            }
+            $rate = $gateway->exchange_rate_float ?? 0;
         }
 
-        // Fetch base rate from external service or function
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
 
         if ($rate > 0 && $baseRate > 0) {
-            // Calculate floated amount
             $rate_floated_amount = ($rate / 100) * $baseRate;
-
-            // Adjust calculation based on type
-            if ($type == "payout" || $type == "payoutMethod") {
-                $result = $baseRate - $rate_floated_amount; // Subtract for payouts
-            } else {
-                $result = $baseRate + $rate_floated_amount; // Add for others
-            }
+            $result = ($type == "payout") ? ($baseRate * (1 - $rate / 100)) : ($baseRate * (1 + $rate / 100));
         } elseif ($baseRate > 0) {
             $result = $baseRate;
         } else {
@@ -192,6 +177,7 @@ if (!function_exists('get_transaction_rate')) {
 
         return floatval($result);
     }
+
 }
 
 if (!function_exists('exchange_rates')) {
@@ -818,6 +804,7 @@ if (!function_exists('add_transaction_details')) {
 if (!function_exists('add_usd_virtual_card_deposit')) {
     function add_usd_virtual_card_deposit($data)
     {
+        return true;
         // TransactionRecord::create([
         //     "user_id" => $data['user_id'],
         //     "transaction_beneficiary_id" => $data['user_id'],
@@ -955,37 +942,12 @@ if (!function_exists('debit_user_wallet')) {
         $user = $request->user();
         // Find or create wallet for the user
         $wallet = $user->getWallet($currency);
+
         if(!$wallet) {
             return ['error' => "Insufficient balance or invalid debit wallet."];
         }
+        
         try {
-            // if (!$wallet) { // wallet not found
-            //     $usdWallet = $user->getWallet('USD');
-
-
-
-            //     // Convert the amount to USD
-            //     $convertedAmount = convertToUSD($currency, $amount);
-            //     // var_dump($convertedAmount); exit;
-
-            //     if ($convertedAmount === null || $convertedAmount <= 0) {
-            //         return ['error' => 'Currency conversion failed or insufficient balance: '];
-            //     }
-
-            //     if ($usdWallet && $usdWallet->balance >= $convertedAmount) {
-            //         // Charge the USD wallet
-            //         $usdWallet->withdraw($convertedAmount, [
-            //             'description' => $description,
-            //         ]);
-
-            //         $currency = 'USD'; // Log the transaction in USD
-            //         $amount = $convertedAmount; // Update amount to converted USD value
-            //         $wallet = $usdWallet; // Update wallet to USD wallet for further processing
-            //     } else {
-            //         return ['error' => 'Insufficient balance in USD wallet'];
-            //     }
-            // }
-
             // Try to charge the wallet
             $charge = $wallet->withdraw($amount, [
                 'description' => $description,
@@ -1057,20 +1019,15 @@ function dddecrypt($ciphertext, $key, $iv)
 
 if (!function_exists('get_transaction_fee')) {
     /**
-     * Summary of get_transaction_fee
-     * @param mixed $gateway - payin ID | payout ID
-     * @param mixed $amount | 100
-     * @param mixed $txn_type deposit | payout
-     * @param mixed $gateway_type - payin | payout
-     * @return int|array
+     * Calculates the transaction fee for a payin or payout.
+     * @param int $gateway - The payment gateway ID
+     * @param float $amount - The transaction amount
+     * @param string $txn_type - Type of transaction ('deposit' or 'payout')
+     * @param string $gateway_type - Gateway type ('payin' or 'payout')
+     * @return float The total transaction fee in the currency of the transaction.
      */
-    function get_transaction_fee(int $gateway, float $amount, string $txn_type, string $gateway_type)
+    function get_transaction_fee(int $gateway, float $amount, string $txn_type = "", string $gateway_type = "payin")
     {
-        $fee = $total_charge = 0;
-        $rate = 0;
-        $rate_floated_amount = 0;
-
-        // Get user pricing model
         $user = auth()->user();
         if (!$user->hasActiveSubscription()) {
             $plan = PlanModel::where('price', 0)->latest()->first();
@@ -1078,74 +1035,87 @@ if (!function_exists('get_transaction_fee')) {
                 $user->subscribeTo($plan, 30, true);
             }
         }
-
+    
         $subscription = $user->activeSubscription();
         $user_plan = (int) $subscription->plan_id;
-
-        // Handle gateway logic
+    
+        // Fetch gateway details
         if (strtolower($gateway_type) == "payin") {
-            $gateway = PayinMethods::whereId($gateway)->first();        
-            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
-            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-            $exchange_rate = $base_exchange_rate + (($base_exchange_rate * $exchange_rate_float) / 100);
+            $gateway = PayinMethods::whereId($gateway)->first();
         } elseif (strtolower($gateway_type) == "payout") {
-            $gateway = PayoutMethods::whereId($gateway)->first();        
-            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
-            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-            $exchange_rate = $base_exchange_rate - (($base_exchange_rate * $exchange_rate_float) / 100);
+            $gateway = PayoutMethods::whereId($gateway)->first();
         } else {
             return ['error' => "Invalid gateway selected"];
         }
-
-        Log::info("Exchange rate float is: {$gateway->exchange_rate_float}");
-
+    
+        if (!$gateway) {
+            return ['error' => "Gateway not found"];
+        }
+    
+        $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+        $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+    
+        // ✅ Fixed Exchange Rate Calculation
+        $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
+    
         // Default charges
-        $fixed_charge = 0;
-        $float_charge = 0;
-
+        $fixed_charge = $float_charge = 0;
+    
+        // Determine user plan pricing
         if ($user_plan === 3) {
-            // Custom pricing (Plan 3)
             $customPricing = CustomPricing::where('user_id', $user->id)
                 ->where('gateway_id', $gateway->id)
                 ->first();
-
+    
             if (!$customPricing) {
-                $user_plan = 2; // Fallback to Plan 2 if no custom pricing
+                $user_plan = 2; // Fallback to Plan 2
             } else {
                 $fixed_charge = $customPricing->fixed_charge;
                 $float_charge = $customPricing->float_charge;
             }
         }
-
+    
         if ($user_plan === 1 || $user_plan === 2) {
-            // Handle basic and pro plans
             $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
             $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
         }
-
-        // Calculate fees properly
-        $fixed_fee_in_usd = $fixed_charge;  // Fixed charge is in USD
-        $rate = $float_charge;  // Float charge percentage
-        $float_fee_in_usd = ($amount * $rate) / 100; // Float charge in USD
-
-        // Convert to local currency using exchange rate
-        $total_charge = ($fixed_fee_in_usd + $float_fee_in_usd) * $exchange_rate;
-
-        // Minimum & Maximum charge in local currency
+    
+        // Convert fixed fee to local currency using exchange rate
+        $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
+    
+        // ✅ Fixed Floating Fee Calculation
+        $floating_fee_in_local_currency = round(($amount * ($float_charge / 100)) * $exchange_rate, 8);
+    
+        // Calculate total charge in local currency
+        $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
+    
+        // Apply minimum and maximum charge constraints
         $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
         $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
-
-        // Apply charge limits
+    
         if ($total_charge < $minimum_charge) {
             $total_charge = $minimum_charge;
         } elseif ($total_charge > $maximum_charge) {
             $total_charge = $maximum_charge;
         }
-
-        return $total_charge;
+    
+        session([
+            "fixed_fee_in_local_currency" => $fixed_fee_in_local_currency,
+            "floating_fee_in_local_currency" => $floating_fee_in_local_currency,
+            "total_charge" => $total_charge,
+            "minimum_charge" => $minimum_charge,
+            "maximum_charge" => $maximum_charge,
+            "fixed_charge" => $fixed_charge,
+            "float_charge" => $float_charge,
+            "base_exchange_rate" => $base_exchange_rate,
+            "exchange_rate" => $exchange_rate
+        ]);
+    
+        return round($total_charge, 2);
     }
-
+    
 }
+
 
 if (!function_exists('formatSettlementTime')) {
     function formatSettlementTime($settlementTime)

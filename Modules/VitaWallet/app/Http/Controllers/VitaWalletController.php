@@ -114,7 +114,7 @@ class VitaWalletController extends Controller
         }
 
         if (isset($result['data']['attributes']['public_code'])) {
-            update_deposit_gateway_id($quoteId, $result['data']['id']);
+            update_deposit_gateway_id($quoteId, $result['data']['attributes']['public_code']);
             return $result['data']['attributes']['url'];
         }
         
@@ -164,22 +164,24 @@ class VitaWalletController extends Controller
 
     public function getTransaction($txn_id)
     {
-        $configuration = Configuration::getInstance();
-        // Prepare headers
-        $headers = $configuration->prepareHeaders();
+        if($txn_id && !empty($txn_id)) {
+            $configuration = Configuration::getInstance();
+            // Prepare headers
+            $headers = $configuration->prepareHeaders();
 
-        // Prepare HTTP request
-        $response = Http::withHeaders([
-            "X-Date" => $headers['headers']["X-Date"],
-            "X-Login" => $headers['headers']["X-Login"],
-            "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
-            "Content-Type" => $headers['headers']["Content-Type"],
-            "Authorization" => $headers['headers']["Authorization"],
-        ])->get(Configuration::getTransactionsUrl($txn_id));
+            // Prepare HTTP request
+            $response = Http::withHeaders([
+                "X-Date" => $headers['headers']["X-Date"],
+                "X-Login" => $headers['headers']["X-Login"],
+                "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+                "Content-Type" => $headers['headers']["Content-Type"],
+                "Authorization" => $headers['headers']["Authorization"],
+            ])->get(Configuration::getTransactionsUrl($txn_id));
 
-        Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
-        $result = $response->json();
-        return $result;
+            Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            $result = $response->json();
+            return $result;
+        }
     }
 
     /**

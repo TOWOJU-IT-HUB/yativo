@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Modules\Advcash\app\Http\Controllers\AdvcashController;
 use Modules\Bitso\app\Http\Controllers\BitsoController as ControllersBitsoController;
+use Modules\Bitso\app\Services\BitsoServices;
 use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
@@ -33,7 +34,8 @@ use App\Models\User;
 use Bavix\Wallet\Models\Wallet;
 use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
-
+use App\Models\Business\VirtualAccount;
+use Illuminate\Support\Facades\Schema;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
