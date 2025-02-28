@@ -93,6 +93,7 @@ class PayoutService
                 $withdrawal->update([
                     "status" => "In Progress"
                 ]);
+
                 return $result;
                 // return back()->with('success', "Transaction initiated successfully");
             }
@@ -168,9 +169,7 @@ class PayoutService
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
-            // var_dump($gateway); exit;
-
-            // $country = Country::where('currency_code', strtoupper($gateway->currency))->first();
+            
             $country = Country::where('currency_code', $gateway->currency)->where('iso3', $gateway->country)->first();
             
             // var_dump($country); exit;
@@ -196,13 +195,6 @@ class PayoutService
                 "beneficiary_email" => "emma@yativo.com"
             ];
 
-            // if (isset($formArray['email'])) {
-            //     $requestBody['beneficiary_email'] = $formArray['email'];
-            // }
-
-            // if (isset($formArray['beneficiary_type'])) {
-            //     $formArray['beneficiary_type'] = strtolower($formArray['beneficiary_type']);
-            // }
 
             if (!isset($formArray['phone'])) {
                 $requestBody['phone'] = auth()->user()?->phone ?? "9203751431";

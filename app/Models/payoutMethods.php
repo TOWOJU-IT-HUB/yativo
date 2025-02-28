@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class payoutMethods extends Model
+class PayoutMethods extends Model
 {
     use HasFactory, SoftDeletes;
 
@@ -32,23 +32,36 @@ class payoutMethods extends Model
         "exchange_rate_float"
     ];
 
-    protected $hidden = [
-        "payment_mode",
-        "charges_type",
-        "fixed_charge",
-        "float_charge",
-        "estimated_delivery",
-        "pro_fixed_charge",
-        "pro_float_charge",
-        "minimum_withdrawal",
-        "maximum_withdrawal",
-        "minimum_charge",
-        "maximum_charge",
-        // "exchange_rate_float",
-        "gateway",
-        "created_at",
-        "updated_at",
-        "deleted_at"
-    ];
-    
+    protected $hidden = [];
+
+    public function toArray()
+    {
+        $data = parent::toArray();
+
+        if (!auth()->guard('admin')->check()) {
+            $hiddenAttributes = [
+                "payment_mode",
+                "charges_type",
+                "fixed_charge",
+                "float_charge",
+                "estimated_delivery",
+                "pro_fixed_charge",
+                "pro_float_charge",
+                "minimum_withdrawal",
+                "maximum_withdrawal",
+                "minimum_charge",
+                "maximum_charge",
+                "gateway",
+                "created_at",
+                "updated_at",
+                "deleted_at"
+            ];
+
+            foreach ($hiddenAttributes as $attribute) {
+                unset($data[$attribute]);
+            }
+        }
+
+        return $data;
+    }
 }
