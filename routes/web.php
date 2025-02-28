@@ -52,7 +52,7 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
-    $public_code = "09757905-4918-4a1f-a69b-664210029ebd";
+    $public_code = "97cdfd9d-5577-4a64-ad25-e787f812ddb3";
     $vita = new VitaWalletController();
     $response = $vita->getTransaction($public_code);
 
