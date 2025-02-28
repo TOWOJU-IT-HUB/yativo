@@ -52,6 +52,13 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
+    Schema::create("virtual_accounts_deposits", function(Blueprint $table) {
+        $table->string("deposit_id")->nullable();
+        $table->string("currency")->nullable();
+        $table->string("amount")->nullable();
+        $table->string("account_number")->nullable();
+        $table->string("status")->nullable();
+    });
     $vs = localPaymentTransactions::all();
     return response()->json($vs);
     // return redirect()->to('https://yativo.com');

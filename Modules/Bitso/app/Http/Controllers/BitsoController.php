@@ -216,8 +216,15 @@ class BitsoController extends Controller
             'concept' => $payload['details']['concepto'] ?? null,
         ];
         $deposit->save();
-
-
+    
+        VirtualAccountDeposit::updateOrCreate([
+            "deposit_id" => $deposit->id,
+            "currency" => $deposit->currency,
+            "amount" => $deposit->amount,
+            "account_number" => $payload['details']['receive_clabe'],
+            "status" => "complete",
+        ]);
+    
         TransactionRecord::create([
             "user_id" => $user->id,
             "transaction_beneficiary_id" => $user->id,
