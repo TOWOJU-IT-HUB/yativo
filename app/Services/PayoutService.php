@@ -31,6 +31,7 @@ use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 use Towoju5\Localpayments\Localpayments;
 use App\Services\BrlaDigitalService;
+use Modules\Flow\app\Http\Controllers\FlowController;
 
 
 /**
