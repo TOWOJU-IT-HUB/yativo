@@ -157,6 +157,7 @@ class PayoutService
 
     public function floid($quoteId, $currency, $payoutObject)
     {
+        echo "I am here";
         $flow = new FlowController();
         $checkout = $flow->payout($payoutObject, $payoutObject->amount, $currency);
         return $checkout;

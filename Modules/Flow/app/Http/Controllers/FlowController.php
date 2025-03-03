@@ -152,6 +152,7 @@ class FlowController extends Controller
                 return ['error' => 'Gateway not found'];
             }
 
+            var_dump($ben); exit;
 
             $authToken = env("FLOID_AUTH_TOKEN");
             $url = "";
