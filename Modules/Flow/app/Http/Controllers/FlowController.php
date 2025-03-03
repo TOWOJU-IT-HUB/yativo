@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Log;
 use Modules\Flow\app\Services\FlowServices;
 use Modules\SendMoney\app\Models\SendMoney;
+use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
 
 class FlowController extends Controller
@@ -144,7 +145,6 @@ class FlowController extends Controller
             $beneficiaryId = $payload->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
             $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
-
 
             var_dump([$payload, $amount, $currency]); exit;
             if (!$ben) {
