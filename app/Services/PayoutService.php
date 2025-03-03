@@ -211,11 +211,15 @@ class PayoutService
             $payload = array_merge($formArray, $requestBody);
 
             // echo json_encode($payload, JSON_PRETTY_PRINT); exit;
-
+            Log::info("My request payload is:", ['payload' => $payload]);
             $vita = new VitaWalletController();
-            $vita->prices();
+            $prices = $vita->prices();
+
+            Log::info("Price response is: ", ['price' => $prices]);
+
             $process = $vita->create_withdrawal($payload);
 
+            Log::info("Main process response is: ", ['main_vita' => $process]);
             if (!is_array($process)) {
                 $process = json_decode($process, true);
             }
