@@ -127,8 +127,55 @@ class FlowController extends Controller
      * Payout code
      */
 
-    public function payout($payload)
+    public function payout($payload, $amount, $currency)
     {
-        
+        try{
+            if ($currency == 'CLP') {
+                $url = "https://api.floid.app/cl/payout/create";
+            } else if ($currency == "PEN" || $currency == "USD") {
+                $url = "https://api.floid.app/pe/payout/create";
+            } else {
+                return ['error' => "Unsupported currency selected"];
+            }
+
+            $beneficiaryId = $payload->beneficiary_id;
+            $model = new BeneficiaryPaymentMethod();
+            $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+
+            if (!$ben) {
+                return ['error' => 'Beneficiary not found'];
+            }
+            $gateway = payoutMethods::whereId($ben->gateway_id)->first();
+            if (!$gateway) {
+                return ['error' => 'Gateway not found'];
+            }
+
+
+            $authToken = env("FLOID_AUTH_TOKEN");
+            $url = "";
+            
+            $rate = getExchangeVal($gateway->currency, "CLP");
+
+            $requestData = [
+                "beneficiary_id" => $ben['beneficiary_id'],
+                "beneficiary_name" => $ben['beneficiary_name'],
+                "beneficiary_account" => $ben['beneficiary_account'],
+                "amount" => floatval($amount * $rate),
+                "beneficiary_account_type" => $ben['beneficiary_account_type'],
+                "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
+                "beneficiary_email" => $ben['beneficiary_email'],
+                "description" => $ben['description']
+            ];
+
+            $response = Http::withToken($authToken)->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($url, $requestData);
+
+            $result = $response->json();
+            var_dump($result); exit;
+            return ["error" => $result];
+        } catch (\Throwable $e) {
+            return ["error" => $e->getMessage()];
+        }
     }
 }

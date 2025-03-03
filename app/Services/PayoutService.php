@@ -140,10 +140,10 @@ class PayoutService
         }
     }
 
-    public function transfi($deposit_id, $amount, $currency, $payoutObject)
+    public function transfi($deposit_id, $currency, $payoutObject)
     {
         $transFi = new TransFiController();
-        $checkout = $transFi->payout($deposit_id, $amount, $currency, $payoutObject);
+        $checkout = $transFi->payout($deposit_id, $payoutObject->amount, $currency, $payoutObject);
         return $checkout;
     }
 
@@ -152,6 +152,14 @@ class PayoutService
         $bridge = new BridgeController();
         $checkout = $bridge->makePayout($deposit_id);
         return $checkout;
+    }
+
+    public function floid($quoteId, $currency, $payoutObject)
+    {
+        $flow = new FlowController();
+        $checkout = $flow->payout($payoutObject, $payoutObject->amount, $currency);
+        return $checkout;
+        // return ['error' => 'Payout method is currently unavailable'];
     }
     
     public function vitawallet($quoteId, $currency, $payoutObject)
@@ -317,10 +325,5 @@ class PayoutService
             'success' => true,
             'message' => 'Transaction status updated successfully.',
         ]);
-    }
-
-    public function floid()
-    {
-        return ['error' => 'Payout method is currently unavailable'];
     }
 }
