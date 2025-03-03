@@ -146,7 +146,7 @@ class FlowController extends Controller
             $model = new BeneficiaryPaymentMethod();
             $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
 
-            var_dump([$payload, $amount, $currency]); exit;
+            // var_dump([$payload, $amount, $currency]); exit;
             if (!$ben) {
                 return ['error' => 'Beneficiary not found'];
             }
@@ -157,7 +157,6 @@ class FlowController extends Controller
 
 
             $authToken = env("FLOID_AUTH_TOKEN");
-            $url = "";
             
             $rate = getExchangeVal($gateway->currency, "CLP");
 
