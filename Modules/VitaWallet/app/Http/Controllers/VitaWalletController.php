@@ -213,25 +213,47 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
+        // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
-
         // Prepare headers
         $headers = $configuration->prepareHeaders($requestBody);
+        $xheaders = [
+            "X-Date: " . $headers['headers']["X-Date"],
+            "X-Login: " . $headers['headers']["X-Login"],
+            "X-Trans-Key: " . $headers['headers']["X-Trans-Key"],
+            "Content-Type: " . $headers['headers']["Content-Type"],
+            "Authorization: " . $headers['headers']["Authorization"],
+        ];
 
-        // Prepare HTTP request
-        $response = Http::withHeaders([
-            "X-Date" => $headers['headers']["X-Date"],
-            "X-Login" => $headers['headers']["X-Login"],
-            "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
-            "Content-Type" => $headers['headers']["Content-Type"],
-            "Authorization" => $headers['headers']["Authorization"],
-        ])->post(Configuration::createTransaction(), $requestBody);
+        // Prepare cURL request
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, Configuration::payin());
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $xheaders);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        $result = $response->json();
+        
+        // Execute request
+        $response = curl_exec($ch);
 
-        Log::error('Response: ' . json_encode($result));
+        if ($response === false) {
+            $result = ["error" => 'cURL Error: ' . curl_error($ch)];
+        } else {
+            if (!is_array($response)) {
+                $result = json_decode($response, true);
+            }
+        }
 
-        return ['response' => $result];
+        curl_close($ch);
+
+        if (!is_array($result)) {
+            $result = json_decode($result, true);
+        }
+
+        var_dump($response); exit;
+        
+        return $result;
     }
 
 
