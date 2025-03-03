@@ -181,7 +181,7 @@ class VitaWalletController extends Controller
                 "Authorization" => $headers['headers']["Authorization"],
             ])->get(Configuration::getTransactionsUrI($txn_id));
 
-            Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            // Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
             $result = $response->json();
             return $result;
         }
@@ -203,7 +203,7 @@ class VitaWalletController extends Controller
                 "Authorization" => $headers['headers']["Authorization"],
             ])->get(Configuration::getTransactionsUrl($txn_id));
 
-            Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            // Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
             $result = $response->json();
             return $result;
         }

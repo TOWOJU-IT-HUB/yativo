@@ -24,26 +24,26 @@ class CronDepositController extends Controller
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $brla = new BrlaDigitalService();
     
-        Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
+        // Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
     
         foreach ($deposits as $deposit) {
             $curl = $brla->getPayInHistory(['referenceLabel' => $deposit->gateway_deposit_id]);
     
             // Debug API response
-            Log::info("Raw API Response", ['response' => json_encode($curl)]);
+            // Log::info("Raw API Response", ['response' => json_encode($curl)]);
     
             if (!is_array($curl) || empty($curl['depositsLogs'])) {
-                Log::warning("Brla Payin Response is empty or invalid", ['response' => json_encode($curl)]);
+                // Log::warning("Brla Payin Response is empty or invalid", ['response' => json_encode($curl)]);
                 continue;
             }
     
-            Log::info("Processing depositsLogs", ['count' => count($curl['depositsLogs'])]);
+            // Log::info("Processing depositsLogs", ['count' => count($curl['depositsLogs'])]);
     
             foreach ($curl['depositsLogs'] as $record) {
-                Log::info("I am here", ['record' => json_encode($record)]);
+                // Log::info("I am here", ['record' => json_encode($record)]);
     
                 if (!isset($record['referenceLabel'], $record['status'])) {
-                    Log::error("Skipping record due to missing keys", ['record' => json_encode($record)]);
+                    // Log::error("Skipping record due to missing keys", ['record' => json_encode($record)]);
                     continue;
                 }
     
@@ -51,21 +51,21 @@ class CronDepositController extends Controller
     
                 $txn = TransactionRecord::where('transaction_id', $deposit->id)->where('transaction_memo', 'payin')->first();
                 if (!$txn) {
-                    Log::error("Transaction record not found", ['transaction_id' => $deposit->id]);
+                    // Log::error("Transaction record not found", ['transaction_id' => $deposit->id]);
                     continue;
                 }
     
                 try {
                     if ($transactionStatus === 'paid') {
                         $txn->update(['transaction_status' => 'In Progress']);
-                        Log::info("Processing deposit completion", ['status' => $transactionStatus]);
+                        // Log::info("Processing deposit completion", ['status' => $transactionStatus]);
                         $depositService = new DepositService();
-                        Log::info('Deposit service class instatiated');
-                        Log::info("TRansaction ID is: ", ['txn_id' => $txn->id]);
+                        // Log::info('Deposit service class instatiated');
+                        // Log::info("TRansaction ID is: ", ['txn_id' => $txn->id]);
                         $depositService->process_deposit($txn->transaction_id);
-                        Log::info("Processing deposit completed", ['status' => $transactionStatus]);
+                        // Log::info("Processing deposit completed", ['status' => $transactionStatus]);
                     } else {
-                        Log::info("Updating deposit status", ['status' => $transactionStatus]);
+                        // Log::info("Updating deposit status", ['status' => $transactionStatus]);
                         $txn->update(["transaction_status" => $transactionStatus]);
                         $deposit->update(['status' => $transactionStatus]);
                     }
