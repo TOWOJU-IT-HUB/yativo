@@ -216,9 +216,10 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
-        $xprices = $this->prices();
+        $xprices = cache()->remember('xprices', 300, function () {
+            return $this->prices();
+        });
         $array = $requestBody;
-
 
         // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
@@ -261,7 +262,7 @@ class VitaWalletController extends Controller
 
         $vitawallet = new VitaWalletAPI();
         $secondary_request = $vitawallet->makeSignedRequest($endpoint, $requestBody, "POST");
-        // $resp = $this->vitaBusinessAPI->makeSignedRequest("", $array);
+        $resp = $this->vitaBusinessAPI->makeSignedRequest("", $array);
         // var_dump($resp); exit;
 
         var_dump([
@@ -273,6 +274,7 @@ class VitaWalletController extends Controller
                 "payload" => $requestBody,
                 "response" => $secondary_request
             ],
+            "resp" => $resp,
             "prices" => $xprices
         ]); exit;
         
