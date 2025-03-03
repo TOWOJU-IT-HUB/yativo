@@ -30,51 +30,57 @@
         <div class="p-6">
             <div id="deposit" class="tab-content hidden space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Amount</h3>
-                        <p class="text-gray-600 dark:text-gray-300">{{ $deposit->amount }} {{ $deposit->currency }}</p>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Status</h3>
-                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            @if ($deposit->status === 'pending') bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200
-                            @elseif($deposit->status === 'completed') bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200
-                            @else bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 @endif">
-                            {{ ucfirst($deposit->status) }}
-                        </span>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                        <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Meta</h3>
-
-                        @if(is_array($deposit->meta) || is_object($deposit->meta))
-                            <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
-                                <thead>
-                                    <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
-                                        <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
-                                        <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($deposit->meta as $key => $value)
-                                        <tr class="text-gray-700 dark:text-gray-300">
-                                            <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
-                                            <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
-                                                @if(is_array($value) || is_object($value))
-                                                    <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
-                                                @else
-                                                    {{ $value }}
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <p class="text-gray-600 dark:text-gray-300">{!! $deposit->meta !!}</p>
+                    @foreach ($deposit->toArray() as $k => $item)
+                        @if (!in_array($k, ['meta', 'raw_data']))  {{-- Exclude meta and raw_data --}}
+                            <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
+                                <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ ucwords($k) }}</h3>
+                                <p class="text-gray-600 dark:text-gray-300">
+                                    @if(is_array($item) || is_object($item))
+                                        <pre class="text-sm">{{ json_encode($item, JSON_PRETTY_PRINT) }}</pre>
+                                    @else
+                                        {{ $item }}
+                                    @endif
+                                </p>
+                            </div>
                         @endif
-                    </div>
+                    @endforeach
 
+                    @foreach (['meta', 'raw_data'] as $field)
+                        @if (!empty($deposit->$field) && (is_array($deposit->$field) || is_object($deposit->$field)))
+                            <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg overflow-auto">
+                                <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ ucwords(str_replace('_', ' ', $field)) }}</h3>
+                                <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
+                                    <thead>
+                                        <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
+                                            <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
+                                            <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($deposit->$field as $key => $value)
+                                            <tr class="text-gray-700 dark:text-gray-300">
+                                                <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
+                                                <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                                                    @if(is_array($value) || is_object($value))
+                                                        <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
+                                                    @else
+                                                        {{ $value }}
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @elseif (!empty($deposit->$field))
+                            <div class="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg overflow-auto">
+                                <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ ucwords(str_replace('_', ' ', $field)) }}</h3>
+                                <p class="text-gray-600 dark:text-gray-300">{!! nl2br(e($deposit->$field)) !!}</p>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
+
             </div>
 
             <div id="user" class="tab-content hidden space-y-4">

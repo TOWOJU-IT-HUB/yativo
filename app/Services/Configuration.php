@@ -77,7 +77,6 @@ class Configuration
 
     public static function getTransactionsUrI($resource = '')
     {
-        echo $resource;
         return self::getUrl() . "/transactions?order={$resource}";
     }
 

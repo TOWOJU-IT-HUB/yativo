@@ -150,7 +150,6 @@ if (!function_exists('get_current_balance')) {
 if (!function_exists('get_transaction_rate')) {
     function get_transaction_rate($send_currency, $receive_currency, $Id, $type)
     {
-        Log::info(json_encode([$send_currency, $receive_currency, $Id, $type]));
 
         $result = 0;
         $rate = 0;
@@ -165,6 +164,7 @@ if (!function_exists('get_transaction_rate')) {
         }
 
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
+        Log::info(json_encode(["Exchange_rate" => $baseRate, $send_currency, $receive_currency, $Id, $type]));
 
         if ($rate > 0 && $baseRate > 0) {
             $rate_floated_amount = ($rate / 100) * $baseRate;

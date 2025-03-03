@@ -286,6 +286,24 @@ class VitaWalletController extends Controller
 
     public function callback(Request $request)
     {
+        // deposit webhook processing
+        $payload = $request->all();
+        $depositId = $payload['order'];
+        // find the deposit
+        $vita = new VitaWalletController();
+        $response = $vita->getTransaction($depositId);
+        if(!isset($response['transactions'][0]['attributes'])) {
+            return http_response_code(200);
+        }
+
+        $payload = $response['transactions'][0]['attributes'];
+
+
+        $deposit = Deposit::where('gateway_deposit_id', $payload['order'])->first();
+        if($deposit) {
+            // deposit was found
+            return $this->deposit_callback($deposit);
+        }
         // Log all incoming request information
         Log::info('Vitawallet Callback Request', [
             'method' => $request->method(),
@@ -297,10 +315,11 @@ class VitaWalletController extends Controller
         ]);
     }
 
-    public function deposit_callback(Request $request, $deposit_id)
+    public function deposit_callback($deposit_id)
     {
+        $request = request();
         $order = TransactionRecord::where("transaction_id", $deposit_id)->first();
-        if (isset($request->status) && $request->status === true && isset($request->order)) {
+        if (isset($request->status) && ($request->status === true || $request->status === "completed" )) {
             $where = [
                 "transaction_memo" => "payin",
                 "transaction_id" => $deposit_id
@@ -312,17 +331,6 @@ class VitaWalletController extends Controller
                 $this->updateTracking($deposit_id, $request->status, $request->toArray());
             }
         }
-
-        // Log all incoming request information
-        Log::info("Vitawallet Callback for deposit ID: {$deposit_id}", [
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'payload' => $request->all(),
-            'headers' => $request->header(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
         return http_response_code(200);
     }
 

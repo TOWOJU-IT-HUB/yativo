@@ -82,11 +82,32 @@ class CronDepositController extends Controller
         $ids = $this->getGatewayPayinMethods('vitawallet');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $vitawallet = new VitaWalletController();
-        $curl = [];
         foreach ($deposits as $deposit) {
-            $curl[] = $vitawallet->getTransaction($deposit->gateway_deposit_id);
+            $response = $vitawallet->getTransaction($deposit->gateway_deposit_id);
+
+            if(!isset($response['transactions'][0]['attributes'])) {
+                continue;
+            }
+            
+            $payload = $response['transactions'][0]['attributes'];
+            
+            $deposit = Deposit::where('gateway_deposit_id', $payload['order'])->first();
+            if($deposit) {
+                // deposit was found
+                $order = TransactionRecord::where("transaction_id", $deposit->id)->first();
+                if (isset($payload->status) && ($payload->status === true || $payload->status === "completed" )) {
+                    $where = [
+                        "transaction_memo" => "payin",
+                        "transaction_id" => $deposit->id
+                    ];
+                    $order = TransactionRecord::where($where)->first();
+                    if ($order) {
+                        $deposit_services = new DepositService();
+                        $deposit_services->process_deposit($order->transaction_id);
+                    }
+                }
+            }
         }
-        var_dump($curl); exit;
     }
 
     public function transfi()
