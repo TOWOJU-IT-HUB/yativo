@@ -120,7 +120,9 @@ class VitaWalletController extends Controller
             update_deposit_gateway_id($quoteId, $result['data']['attributes']['public_code']);
             return $result['data']['attributes']['url'];
         }
-        
+        if(request()->has('debug')) {
+            dd($deposit);
+        }
         return $result;
     }
 
