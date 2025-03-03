@@ -150,7 +150,6 @@
                 </div>
             </div>
 
-
             <!-- Tab Content: Customers -->
             <div id="customers" class="tab-content">
                 <div >
@@ -184,7 +183,7 @@
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Virtual Accounts</h2>
                     @if ($virtualAccounts && count($virtualAccounts) > 0)
-                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
@@ -263,7 +262,7 @@
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Virtual Cards</h2>
                     @if ($virtualCards && count($virtualCards) > 0)
-                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
@@ -346,13 +345,12 @@
                 </div>
             </div>
             
-
             <!-- Tab Content: Transactions -->
             <div id="transactions" class="tab-content">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Transactions</h2>
                     @if ($transactions && count($transactions) > 0)
-                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
@@ -410,13 +408,12 @@
                 </div>
             </div>
             
-
             <!-- Tab Content: Deposits -->
             <div id="deposits" class="tab-content">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Deposits</h2>
                     @if ($deposits && count($deposits) > 0)
-                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
@@ -484,32 +481,61 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                 <div class="space-y-2">
-                                                @if(is_array($deposit->meta) || is_object($deposit->meta))
-                                                    <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
-                                                        <thead>
-                                                            <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
-                                                                <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
-                                                                <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($deposit->meta as $key => $value)
-                                                                <tr class="text-gray-700 dark:text-gray-300">
-                                                                    <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
-                                                                    <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
-                                                                        @if(is_array($value) || is_object($value))
-                                                                            <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
-                                                                        @else
-                                                                            {{ $value }}
-                                                                        @endif
-                                                                    </td>
+                                                    @if(is_array($deposit->meta) || is_object($deposit->meta))
+                                                        <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
+                                                            <thead>
+                                                                <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
+                                                                    <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
+                                                                    <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
                                                                 </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                @else
-                                                    <p class="text-gray-600 dark:text-gray-300">{!! $deposit->meta !!}</p>
-                                                @endif
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($deposit->meta as $key => $value)
+                                                                    <tr class="text-gray-700 dark:text-gray-300">
+                                                                        <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
+                                                                        <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                                                                            @if(is_array($value) || is_object($value))
+                                                                                <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
+                                                                            @else
+                                                                                {{ $value }}
+                                                                            @endif
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    @else
+                                                        <p class="text-gray-600 dark:text-gray-300">{!! $deposit->meta !!}</p>
+                                                    @endif
+                                                </div>
+
+                                                <div class="space-y-2">
+                                                    @if(is_array($deposit->raw_data) || is_object($deposit->raw_data))
+                                                        <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
+                                                            <thead>
+                                                                <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
+                                                                    <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
+                                                                    <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($deposit->raw_data as $key => $value)
+                                                                    <tr class="text-gray-700 dark:text-gray-300">
+                                                                        <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
+                                                                        <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                                                                            @if(is_array($value) || is_object($value))
+                                                                                <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
+                                                                            @else
+                                                                                {{ $value }}
+                                                                            @endif
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    @else
+                                                        <p class="text-gray-600 dark:text-gray-300">{!! $deposit->raw_data !!}</p>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -523,15 +549,14 @@
                         </div>
                     @endif
                 </div>
-            </div>
-            
+            </div>            
 
             <!-- Tab Content: Withdrawals -->
             <div id="withdrawals" class="tab-content">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Withdrawals</h2>
                     @if ($withdrawals && count($withdrawals) > 0)
-                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+                        <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
@@ -611,8 +636,7 @@
                         </div>
                     @endif
                 </div>
-            </div>
-            
+            </div>            
 
             <!-- Tab Content: Overview -->
             <div id="balance" class="tab-content">
@@ -629,7 +653,7 @@
                                     <th class="py-3 px-6">#</th>
                                     <th class="py-3 px-6">Wallet Slug</th>
                                     <th class="py-3 px-6">Balance</th>
-                                </tr>
+                                </tr>                                       
                             </thead>
                             <tbody class="text-gray-700 text-sm font-light">
                                 @forelse($wallets as $index => $wallet)
@@ -647,9 +671,9 @@
                                         </td>
                                     </tr>
                                 @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                            </tbody>                                
+                        </table>                                                                        
+                    </div>                                                                              
                 </div>
             </div>
         </div>
