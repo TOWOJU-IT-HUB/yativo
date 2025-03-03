@@ -9,6 +9,7 @@ use App\Models\TransactionRecord;
 use App\Services\Configuration;
 use App\Services\DepositService;
 use App\Services\VitaBusinessAPI;
+use App\Services\VitaWalletAPI;
 use Config;
 use Http;
 use Illuminate\Http\RedirectResponse;
@@ -213,7 +214,7 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
-        $this->prices();
+        $xprices = $this->prices();
         $array = $requestBody;
 
 
@@ -232,10 +233,11 @@ class VitaWalletController extends Controller
 
         // return response()->json($xheaders);
 
+        $endpoint = Configuration::createTransaction();
         // Prepare cURL request
         $ch = curl_init();
         // curl_setopt($ch, CURLOPT_URL, Configuration::getWalletsUrl());
-        curl_setopt($ch, CURLOPT_URL, Configuration::createTransaction());
+        curl_setopt($ch, CURLOPT_URL, $endpoint);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($array));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $xheaders);
@@ -255,7 +257,21 @@ class VitaWalletController extends Controller
 
         curl_close($ch);
 
-        var_dump($response); exit;
+
+        $vitawallet = new VitaWalletAPI();
+        $secondary_request = $vitawallet->sendRequest($endpoint, $requestBody, "POST");
+
+        var_dump([
+            "initial_request" => $response,
+            "xheaders" => $xheaders,
+            "payload" => $requestBody,
+            "secondary" => [
+                "endpoint" => $endpoint,
+                "payload" => $requestBody,
+                "response" => $secondary_request
+            ],
+            "prices" => $xprices
+        ]); exit;
         
         return $result;
     }

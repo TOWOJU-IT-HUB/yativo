@@ -212,9 +212,9 @@ class PayoutService
 
             // echo json_encode($payload, JSON_PRETTY_PRINT); exit;
 
-            $vitawallet = new VitaWalletController();
-            $vitawallet->prices();
-            $process = $vitawallet->create_withdrawal($payload);
+            $vita = new VitaWalletController();
+            $vita->prices();
+            $process = $vita->create_withdrawal($payload);
 
             if (!is_array($process)) {
                 $process = json_decode($process, true);
