@@ -22,11 +22,13 @@ use Modules\VitaWallet\app\Services\VitaWalletService;
 class VitaWalletController extends Controller
 {
     protected $vitaWalletService, $url;
+    protected $vitaBusinessAPI;
 
     public function __construct()
     {
         // $this->url = "https://api.stage.vitawallet.io/api/businesses/";
         $this->vitaWalletService = new VitaBusinessAPI();
+        $this->vitaBusinessAPI = new VitaWalletAPI();
     }
 
     public function wallets()
@@ -214,7 +216,7 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
-        $xprices = $this->prices();
+        $this->prices();
         $array = $requestBody;
 
 
@@ -252,7 +254,6 @@ class VitaWalletController extends Controller
             if (!is_array($response)) {
                 $result = json_decode($response, true);
             }
-            ;
         }
 
         curl_close($ch);
@@ -260,6 +261,8 @@ class VitaWalletController extends Controller
 
         $vitawallet = new VitaWalletAPI();
         $secondary_request = $vitawallet->sendRequest($endpoint, $requestBody, "POST");
+        $resp = $this->vitaBusinessAPI->makeSignedRequest("", $array);
+        var_dump($resp); exit;
 
         var_dump([
             "initial_request" => $response,
