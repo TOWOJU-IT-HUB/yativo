@@ -213,10 +213,15 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
+        $this->prices();
+        $array = $requestBody;
+
+
         // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
         // Prepare headers
-        $headers = $configuration->prepareHeaders($requestBody);
+        // $headers = $configuration->prepareHeaders(''); // for get requests
+        $headers = $configuration->prepareHeaders($array);
         $xheaders = [
             "X-Date: " . $headers['headers']["X-Date"],
             "X-Login: " . $headers['headers']["X-Login"],
@@ -225,31 +230,30 @@ class VitaWalletController extends Controller
             "Authorization: " . $headers['headers']["Authorization"],
         ];
 
+        // return response()->json($xheaders);
+
         // Prepare cURL request
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, Configuration::payin());
+        // curl_setopt($ch, CURLOPT_URL, Configuration::getWalletsUrl());
+        curl_setopt($ch, CURLOPT_URL, Configuration::createTransaction());
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($array));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $xheaders);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);  // Enable verbose output for debugging
 
-        
         // Execute request
         $response = curl_exec($ch);
-
         if ($response === false) {
             $result = ["error" => 'cURL Error: ' . curl_error($ch)];
         } else {
             if (!is_array($response)) {
                 $result = json_decode($response, true);
             }
+            ;
         }
 
         curl_close($ch);
-
-        if (!is_array($result)) {
-            $result = json_decode($result, true);
-        }
 
         var_dump($response); exit;
         
