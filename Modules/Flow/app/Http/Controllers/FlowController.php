@@ -150,6 +150,7 @@ class FlowController extends Controller
                 return ['error' => 'Beneficiary not found'];
             }
             $gateway = payoutMethods::whereId($ben->gateway_id)->first();
+
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
@@ -158,7 +159,6 @@ class FlowController extends Controller
             
             var_dump([$authToken]); exit;
             $rate = getExchangeVal($gateway->currency, "CLP");
-
 
             $requestData = [
                 "beneficiary_id" => $ben['beneficiary_id'],

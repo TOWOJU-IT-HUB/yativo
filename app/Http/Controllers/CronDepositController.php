@@ -85,6 +85,7 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $curl = $vitawallet->getTransaction($deposit->gateway_deposit_id);
+            var_dump($curl); exit;
             // Log::info('Vitawallet_001', ['deposit_object' => $deposit, 'deposit_id' => $deposit->gateway_deposit_id, 'response' => $curl]);
             if (is_array($curl) && isset($curl['transaction'])) {
                 $record = $curl['transaction'];
@@ -111,7 +112,7 @@ class CronDepositController extends Controller
     {
         $ids = $this->getGatewayPayinMethods('transfi');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
-        $transfi = new VitaWalletController();
+        $transfi = new TransFiController();
 
         foreach ($deposits as $deposit) {
             $curl = $transfi->getOrderDetails($deposit->gateway_deposit_id);

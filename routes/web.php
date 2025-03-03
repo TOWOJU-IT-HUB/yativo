@@ -5,6 +5,7 @@ use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CronController;
+use App\Http\Controllers\CronDepositController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\KycServiceController;
@@ -60,6 +61,9 @@ Route::get('/', function () {
     // return redirect()->to('https://yativo.com');
 });
 
+
+
+Route::get('v', [CronDepositController::class, "vitawallet"]);
 
 Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
 Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOnrampUrl']);
