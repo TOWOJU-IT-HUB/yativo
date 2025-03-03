@@ -235,7 +235,7 @@ class PayoutService
 
             return $process;
         } catch (\Throwable $th) {
-            Log::error('VitaWallet payout error: ' . $th->getMessage());
+            Log::error('VitaWallet payout error: ' . $th->getTrace());
             return ['error' => $th->getMessage()];
         }
     }
