@@ -140,6 +140,9 @@ class FlowController extends Controller
                 return ['error' => "Unsupported currency selected"];
             }
 
+
+            var_dump([$payload, $amount, $currency]); exit;
+
             $beneficiaryId = $payload->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
             $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
@@ -152,7 +155,6 @@ class FlowController extends Controller
                 return ['error' => 'Gateway not found'];
             }
 
-            var_dump($ben); exit;
 
             $authToken = env("FLOID_AUTH_TOKEN");
             $url = "";
