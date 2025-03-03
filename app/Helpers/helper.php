@@ -150,67 +150,77 @@ if (!function_exists('get_current_balance')) {
 if (!function_exists('get_transaction_rate')) {
     function get_transaction_rate($send_currency, $receive_currency, $Id, $type)
     {
-
         $result = 0;
         $rate = 0;
         $gatewayId = $Id;
 
         if ($type == "payout") {
             $gateway = PayoutMethods::whereId($gatewayId)->first();
-            $rate = $gateway->exchange_rate_float ?? 0;
         } else {
             $gateway = PayinMethods::whereId($gatewayId)->first();
-            $rate = $gateway->exchange_rate_float ?? 0;
         }
 
+        $rate = $gateway->exchange_rate_float ?? 0;
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
-        Log::info(json_encode(["Exchange_rate" => $baseRate, $send_currency, $receive_currency, $Id, $type]));
+
+        Log::info("Exchange Rate Details", [
+            "Exchange_rate" => $baseRate,
+            "Send_currency" => $send_currency,
+            "Receive_currency" => $receive_currency,
+            "Gateway ID" => $Id,
+            "Type" => $type,
+        ]);
 
         if ($rate > 0 && $baseRate > 0) {
-            $rate_floated_amount = ($rate / 100) * $baseRate;
-            $result = ($type == "payout") ? ($baseRate * (1 - $rate / 100)) : ($baseRate * (1 + $rate / 100));
+            $result = ($type == "payout") 
+                ? ($baseRate * (1 - ($rate / 100)))  // Reduce by percentage
+                : ($baseRate * (1 + ($rate / 100))); // Increase by percentage
         } elseif ($baseRate > 0) {
             $result = $baseRate;
         } else {
-            Log::error("No exchange rate found for gateway ID: {$gatewayId}, type: {$type}");
+            Log::error("No valid exchange rate found: baseRate={$baseRate}, rate={$rate}, gateway ID={$gatewayId}, type={$type}");
+            return 0; // Return 0 to prevent invalid calculations
         }
 
         return floatval($result);
     }
-
 }
 
 if (!function_exists('exchange_rates')) {
-    function exchange_rates($from, $to) : int
+    function exchange_rates($from, $to) : float
     {
-        if ($from === $to) return 1; // Return 1 for same currencies
+        if ($from === $to) return 1.0; // Return 1 for same currencies
 
         $cacheKey = "exchange_rate_{$from}_{$to}";
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
-
             $apis = [
                 "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
                 "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
             ];
 
+            $exchangeRate = 0;
             foreach ($apis as $url => $params) {
                 try {
                     $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
-                    $rate = $url === "https://min-api.cryptocompare.com/data/price" 
+                    $rate = ($url === "https://min-api.cryptocompare.com/data/price") 
                         ? ($response[$to] ?? null) 
                         : ($response['data']['rates'][$to] ?? null);
 
-                    if ($rate) return (float) $rate; // Return rate immediately if found
+                    if ($rate !== null) {
+                        $exchangeRate = (float) $rate; // Store the rate
+                        break; // Stop loop if a valid rate is found
+                    }
                 } catch (\Exception $e) {
                     Log::error("Error fetching exchange rate from $url: " . $e->getMessage());
                 }
             }
 
-            return 0; // Return 0 if both APIs fail
+            return $exchangeRate; // Return the fetched rate or 0 if both APIs failed
         });
     }
 }
+
 
 
 
