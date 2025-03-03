@@ -484,16 +484,32 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                 <div class="space-y-2">
-                                                    @if ($deposit['meta'] || $deposit['raw_data'])
-                                                        <div class="bg-gray-100 dark:bg-slate-700 p-2 rounded-lg text-xs">
-                                                            <p><strong>Meta:</strong> {{ $deposit['meta'] ?? 'N/A' }}</p>
-                                                        </div>
-                                                        <div class="bg-gray-100 dark:bg-slate-700 p-2 rounded-lg text-xs">
-                                                            <p><strong>Raw Data:</strong> {{ $deposit['raw_data'] ?? 'N/A' }}</p>
-                                                        </div>
-                                                    @else
-                                                        <span>No additional data</span>
-                                                    @endif
+                                                @if(is_array($deposit->meta) || is_object($deposit->meta))
+                                                    <table class="w-full border border-gray-300 dark:border-gray-700 rounded-lg">
+                                                        <thead>
+                                                            <tr class="bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-white">
+                                                                <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Key</th>
+                                                                <th class="px-4 py-2 border border-gray-300 dark:border-gray-700">Value</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach($deposit->meta as $key => $value)
+                                                                <tr class="text-gray-700 dark:text-gray-300">
+                                                                    <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">{{ ucfirst($key) }}</td>
+                                                                    <td class="px-4 py-2 border border-gray-300 dark:border-gray-700">
+                                                                        @if(is_array($value) || is_object($value))
+                                                                            <pre class="text-sm">{{ json_encode($value, JSON_PRETTY_PRINT) }}</pre>
+                                                                        @else
+                                                                            {{ $value }}
+                                                                        @endif
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                @else
+                                                    <p class="text-gray-600 dark:text-gray-300">{!! $deposit->meta !!}</p>
+                                                @endif
                                                 </div>
                                             </td>
                                         </tr>
