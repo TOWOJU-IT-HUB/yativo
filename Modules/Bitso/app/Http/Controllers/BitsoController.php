@@ -164,6 +164,7 @@ class BitsoController extends Controller
         }
 
         $result = $this->bitso->payout($data);
+        var_dump($result); exit;
         return $result;
     }
 
