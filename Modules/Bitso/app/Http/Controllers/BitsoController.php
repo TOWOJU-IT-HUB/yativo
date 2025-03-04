@@ -171,7 +171,7 @@ class BitsoController extends Controller
          }
 
          $result = $this->bitso->payout($data);
-         if(is_array && isset($result['success']) && $result['success'] == false) {
+         if(is_array($result) && isset($result['success']) && $result['success'] == false) {
             $result = ['error' => $result['error']['message']];
          }
          return $result;
