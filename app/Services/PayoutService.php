@@ -64,7 +64,7 @@ class PayoutService
                 $result = self::$gateway($quoteId, $withdrawal->currency, $withdrawal);
 
                 if(isset($result['error'])) {
-                    return back()->with('error', $result['error']);
+                    return ['error' => $result['error']];
                 }
                 // var_dump($result); exit;
 
@@ -92,7 +92,7 @@ class PayoutService
                 ]);
 
                 $withdrawal->update([
-                    "status" => "In Progress"
+                    "status" => "processing"
                 ]);
 
                 return $result;

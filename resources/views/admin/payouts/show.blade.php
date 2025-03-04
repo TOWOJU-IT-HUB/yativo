@@ -192,9 +192,9 @@
                                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reason for Rejection</label>
                                                 <select name="status" class="relative z-20 w-full appearance-none rounded border border-stroke bg-transparent py-3 pl-5 pr-12 outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input">
                                                     <option value="complete">Complete Payout (Mark Successful)</option>
+                                                    <option value="processing">Processing</option>
                                                     <option value="failed">Failed</option>
                                                     <option value="expired">Expire</option>
-                                                    <option value="canceled">Expire</option>
                                                 </select>
                                             </div>
                                             <div class="flex justify-between gap-3">
