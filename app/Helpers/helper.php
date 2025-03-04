@@ -200,7 +200,7 @@ if (!function_exists('exchange_rates')) {
 
         $cacheKey = "exchange_rate_{$from}_{$to}";
         Log::info("I'm here getting the exchange rate");
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
+        // return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
             Log::info("I'm here getting the exchange rate - cache mode");
             $apis = [
@@ -227,7 +227,7 @@ if (!function_exists('exchange_rates')) {
             }
 
             return $exchangeRate; // Return the fetched rate or 0 if both APIs failed
-        });
+        // });
     }
 }
 
