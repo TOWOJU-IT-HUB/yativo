@@ -118,7 +118,7 @@ class BitsoController extends Controller
         $clabe = null;
         // Get beneficiary info
         Log::info("Bitso is here");
-        $beneficiary = BeneficiaryPaymentMethod::whereId($beneficiaryId)->first();
+        $beneficiary = BeneficiaryPaymentMethod::whereId(request()->payment_method_id)->first();
         if (!$beneficiary) {
             var_dump(["beneficiary" => "not found"]); exit;
             return ['error' => 'Beneficiary not found'];

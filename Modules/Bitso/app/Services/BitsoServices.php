@@ -150,7 +150,7 @@ class BitsoServices
     {
         // var_dump([$amount, $clabe, $currency]); exit;
         Log::info("Bitso Payout 1");
-        $beneficiary = Beneficiary::whereId(request()->beneficiary_id)->first();
+        $beneficiary = Beneficiary::whereId(request()->payment_method_id)->first();
         $pay_data = $beneficiary->payment_data;
         $customer = $beneficiary->customer_name;
 
