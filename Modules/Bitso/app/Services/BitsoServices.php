@@ -148,11 +148,11 @@ class BitsoServices
 
     public function payout($amount, $clabe, $currency)
     {
+        var_dump([$amount, $clabe, $currency]); exit;
         $beneficiary = Beneficiary::whereId(request()->beneficiary_id)->first();
         $pay_data = $beneficiary->payment_data;
         $customer = $beneficiary->customer_name;
 
-        var_dump($beneficiary); exit;
 
         if (strtolower($currency) == 'mxn') {
             $data = [
