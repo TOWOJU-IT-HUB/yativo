@@ -228,7 +228,7 @@ class CronDepositController extends Controller
         $bitsoService = new BitsoServices();
 
         foreach ($deposits as $deposit) {
-            $response = $bitsoService->getDepositStatus($deposit->gateway_deposit_id);
+            $response = $bitsoService->getDepositStatus($deposit->gateway_deposit_id, []);
     
             if (is_array($response) && isset($response['status'])) {
                 $status = strtolower($response['status']);
