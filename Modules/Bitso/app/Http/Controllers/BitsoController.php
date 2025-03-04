@@ -118,7 +118,6 @@ class BitsoController extends Controller
         $clabe = null;
         // Get beneficiary info
         Log::info("Bitso is here");
-        $beneficiaryId = request()->payment_method_id;
         $model = new BeneficiaryPaymentMethod();
         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
 
