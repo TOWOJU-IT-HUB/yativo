@@ -129,10 +129,11 @@ class BitsoController extends Controller
 
         // var_dump([$amount, $clabe, $currency]); exit;
         Log::info("Bitso Payout 1");
+        $pay_data = $ben->payment_data;
         if (strtolower($currency) == 'mxn') {
             Log::info("Bitso Payout 2");
             if (isset($ben->payment_data)) {
-                $clabe = $ben->payment_data->clabe;
+                $clabe = $ben->payment_data['clabe'];
             }
     
             if (null == $clabe || empty($clabe)) {
@@ -144,13 +145,12 @@ class BitsoController extends Controller
                 "method" => "praxis",
                 "amount" => $amount,
                 "currency" => "mxn",
-                "beneficiary" => $ben->payment_data->beneficiary ?? "N/A",
+                "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
                 "clabe" => $clabe,
                 "protocol" => "clabe",
             ];
         } elseif (strtolower($currency) == 'cop') {
             Log::info("Bitso Payout 3");
-            $pay_data = $ben->payment_data;
             $data = [
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
