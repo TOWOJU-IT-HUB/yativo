@@ -128,6 +128,7 @@ class CronController extends Controller
             Log::info("Below is the payout detail: ", ["payout" => $payout]);
             $txn_id = $payout->id;
             $curl = $bitso->getPayoutStatus($txn_id);
+            if($curl['success'] == false)
             Log::info("Below is the payout detail: ", ["curl" => $curl]);
             $payload = $curl['payload'][0];
             $payout->status = strtolower($payload['status']);

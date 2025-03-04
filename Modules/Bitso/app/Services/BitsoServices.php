@@ -44,13 +44,13 @@ class BitsoServices
         $authHeader = "Bitso {$this->apiKey}:$nonce:$signature";
         $url = $this->requestPath;
 
-        Log::info(json_encode([
-            "payload" => $payload,
-            "signature" => $signature,
-            "authHeader" => $authHeader,
-            "url" => $url,
-            "nonce" => $nonce
-        ]));
+        // Log::info(json_encode([
+        //     "payload" => $payload,
+        //     "signature" => $signature,
+        //     "authHeader" => $authHeader,
+        //     "url" => $url,
+        //     "nonce" => $nonce
+        // ]));
 
         try {
             $options = [
@@ -67,7 +67,7 @@ class BitsoServices
             $responseBody = json_decode($response->getBody()->getContents(), true);
             $httpCode = $response->getStatusCode();
 
-            Log::info('Bitso response body: ', $responseBody);
+            // Log::info('Bitso response body: ', $responseBody);
 
             if ($httpCode !== 200) {
                 if (isset($responseBody['error'])) {
@@ -189,7 +189,7 @@ class BitsoServices
     public function getPayoutStatus($payoutId, $payload = "")
     {
         $this->requestPath = "/api/v3/withdrawals?origin_ids={$payoutId}";
-        $request = $this->sendRequest($payload, 'GET');
+        $request = $this->sendRequest([], 'GET');
         return $request;
     }
 }
