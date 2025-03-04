@@ -120,21 +120,53 @@ class BitsoController extends Controller
         Log::info("Bitso is here");
         $model = new BeneficiaryPaymentMethod();
         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
-
+        // var_dump([$amount, $beneficiaryId, $currency]); exit;
         if (!$ben) {
             var_dump(["beneficiary" => "not found"]); exit;
             return ['error' => 'Beneficiary not found'];
         }
 
-        // if (isset($beneficiary->payment_data)) {
-        //     $clabe = $beneficiary->payment_data->clabe ?? $beneficiary->payment_data->bankAccount;
-        // }
+        // var_dump([$amount, $clabe, $currency]); exit;
+        Log::info("Bitso Payout 1");
+        $beneficiary = Beneficiary::whereId(request()->payment_method_id)->first();
+        $pay_data = $beneficiary->payment_data;
+        $customer = $beneficiary->customer_name;
 
-        // if (null == $clabe || empty($clabe)) {
-        //     return ['error' => 'Error retreieveing clabe number'];
-        // }
 
-        $result = $this->bitso->payout($amount, $clabe, $currency);
+        Log::info("Bitso Payout 2");
+        if (strtolower($currency) == 'mxn') {
+
+            if (isset($beneficiary->payment_data)) {
+                $clabe = $beneficiary->payment_data->clabe;
+            }
+    
+            if (null == $clabe || empty($clabe)) {
+                var_dump(['error' => 'Error retreieveing clabe number']);
+            }
+    
+            $data = [
+                "method" => "praxis",
+                "amount" => $amount,
+                "currency" => "mxn",
+                "beneficiary" => $customer,
+                "clabe" => $clabe,
+                "protocol" => "clabe",
+            ];
+        } elseif (strtolower($currency) == 'cop') {
+            Log::info("Bitso Payout 3");
+            $data = [
+                'currency' => 'cop',
+                'protocol' => 'ach_co',
+                'amount' => $amount,
+                'bankAccount' => $pay_data->account_number ?? $pay_data->bankAccount, //'059-000073-51',
+                'bankCode' => $pay_data->bank_code ?? $pay_data->bankCode, // '007',
+                'AccountType' => $pay_data->account_type ?? $pay_data->AccountType,
+            ];
+        } else {
+            return ['error' => "We currently can not process this currency"];
+        }
+
+        $result = $this->bitso->payout($data);
         return $result;
     }
 

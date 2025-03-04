@@ -146,45 +146,8 @@ class BitsoServices
         return $this->sendRequest($payload, 'POST');
     }
 
-    public function payout($amount, $clabe, $currency)
+    public function payout($data)
     {
-        // var_dump([$amount, $clabe, $currency]); exit;
-        Log::info("Bitso Payout 1");
-        $beneficiary = Beneficiary::whereId(request()->payment_method_id)->first();
-        $pay_data = $beneficiary->payment_data;
-        $customer = $beneficiary->customer_name;
-
-
-        Log::info("Bitso Payout 2");
-        if (strtolower($currency) == 'mxn') {
-            $data = [
-                "method" => "praxis",
-                "amount" => $amount,
-                "currency" => "mxn",
-                "beneficiary" => $customer,
-                "clabe" => $clabe,
-                "protocol" => "clabe",
-            ];
-        } elseif (strtolower($currency) == 'cop') {
-            Log::info("Bitso Payout 3");
-            $data = [
-                'currency' => 'cop',
-                'protocol' => 'ach_co',
-                'amount' => $amount,
-                'bankAccount' => $pay_data->account_number ?? $pay_data->bankAccount, //'059-000073-51',
-                'bankCode' => $pay_data->bank_code ?? $pay_data->bankCode, // '007',
-                'AccountType' => $pay_data->account_type ?? $pay_data->AccountType,
-                // 'third_party_withdrawal' => true,
-                // 'beneficiary_name' => $pay_data->beneficiary_name ?? 'N/A', // 'Daniela Aldana',
-                // 'beneficiary_lastname' => $pay_data->beneficiary_lastname, //'Valencia',
-                // 'document_id' => $pay_data->document_id, // '1053851282',
-                // 'document_type' => $pay_data->document_type, //'CC',
-                // 'email' => $pay_data->beneficiary_email ?? auth()->user()->email, //'towojuads@gmail.com',
-            ];
-        } else {
-            return ['error' => "We currently can not process this currency"];
-        }
-
         Log::info("Bitso Payout 4");
         return $this->initiateWithdrawal($data);
     }
