@@ -217,7 +217,8 @@ if (!function_exists('exchange_rates')) {
                         : ($response['data']['rates'][$to] ?? null);
 
                     if ($rate !== null) {
-                        $exchangeRate = (float) $rate; // Store the rate
+                        $exchangeRate = (float) $rate;
+                        Log::info("Newly fetched rate is: {$exchangeRate}"); // Store the rate
                         break; // Stop loop if a valid rate is found
                     }
                 } catch (\Exception $e) {
