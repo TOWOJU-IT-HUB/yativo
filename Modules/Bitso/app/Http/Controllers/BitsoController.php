@@ -150,14 +150,18 @@ class BitsoController extends Controller
                 "protocol" => "clabe",
             ];
         } elseif (strtolower($currency) == 'cop') {
-            Log::info("Bitso Payout 3");
+            Log::info("Bitso Payout 3", [
+                "bankAccount" => $pay_data['bankAccount'],
+                "bankCode" => $pay_data['bankCode'],
+                "AccountType" => $pay_data['AccountType'],
+            ]);
             $data = [
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
                 'amount' => $amount,
-                'bankAccount' => $pay_data['bankAccount'], //'059-000073-51',
-                'bankCode' => $pay_data['bankCode'], // '007',
-                'AccountType' => $pay_data['AccountType'],
+                'bankAccount' => '059-000073-51',
+                'bankCode' => '007',
+                'AccountType' => 2 
             ];
         } else {
             return ['error' => "We currently can not process this currency"];
