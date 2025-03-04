@@ -102,7 +102,7 @@ class DepositController extends Controller
                 return get_error_response(['error' => 'Invalid exchange rate. Please try again.'], 400);
             }
     
-            $exchange_rate = floatval($exchange_rate);
+            $exchange_rate = $base_exchange_rate = floatval($exchange_rate);
             $deposit_float = floatval($payin->exchange_rate_float ?? 0);
             $exchange_rate += ($exchange_rate * $deposit_float / 100); // Adjust exchange rate
     
@@ -118,7 +118,9 @@ class DepositController extends Controller
             if (($payin->maximum_deposit * $exchange_rate) < $amount) {
                 return get_error_response(['error' => "Maximum deposit amount for this gateway is " . number_format($payin->maximum_deposit * $exchange_rate, 2)], 400);
             }
-    
+            
+            $receive_amount = round($request->amount / $exchange_rate, 2);
+
             // Record deposit in DB
             $deposit = new Deposit();
             $deposit->currency = $payin->currency;
@@ -127,7 +129,7 @@ class DepositController extends Controller
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
             $deposit->redirect_url = $request->redirect_url;
-            $deposit->receive_amount = round($request->amount * $exchange_rate, 2);
+            $deposit->receive_amount = $receive_amount; ;
     
             $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
     
@@ -142,6 +144,7 @@ class DepositController extends Controller
             if ($deposit->save()) {
                 $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
                 $arr['payment_info'] = [
+                    "exchange_rate_main" => session()->get('base_rate'),
                     "send_amount" => round($request->amount / $exchange_rate, 4) . " " . strtoupper($payin->currency),
                     "receive_amount" => round($request->amount * $exchange_rate, 2) . " " . strtoupper($deposit->deposit_currency),
                     "exchange_rate" => "1 " . strtoupper($payin->currency) . " ~ $exchange_rate " . strtoupper($request->credit_wallet ?? $request->currency),
@@ -152,6 +155,11 @@ class DepositController extends Controller
                 ];
 
                 if($request->has('debug')) {
+                    $arr = array_merge($arr, [
+                        "exchange_rate_float" => $payin->exchange_rate_float, 
+                        "base_exchange_rate" => $base_exchange_rate,
+                        "helper_rates" => session()->get('rates')
+                    ]);
                     dd($arr);
                 }
     

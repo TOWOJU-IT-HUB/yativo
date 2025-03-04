@@ -29,7 +29,7 @@ class DepositCronCommand extends Command
     public function handle()
     {
         $deposit = new CronDepositController();
-        info("Cron Job running at ". now());
+        // info("Cron Job running at ". now());
 
         $deposit->brla();
         $deposit->getFloidStatus();

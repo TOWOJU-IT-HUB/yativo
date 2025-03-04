@@ -165,8 +165,8 @@ if (!function_exists('get_transaction_rate')) {
 
         Log::info("Exchange Rate Details", [
             "Exchange_rate" => $baseRate,
-            "Send_currency" => $send_currency,
-            "Receive_currency" => $receive_currency,
+            "from_currency" => $send_currency,
+            "to_currency" => $receive_currency,
             "Gateway ID" => $Id,
             "Type" => $type,
         ]);
@@ -181,6 +181,13 @@ if (!function_exists('get_transaction_rate')) {
             Log::error("No valid exchange rate found: baseRate={$baseRate}, rate={$rate}, gateway ID={$gatewayId}, type={$type}");
             return 0; // Return 0 to prevent invalid calculations
         }
+
+        session([
+            "rates" => [
+                "base_rate" => $baseRate,
+                "final_rate" => $result
+            ] 
+        ]);
 
         return floatval($result);
     }
