@@ -92,6 +92,7 @@ class DepositController extends Controller
             $deposit->receive_amount = floatval($request->amount * $exchange_rate);
             $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
+            // var_dump($deposit);
             // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
 
             if (!$payin) {
@@ -99,7 +100,7 @@ class DepositController extends Controller
             }
 
             $deposit->currency = $payin->currency;
-            if ($deposit->save()) {
+            // if ($deposit->save()) {
                 $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
                 $arr['payment_info'] = [
                     "send_amount" => round($request->amount / $exchange_rate, 4)." $payin->currency",
@@ -110,15 +111,15 @@ class DepositController extends Controller
                     "estimate_delivery_time" => formatSettlementTime($payin['settlement_time']),
                     "total_amount_due" => "$total_amount_due $payin->currency"
                 ];
+                var_dump($arr); exit;
 
                 $process = $this->process_store($request->gateway, $payin->currency, $total_amount_due, $deposit->toArray());
-                // var_dump($process);exit;
 
                 if (isset($process['error']) || in_array('error', $process)) {
                     return get_error_response($process);
                 }
                 return get_success_response(array_merge($process, $arr));
-            }
+            // }
 
             return get_error_response(['error' => "Sorry we're currently unable to process your deposit request"]);
         } catch (\Throwable $th) {
