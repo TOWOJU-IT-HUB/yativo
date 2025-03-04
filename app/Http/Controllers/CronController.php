@@ -121,10 +121,13 @@ class CronController extends Controller
     {
         $bitso = new BitsoServices();
         $ids = $this->getGatewayPayoutMethods(method: 'bitso');
+        Log::info("Below are the stuffs to withdrawal: ", ["id" => $ids]);
         $payouts = Withdraw::whereIn('gateway', $ids)->whereStatus('pending')->get();
         foreach ($payouts as $payout) {
+            Log::info("Below is the payout detail: ", ["payout" => $payout]);
             $txn_id = $payout->id;
             $curl = $bitso->getPayoutStatus($txn_id);
+            Log::info("Below is the payout detail: ", ["curl" => $curl]);
             $payload = $curl['payload'][0];
             $payout->status = strtolower($payload['status']);
             $payout->save();
