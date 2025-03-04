@@ -221,6 +221,8 @@ class VitaWalletController extends Controller
         $xprices = cache()->remember('xprices', 300, function () {
             return $this->prices();
         });
+        $curl = $this->vitaWalletService->sendRequest("POST", "transactions", $requestBody);
+        var_dump($curl); exit;
         $array = $requestBody;
 
         // Initialize Configuration and set credentials

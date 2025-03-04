@@ -9,6 +9,7 @@ use App\Models\Deposit;
 use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
+use App\Models\Withdraw;
 use App\Models\UserMeta;
 use App\Notifications\WalletNotification;
 use Illuminate\Http\RedirectResponse;
@@ -379,7 +380,7 @@ class BitsoController extends Controller
         if(strtolower($payload['status']) === "pending") {
             die("Status is still pending");
         }
-        
+
         try {
             // Log the webhook payload
             BitsoWebhookLog::create([
@@ -401,7 +402,7 @@ class BitsoController extends Controller
             }
     
             $txn_id = $payload['details']['origin_id'];
-            $payout = Withdrawal::whereId($txn_id)->first();
+            $payout = Withdraw::whereId($txn_id)->first();
     
             if ($payout) {
                 try {
