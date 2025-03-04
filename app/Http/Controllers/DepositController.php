@@ -336,9 +336,8 @@ class DepositController extends Controller
         $result = 0;
 
         // Fetch exchange rate details based on gateway and type
-        $rates = ExchangeRate::where('gateway_id', $gateway)
-            ->where('rate_type', $type)
-            ->first();
+        $method = PayinMethods::whereId($gateway)->first();
+        $rates = $method->exchange_rate_float ?? 0;
 
         // Fetch base rate from external service or function
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
