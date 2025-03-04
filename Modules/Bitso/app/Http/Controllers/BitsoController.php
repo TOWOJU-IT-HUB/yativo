@@ -114,69 +114,79 @@ class BitsoController extends Controller
      */
 
     public function withdraw($amount, $beneficiaryId, $currency)
-    {
-        $clabe = null;
-        // Get beneficiary info
-        Log::info("Bitso is here");
-        $model = new BeneficiaryPaymentMethod();
-        $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
-        // var_dump([$amount, $beneficiaryId, $currency]); exit;
-        if (!$ben) {
-            // var_dump(["beneficiary" => "not found"]); exit;
-            session()->flash('error', 'Beneficiary not found');
-            return ['error' => 'Beneficiary not found'];
-        }
-
-        // var_dump([$amount, $clabe, $currency]); exit;
-        Log::info("Bitso Payout 1");
-        $pay_data = $ben->payment_data;
-        if (strtolower($currency) == 'mxn') {
-            Log::info("Bitso Payout 2");
-            if (isset($ben->payment_data)) {
-                $clabe = $ben->payment_data['clabe'];
-            }
-    
-            if (null == $clabe || empty($clabe)) {
-                session()->flash('error', 'Error retreieveing clabe number');
-                // var_dump(['error' => 'Error retreieveing clabe number']);
-            }
-    
-            $data = [
-                "method" => "praxis",
-                "amount" => $amount,
-                "currency" => "mxn",
-                "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
-                "clabe" => $clabe,
-                "protocol" => "clabe",
-            ];
-        } elseif (strtolower($currency) == 'cop') {
-            Log::info("Bitso Payout 3", [
-                "bankAccount" => $pay_data['bankAccount'],
-                "bankCode" => $pay_data['bankCode'],
-                "AccountType" => $pay_data['AccountType'],
-            ]);
-            $data = [
-                'currency' => 'cop',
-                'protocol' => 'ach_co',
-                'amount' => $amount,
-                'bankAccount' => $pay_data['bankAccount'],
-                'bankCode' => $pay_data['bankCode'],
-                'AccountType' => $pay_data['AccountType'],
-                'beneficiary_name' => $pay_data['beneficiary_name'],
-                'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
-                'document_id' => $pay_data['document_id'],
-                'document_type' => $pay_data['document_type'],
-                'email' => "noreply@yativo.com", 
-                "third_party_withdrawal" => true,
-            ];
-        } else {
-            return ['error' => "We currently can not process this currency"];
-        }
-
-        $result = $this->bitso->payout($data);
-        var_dump($result); exit;
-        return $result;
-    }
+     {
+         $clabe = null;
+         // Get beneficiary info
+         Log::info("Bitso is here");
+         $model = new BeneficiaryPaymentMethod();
+         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+     
+         if (!$ben) {
+             session()->flash('error', 'Beneficiary not found');
+             return ['error' => 'Beneficiary not found'];
+         }
+     
+         Log::info("Bitso Payout 1");
+         $pay_data = $ben->payment_data;
+     
+         if (strtolower($currency) == 'mxn') {
+             Log::info("Bitso Payout 2");
+             if (isset($ben->payment_data)) {
+                 $clabe = $ben->payment_data['clabe'] ?? null;
+             }
+     
+             if (empty($clabe)) {
+                 session()->flash('error', 'Error retrieving clabe number');
+                 return ['error' => 'Error retrieving clabe number'];
+             }
+     
+             $data = [
+                 "method" => "praxis",
+                 "amount" => $amount,
+                 "currency" => "mxn",
+                 "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
+                 "clabe" => $clabe,
+                 "protocol" => "clabe",
+             ];
+         } elseif (strtolower($currency) == 'cop') {
+             Log::info("Bitso Payout 3", [
+                 "bankAccount" => $pay_data['bankAccount'],
+                 "bankCode" => $pay_data['bankCode'],
+                 "AccountType" => $pay_data['AccountType'],
+                 "document_id" => $pay_data['document_id'],
+                 "document_type" => $pay_data['document_type'],
+             ]);
+     
+             // ✅ Trim and validate document_id to be between 6 and 10 digits
+             $document_id = preg_replace('/\D/', '', trim($pay_data['document_id'])); // Remove non-numeric characters
+             if (strlen($document_id) < 6 || strlen($document_id) > 10) {
+                 return ['error' => 'Invalid document_id format. Must be 6-10 digits.'];
+             }
+     
+             $data = [
+                 'currency' => 'cop',
+                 'protocol' => 'ach_co',
+                 'amount' => $amount,
+                 'bankAccount' => $pay_data['bankAccount'],
+                 'bankCode' => $pay_data['bankCode'],
+                 'AccountType' => (int) $pay_data['AccountType'], // Ensure integer
+                 'beneficiary_name' => $pay_data['beneficiary_name'],
+                 'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
+                 'document_id' => $document_id, // ✅ Cleaned document ID
+                 'document_type' => strtoupper($pay_data['document_type']), // Ensure uppercase format
+                 'email' => "noreply@yativo.com", 
+                 "third_party_withdrawal" => true,
+             ];
+         } else {
+             return ['error' => "We currently cannot process this currency"];
+         }
+     
+         Log::info("Final Payout Data", $data); // ✅ Log data before sending request
+         $result = $this->bitso->payout($data);
+     
+         return $result;
+     }
+     
 
     public function deposit_webhook(Request $request)
     {
