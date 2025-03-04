@@ -152,6 +152,8 @@ class BitsoServices
         $pay_data = $beneficiary->payment_data;
         $customer = $beneficiary->customer_name;
 
+        var_dump($beneficiary); exit;
+
         if (strtolower($currency) == 'mxn') {
             $data = [
                 "method" => "praxis",
