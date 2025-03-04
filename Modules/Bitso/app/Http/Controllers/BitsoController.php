@@ -122,38 +122,35 @@ class BitsoController extends Controller
         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
         // var_dump([$amount, $beneficiaryId, $currency]); exit;
         if (!$ben) {
-            var_dump(["beneficiary" => "not found"]); exit;
+            // var_dump(["beneficiary" => "not found"]); exit;
+            session()->flash('error', 'Beneficiary not found');
             return ['error' => 'Beneficiary not found'];
         }
 
         // var_dump([$amount, $clabe, $currency]); exit;
         Log::info("Bitso Payout 1");
-        $beneficiary = Beneficiary::whereId(request()->payment_method_id)->first();
-        $pay_data = $beneficiary->payment_data;
-        $customer = $beneficiary->customer_name;
-
-
-        Log::info("Bitso Payout 2");
         if (strtolower($currency) == 'mxn') {
-
-            if (isset($beneficiary->payment_data)) {
-                $clabe = $beneficiary->payment_data->clabe;
+            Log::info("Bitso Payout 2");
+            if (isset($ben->payment_data)) {
+                $clabe = $ben->payment_data->clabe;
             }
     
             if (null == $clabe || empty($clabe)) {
-                var_dump(['error' => 'Error retreieveing clabe number']);
+                session()->flash('error', 'Error retreieveing clabe number');
+                // var_dump(['error' => 'Error retreieveing clabe number']);
             }
     
             $data = [
                 "method" => "praxis",
                 "amount" => $amount,
                 "currency" => "mxn",
-                "beneficiary" => $customer,
+                "beneficiary" => $ben->payment_data->beneficiary ?? "N/A",
                 "clabe" => $clabe,
                 "protocol" => "clabe",
             ];
         } elseif (strtolower($currency) == 'cop') {
             Log::info("Bitso Payout 3");
+            $pay_data = $ben->payment_data;
             $data = [
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
