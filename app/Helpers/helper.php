@@ -155,13 +155,20 @@ if (!function_exists('get_transaction_rate')) {
         $gatewayId = $Id;
 
         if ($type == "payout") {
-            $gateway = PayoutMethods::whereId($gatewayId)->first();
-        } else {
+            $gateway = payoutMethods::whereId($gatewayId)->first();
+        } else if($type == "payin") {
             $gateway = PayinMethods::whereId($gatewayId)->first();
+        } else {
+            return ['error' => 'invalid transaction type'];
         }
 
         $rate = $gateway->exchange_rate_float ?? 0;
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
+        
+        if($type == "payin") {
+            return $baseRate;
+        }
+
 
         Log::info("Exchange Rate Details", [
             "Exchange_rate" => $baseRate,
