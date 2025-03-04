@@ -376,48 +376,69 @@ class BitsoController extends Controller
 
     protected static function handleWithdrawal(array $payload): void
     {
-        BitsoWebhookLog::create([
-            'fid' => $payload['wid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'method' => $payload['method'],
-            'amount' => $payload['amount'],
-            'details' => ($payload['details'] ?? []),
-        ]);
-
-        if(!isset($payload['details']['origin_id'])) {
-            die("Transaction ID not found");
+        try {
+            // Log the webhook payload
+            BitsoWebhookLog::create([
+                'fid' => $payload['wid'],
+                'status' => $payload['status'],
+                'currency' => $payload['currency'],
+                'method_name' => $payload['method'],
+                'amount' => $payload['amount'],
+                'details' => ($payload['details'] ?? []),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error logging webhook payload: " . $e->getMessage());
         }
-
-        $txn_id = $payload['details']['origin_id'];
-        $payout = Withdrawal::whereId($txn_id)->first();
-        if($payout) {
-            $payout->status = strtolower($payload['status']);
-            $payout->save();
-
-            // update transaction record also
-            $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
-            if($txn) {
-                $txn->transaction_status = $payout->status;
-                $txn->save();
+    
+        try {
+            if (!isset($payload['details']['origin_id'])) {
+                Log::error("Transaction ID not found in payload.");
+                return; // Exit gracefully if no transaction ID found
             }
-
-            if($payout->save() && $txn->save()) {
-                // if transaction is failed refund customer
-                if(strtolower($payout->status) === "failed") {
-                    $user = User::whereId($payout->user_id)->first();
-                    if($user) {
-                        $wallet = $user->getWallet($payout->debit_wallet);
-                        $wallet->deposit($payout->debit_amount, [
-                            "description" => "refund",
-                            "full_desc" => "Refund for payout {$payout->id}",
-                            "payload" => $payout
-                        ]);
+    
+            $txn_id = $payload['details']['origin_id'];
+            $payout = Withdrawal::whereId($txn_id)->first();
+    
+            if ($payout) {
+                try {
+                    $payout->status = strtolower($payload['status']);
+                    $payout->save();
+    
+                    // Update transaction record also
+                    $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
+                    if ($txn) {
+                        $txn->transaction_status = $payout->status;
+                        $txn->save();
                     }
+    
+                    // Save both payout and transaction records
+                    if ($payout->save() && $txn->save()) {
+                        // If transaction is failed, refund customer
+                        if (strtolower($payout->status) === "failed") {
+                            $user = User::whereId($payout->user_id)->first();
+                            if ($user) {
+                                try {
+                                    $wallet = $user->getWallet($payout->debit_wallet);
+                                    $wallet->deposit($payout->debit_amount, [
+                                        "description" => "refund",
+                                        "full_desc" => "Refund for payout {$payout->id}",
+                                        "payload" => $payout
+                                    ]);
+                                } catch (\Exception $e) {
+                                    Log::error("Error processing refund for payout {$payout->id}: " . $e->getMessage());
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error processing payout transaction for {$txn_id}: " . $e->getMessage());
                 }
             }
+        } catch (\Exception $e) {
+            Log::error("Error handling withdrawal for {$txn_id}: " . $e->getMessage());
         }
     }
+    
 
     protected static function handleTrade(array $payload): void
     {
