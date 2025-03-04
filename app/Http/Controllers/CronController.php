@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Deposit;
 use App\Models\PayinMethods;
+use App\Models\payoutMethods;
 use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\Withdraw;
@@ -119,7 +120,7 @@ class CronController extends Controller
     public function bitso()
     {
         $bitso = new BitsoServices();
-        $ids = $this->getGatewayPayinMethods(method: 'transfi');
+        $ids = $this->getGatewayPayoutMethods(method: 'bitso');
         $payouts = Withdraw::whereIn('gateway', $ids)->whereStatus('pending')->get();
         foreach ($payouts as $payout) {
             $txn_id = $payout->id;
@@ -242,10 +243,17 @@ class CronController extends Controller
             }
         }
     }
-
+    
     private function getGatewayPayinMethods(string $method)
     {
         return PayinMethods::where('gateway', $method)
+            ->pluck('id')
+            ->toArray();
+    }
+
+    private function getGatewayPayoutMethods(string $method)
+    {
+        return payoutMethods::where('gateway', $method)
             ->pluck('id')
             ->toArray();
     }
