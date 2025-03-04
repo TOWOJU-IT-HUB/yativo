@@ -122,13 +122,13 @@ class BitsoController extends Controller
             return ['error' => 'Beneficiary not found'];
         }
 
-        if (isset($beneficiary->payment_data)) {
-            $clabe = $beneficiary->payment_data->clabe;
-        }
+        // if (isset($beneficiary->payment_data)) {
+        //     $clabe = $beneficiary->payment_data->clabe ?? $beneficiary->payment_data->bankAccount;
+        // }
 
-        if (null == $clabe || empty($clabe)) {
-            return ['error' => 'Error retreieveing clabe number'];
-        }
+        // if (null == $clabe || empty($clabe)) {
+        //     return ['error' => 'Error retreieveing clabe number'];
+        // }
 
         $result = $this->bitso->payout($amount, $clabe, $currency);
         return $result;
