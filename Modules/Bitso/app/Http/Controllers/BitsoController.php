@@ -113,7 +113,7 @@ class BitsoController extends Controller
      * @return array
      */
 
-    public function withdraw($amount, $beneficiaryId, $currency)
+    public function withdraw($amount, $beneficiaryId, $currency, $payoutId = '')
      {
          $clabe = null;
          // Get beneficiary info
@@ -143,7 +143,8 @@ class BitsoController extends Controller
                  "currency" => "mxn",
                  "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
                  "clabe" => $clabe,
-                 "protocol" => "clabe",
+                 "protocol" => "clabe",,
+                 "origin_id" => $payoutId
              ];
          } elseif (strtolower($currency) == 'cop') {
              // ✅ Trim and validate document_id to be between 6 and 10 digits
@@ -165,6 +166,7 @@ class BitsoController extends Controller
                  'document_type' => strtoupper($pay_data['document_type']), // Ensure uppercase format
                  'email' => "noreply@yativo.com", 
                  "third_party_withdrawal" => true,
+                 "origin_id" => $payoutId
              ];
          } else {
              return ['error' => "We currently cannot process this currency"];
@@ -200,10 +202,15 @@ class BitsoController extends Controller
             if ($webhookData['event'] === 'funding'){
                 $complete_action = $this->handleClabeDeposit($webhookData);
             }
-
+            
             // Check if the event is 'funding' and the status is 'complete'
             if ($webhookData['event'] === 'funding'){
                 $complete_action = $this->handleClabeDeposit($webhookData);
+            }
+
+            // Check if the event is 'funding' and the status is 'complete'
+            if ($webhookData['event'] === 'withdrawal'){
+                $complete_action = $this->handleWithdrawal($webhookData);
             }
 
 
@@ -378,7 +385,7 @@ class BitsoController extends Controller
             'details' => ($payload['details'] ?? []),
         ]);
 
-        Withdrawal::create([
+        Withdrawal::where("id")->([
             'transaction_id' => $payload['wid'],
             'status' => $payload['status'],
             'currency' => $payload['currency'],
