@@ -155,9 +155,9 @@ class BitsoController extends Controller
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
                 'amount' => $amount,
-                'bankAccount' => $pay_data->account_number ?? $pay_data->bankAccount, //'059-000073-51',
-                'bankCode' => $pay_data->bank_code ?? $pay_data->bankCode, // '007',
-                'AccountType' => $pay_data->account_type ?? $pay_data->AccountType,
+                'bankAccount' => $pay_data['bankAccount'], //'059-000073-51',
+                'bankCode' => $pay_data['bankCode'], // '007',
+                'AccountType' => $pay_data['AccountType'],
             ];
         } else {
             return ['error' => "We currently can not process this currency"];
