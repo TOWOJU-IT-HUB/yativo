@@ -171,7 +171,7 @@ class FlowController extends Controller
                 "beneficiary_email" => $ben['beneficiary_email'],
                 "description" => $ben['description']
             ];
-
+            var_dump($requestData); exit;
             $response = Http::withToken($authToken)->withHeaders([
                 'Content-Type' => 'application/json',
             ])->post($url, $requestData);
