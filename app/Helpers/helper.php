@@ -185,7 +185,8 @@ if (!function_exists('get_transaction_rate')) {
         session([
             "rates" => [
                 "base_rate" => $baseRate,
-                "final_rate" => $result
+                "final_rate" => $result,
+                "exchange_rate_float" => $gateway->exchange_rate_float
             ] 
         ]);
 
