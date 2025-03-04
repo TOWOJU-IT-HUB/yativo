@@ -5,6 +5,7 @@ namespace Modules\Flow\app\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Deposit;
 use App\Models\User;
+use App\Models\payoutMethods;
 use Http;
 use Illuminate\Http\Request;
 use Log;
