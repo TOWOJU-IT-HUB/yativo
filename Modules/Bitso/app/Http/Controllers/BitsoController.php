@@ -376,6 +376,10 @@ class BitsoController extends Controller
 
     protected static function handleWithdrawal(array $payload): void
     {
+        if(strtolower($payload['status']) === "pending") {
+            die("Status is still pending");
+        }
+        
         try {
             // Log the webhook payload
             BitsoWebhookLog::create([
