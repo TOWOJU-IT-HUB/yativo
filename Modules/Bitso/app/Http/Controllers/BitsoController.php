@@ -388,7 +388,7 @@ class BitsoController extends Controller
         if(!isset($payload['details']['origin_id'])) {
             die("Transaction ID not found");
         }
-        
+
         $txn_id = $payload['details']['origin_id'];
         $payout = Withdrawal::whereId($txn_id)->first();
         if($payout) {
