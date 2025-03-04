@@ -174,7 +174,7 @@ if (!function_exists('get_transaction_rate')) {
         if ($rate > 0 && $baseRate > 0) {
             $result = ($type == "payout") 
                 ? ($baseRate * (1 - ($rate / 100)))  // Reduce by percentage
-                : ($baseRate * (1 + ($rate / 100))); // Increase by percentage
+                : ($baseRate); // Increase by percentage
         } elseif ($baseRate > 0) {
             $result = $baseRate;
         } else {
