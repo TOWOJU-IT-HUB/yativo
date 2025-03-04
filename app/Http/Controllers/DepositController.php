@@ -160,7 +160,7 @@ class DepositController extends Controller
                         "base_exchange_rate" => $base_exchange_rate,
                         "helper_rates" => session()->get('rates')
                     ]);
-                    dd($arr);
+                    dd($arr); exit;
                 }
     
                 $process = $this->process_store($request->gateway, $payin->currency, $total_amount_due, $deposit->toArray());

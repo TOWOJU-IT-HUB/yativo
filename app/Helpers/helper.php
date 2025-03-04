@@ -199,8 +199,10 @@ if (!function_exists('exchange_rates')) {
         if ($from === $to) return 1.0; // Return 1 for same currencies
 
         $cacheKey = "exchange_rate_{$from}_{$to}";
+        Log::info("I'm here getting the exchange rate");
         return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
+            Log::info("I'm here getting the exchange rate - cache mode");
             $apis = [
                 "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
                 "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
