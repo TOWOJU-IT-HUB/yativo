@@ -159,7 +159,7 @@ class BitsoController extends Controller
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
                 'amount' => $amount,
-                'bankAccount' => '059-000073-51',
+                'bankAccount' => '05900007351',
                 'bankCode' => '007',
                 'AccountType' => 2 
             ];
