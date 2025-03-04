@@ -158,7 +158,7 @@ class FlowController extends Controller
 
             $authToken = env("FLOID_AUTH_TOKEN");
             
-            var_dump([$authToken]); exit;
+            // var_dump([$authToken]); exit;
             $rate = getExchangeVal($gateway->currency, "CLP");
 
             $requestData = [
