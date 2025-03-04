@@ -13,6 +13,7 @@ use Log;
 use Modules\BinancePay\app\Http\Controllers\BinancePayController;
 use Modules\BinancePay\app\Models\BinancePay;
 use Modules\Flow\app\Http\Controllers\FlowController;
+use Modules\Bitso\app\Services\BitsoServices;
 
 class CronController extends Controller
 {
@@ -112,6 +113,43 @@ class CronController extends Controller
         // if ($failedDepositIds->isNotEmpty()) {
         //     Deposit::whereIn('id', $failedDepositIds)->update(['status' => 'failed']);
         // }
+    }
+
+    // bitso withdrawal payout 
+    public function bitso()
+    {
+        $bitso = new BitsoServices();
+        $ids = $this->getGatewayPayinMethods(method: 'transfi');
+        $payouts = Withdraw::whereIn('gateway', $ids)->whereStatus('pending')->get();
+        foreach ($payouts as $payout) {
+            $txn_id = $payout->id;
+            $curl = $bitso->getPayoutStatus($txn_id);
+            $payload = $curl['payload'][0];
+            $payout->status = strtolower($payload['status']);
+            $payout->save();
+
+            // update transaction record also
+            $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
+            if($txn) {
+                $txn->transaction_status = $payout->status;
+                $txn->save();
+            }
+
+            if($payout->save() && $txn->save()) {
+                // if transaction is failed refund customer
+                if(strtolower($payout->status) === "failed") {
+                    $user = User::whereId($payout->user_id)->first();
+                    if($user) {
+                        $wallet = $user->getWallet($payout->debit_wallet);
+                        $wallet->deposit($payout->debit_amount, [
+                            "description" => "refund",
+                            "full_desc" => "Refund for payout {$payout->id}",
+                            "payload" => $payout
+                        ]);
+                    }
+                }
+            }
+        }
     }
 
     // get status of transFi transaction

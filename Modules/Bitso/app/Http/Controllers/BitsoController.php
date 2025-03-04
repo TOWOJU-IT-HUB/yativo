@@ -210,7 +210,7 @@ class BitsoController extends Controller
 
             // Check if the event is 'funding' and the status is 'complete'
             if ($webhookData['event'] === 'withdrawal'){
-                $complete_action = $this->handleWithdrawal($webhookData);
+                $complete_action = $this->handleWithdrawal($webhookData['payload']);
             }
 
 
@@ -385,14 +385,38 @@ class BitsoController extends Controller
             'details' => ($payload['details'] ?? []),
         ]);
 
-        Withdrawal::where("id")->([
-            'transaction_id' => $payload['wid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'amount' => $payload['amount'],
-            'method' => $payload['method'],
-            'destination' => $payload['details']['destination'] ?? null,
-        ]);
+        if(!isset($payload['details']['origin_id'])) {
+            die("Transaction ID not found");
+        }
+        
+        $txn_id = $payload['details']['origin_id'];
+        $payout = Withdrawal::whereId($txn_id)->first();
+        if($payout) {
+            $payout->status = strtolower($payload['status']);
+            $payout->save();
+
+            // update transaction record also
+            $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
+            if($txn) {
+                $txn->transaction_status = $payout->status;
+                $txn->save();
+            }
+
+            if($payout->save() && $txn->save()) {
+                // if transaction is failed refund customer
+                if(strtolower($payout->status) === "failed") {
+                    $user = User::whereId($payout->user_id)->first();
+                    if($user) {
+                        $wallet = $user->getWallet($payout->debit_wallet);
+                        $wallet->deposit($payout->debit_amount, [
+                            "description" => "refund",
+                            "full_desc" => "Refund for payout {$payout->id}",
+                            "payload" => $payout
+                        ]);
+                    }
+                }
+            }
+        }
     }
 
     protected static function handleTrade(array $payload): void

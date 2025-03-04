@@ -184,4 +184,12 @@ class BitsoServices
         $request = $this->sendRequest($payload, 'GET');
         return $request;
     }
+
+
+    public function getPayoutStatus($payoutId)
+    {
+        $this->requestPath = "/api/v3/withdrawals?origin_ids={$payoutId}";
+        $request = $this->sendRequest(["origin_ids" => $payoutId], 'GET');
+        return $request;
+    }
 }

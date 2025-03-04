@@ -85,7 +85,7 @@ class PayoutController extends Controller
             $payout->save();
 
             // update transaction record also
-            $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payin'])->first();
+            $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payout'])->first();
             if($txn) {
                 $txn->transaction_status = $request->status;
                 $txn->save();
