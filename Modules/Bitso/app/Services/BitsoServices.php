@@ -178,7 +178,7 @@ class BitsoServices
         }
     }
 
-    public function getDepositStatus($fid, $payload)
+    public function getDepositStatus($fid, $payload = "")
     {
         $this->requestPath = "/api/v3/fundings/{$fid}";
         $request = $this->sendRequest($payload, 'GET');
@@ -186,10 +186,10 @@ class BitsoServices
     }
 
 
-    public function getPayoutStatus($payoutId, $payload = [])
+    public function getPayoutStatus($payoutId, $payload = "")
     {
         $this->requestPath = "/api/v3/withdrawals?origin_ids={$payoutId}";
-        $request = $this->sendRequest("", 'GET');
+        $request = $this->sendRequest($payload, 'GET');
         return $request;
     }
 }
