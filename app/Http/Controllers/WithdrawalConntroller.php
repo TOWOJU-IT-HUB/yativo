@@ -123,9 +123,9 @@ class WithdrawalConntroller extends Controller
     {
         try {
             // Add debit_wallet column if missing
-            if (!Schema::hasColumn('withdraws', 'send_amount')) {
+            if (!Schema::hasColumn('withdraws', 'customer_receive_amount')) {
                 Schema::table('withdraws', function (Blueprint $table) {
-                    $table->string('send_amount')->nullable();
+                    $table->string('customer_receive_amount')->nullable();
                 });
             }
     
