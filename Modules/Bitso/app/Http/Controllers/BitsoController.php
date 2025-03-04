@@ -143,7 +143,7 @@ class BitsoController extends Controller
                  "currency" => "mxn",
                  "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
                  "clabe" => $clabe,
-                 "protocol" => "clabe",,
+                 "protocol" => "clabe",
                  "origin_id" => $payoutId
              ];
          } elseif (strtolower($currency) == 'cop') {
