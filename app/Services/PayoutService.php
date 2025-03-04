@@ -130,6 +130,7 @@ class PayoutService
             $request = request();
             $beneficiaryId = $request->payment_method_id;
             $local = new BitsoController();
+            Log::info("Bitso payout model called");
             $payout = $local->withdraw(
                 $request->amount,
                 $beneficiaryId,

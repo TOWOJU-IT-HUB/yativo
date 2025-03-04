@@ -148,12 +148,14 @@ class BitsoServices
 
     public function payout($amount, $clabe, $currency)
     {
-        var_dump([$amount, $clabe, $currency]); exit;
+        // var_dump([$amount, $clabe, $currency]); exit;
+        Log::info("Bitso Payout 1");
         $beneficiary = Beneficiary::whereId(request()->beneficiary_id)->first();
         $pay_data = $beneficiary->payment_data;
         $customer = $beneficiary->customer_name;
 
 
+        Log::info("Bitso Payout 2");
         if (strtolower($currency) == 'mxn') {
             $data = [
                 "method" => "praxis",
@@ -164,6 +166,7 @@ class BitsoServices
                 "protocol" => "clabe",
             ];
         } elseif (strtolower($currency) == 'cop') {
+            Log::info("Bitso Payout 3");
             $data = [
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
@@ -182,6 +185,7 @@ class BitsoServices
             return ['error' => "We currently can not process this currency"];
         }
 
+        Log::info("Bitso Payout 4");
         return $this->initiateWithdrawal($data);
     }
 
