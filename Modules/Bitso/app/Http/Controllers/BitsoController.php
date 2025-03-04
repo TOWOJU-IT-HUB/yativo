@@ -159,9 +159,15 @@ class BitsoController extends Controller
                 'currency' => 'cop',
                 'protocol' => 'ach_co',
                 'amount' => $amount,
-                'bankAccount' => '05900007351',
-                'bankCode' => '007',
-                'AccountType' => 2 
+                'bankAccount' => $pay_data['bankAccount'],
+                'bankCode' => $pay_data['bankCode'],
+                'AccountType' => $pay_data['AccountType'],
+                'beneficiary_name' => $pay_data['beneficiary_name'],
+                'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
+                'document_id' => $pay_data['document_id'],
+                'document_type' => $pay_data['document_type'],
+                'email' => "noreply@yativo.com", 
+                "third_party_withdrawal" => true,
             ];
         } else {
             return ['error' => "We currently can not process this currency"];

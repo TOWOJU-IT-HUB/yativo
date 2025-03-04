@@ -148,7 +148,6 @@ class BitsoServices
 
     public function payout($data)
     {
-        Log::info("Bitso Payout 4");
         return $this->initiateWithdrawal($data);
     }
 
