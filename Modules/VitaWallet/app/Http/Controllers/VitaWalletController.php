@@ -21,19 +21,19 @@ use Modules\VitaWallet\app\Services\VitaWalletService;
 
 class VitaWalletController extends Controller
 {
-    protected $vitaWalletService, $url;
+    protected $bis, $url;
     protected $vitaBusinessAPI;
 
     public function __construct()
     {
         // $this->url = "https://api.stage.vitawallet.io/api/businesses/";
-        $this->vitaWalletService = new VitaBusinessAPI();
+        $this->bis = new VitaBusinessAPI();
         $this->vitaBusinessAPI = new VitaWalletAPI();
     }
 
     public function wallets()
     {
-        $response = $this->vitaWalletService->makeSignedRequest('wallets', [], 'get');
+        $response = $this->bis->makeSignedRequest('wallets', [], 'get');
 
         return $response;
     }
@@ -224,7 +224,9 @@ class VitaWalletController extends Controller
 
         // var_dump($curl); exit;
         Log::info("vita controller 001");
-        $curl = $this->vitaWalletService->sendRequest("POST", "transactions", $requestBody);
+        
+        $curl = $this->bis->makeSignedRequest("transactions", $requestBody);
+        var_dump(["curl request response is: " => $curl]); exit;
         $array = $requestBody;
 
         // Initialize Configuration and set credentials
