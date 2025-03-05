@@ -252,7 +252,6 @@ class VitaWalletController extends Controller
         }
 
         curl_close($ch);
-        var_dump($result);
         return $result;
     }
 
