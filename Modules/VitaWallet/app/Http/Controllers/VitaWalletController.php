@@ -216,40 +216,34 @@ class VitaWalletController extends Controller
      * @param mixed $requestBody
      * @return array
      */
-    public function create_withdrawal($requestBody)
+    public function create_withdrawal($payload)
     {
-        $xprices = cache()->remember('xprices', 300, function () {
-            return $this->prices();
-        });
-        $array = $requestBody;
+        $configuration = Configuration::getInstance();
+
+        $this->prices();
+
 
         // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
         // Prepare headers
-        // $headers = $configuration->prepareHeaders(''); // for get requests
-        $headers = $configuration->prepareHeaders($array);
+        $headers = $configuration->prepareHeaders($payload);
         $xheaders = [
             "X-Date: " . $headers['headers']["X-Date"],
             "X-Login: " . $headers['headers']["X-Login"],
             "X-Trans-Key: " . $headers['headers']["X-Trans-Key"],
-            "X-Api-Key: " . $headers['headers']["X-Trans-Key"],
             "Content-Type: " . $headers['headers']["Content-Type"],
             "Authorization: " . $headers['headers']["Authorization"],
         ];
 
-        // return response()->json($xheaders);
-
-        $endpoint = Configuration::createTransaction();
         // Prepare cURL request
         $ch = curl_init();
-        // curl_setopt($ch, CURLOPT_URL, Configuration::getWalletsUrl());
-        curl_setopt($ch, CURLOPT_URL, $endpoint);
+        curl_setopt($ch, CURLOPT_URL, Configuration::payin());
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($array));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $xheaders);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_VERBOSE, true);  // Enable verbose output for debugging
 
+        
         // Execute request
         $response = curl_exec($ch);
         if ($response === false) {
@@ -261,7 +255,7 @@ class VitaWalletController extends Controller
         }
 
         curl_close($ch);
-        var_dump($result); exit;        
+        var_dump($result);
         return $result;
     }
 
