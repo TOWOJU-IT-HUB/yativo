@@ -121,7 +121,7 @@ class VitaBusinessAPI
      * @param string $method (default: post)
      * @return \array
      */
-    public function makeSignedRequest($endpoint, array $body = [], $method = "post")
+    public function makeSignedRequest(string $endpoint, array $body = [], $method = "post")
     {
         $credentials = self::getInstance()->credentials;
         $baseUrl = $credentials['BASE_URL'];

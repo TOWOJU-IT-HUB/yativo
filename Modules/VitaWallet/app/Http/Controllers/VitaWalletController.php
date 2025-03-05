@@ -218,12 +218,13 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
-        // $xprices = cache()->remember('xprices', 300, function () {
-        //     return $this->prices();
-        // });
+        $xprices = cache()->remember('xprices', 300, function () {
+            return $this->prices();
+        });
 
+        // var_dump($curl); exit;
+        Log::info("vita controller 001");
         $curl = $this->vitaWalletService->sendRequest("POST", "transactions", $requestBody);
-        var_dump($curl); exit;
         $array = $requestBody;
 
         // Initialize Configuration and set credentials

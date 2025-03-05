@@ -27,6 +27,7 @@ class VitaWalletService
     {
         $apiService = new VitaBusinessAPI();
 
+        Log::info("vita controller 002");
         $endpoint = getenv('VITA_BASE_URL').$endpoint;
         $response = $apiService->makeSignedRequest($endpoint, $requestBody, $method);
         return $response;

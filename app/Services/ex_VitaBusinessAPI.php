@@ -30,6 +30,7 @@ class ex_VitaBusinessAPI
      */
     private function generateSignature($requestBody, $xDate)
     {
+        Log::info("vita controller 004");
         // Sort and concatenate the request body (if it's not null or empty)
         $sortedRequestBody = $this->getSortedRequestBody($requestBody);
 
@@ -52,6 +53,7 @@ class ex_VitaBusinessAPI
             return ''; // If request body is empty, return empty string
         }
 
+        Log::info("vita controller 005");
         // Sort the request body by keys
         ksort($requestBody);
 
@@ -73,6 +75,7 @@ class ex_VitaBusinessAPI
     {
         $xDate = now()->toISOString();
 
+        Log::info("vita controller 003");
         // Handle GET requests separately, passing an empty string as the body
         $sortedRequestBody = $method === 'get' ? '' : $this->getSortedRequestBody($body);
         $signature = $this->generateSignature($sortedRequestBody, $xDate);

@@ -236,7 +236,6 @@ class PayoutService
                 $process = json_decode($process, true);
             }
 
-
             if (isset($process['error'])) {
                 return ['error' => $process['error']['message'] ?? $process['error'] ?? 'Unknown error occurred'];
             }
