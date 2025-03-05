@@ -220,8 +220,6 @@ class VitaWalletController extends Controller
     {
         $configuration = Configuration::getInstance();
 
-        $this->prices();
-
         // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
         // Prepare headers
