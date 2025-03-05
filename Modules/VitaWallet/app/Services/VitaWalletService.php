@@ -23,7 +23,7 @@ class VitaWalletService
     }
     
     // sample:  
-    public function sendRequest($method, $endpoint, array $requestBody = [])
+    public function sendRequest(string $method, string $endpoint, array $requestBody = [])
     {
         $apiService = new VitaBusinessAPI();
 
