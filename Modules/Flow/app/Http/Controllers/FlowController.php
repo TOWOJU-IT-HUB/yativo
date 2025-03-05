@@ -146,6 +146,7 @@ class FlowController extends Controller
             $beneficiaryId = $payload->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
             $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+            var_dump($ben); exit;
 
             if (!$ben) {
                 return ['error' => 'Beneficiary not found'];
