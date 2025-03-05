@@ -173,7 +173,7 @@ class FlowController extends Controller
                 "beneficiary_account" => $ben['beneficiary_account'],
                 "amount" => floatval($amount * $rate),
                 "beneficiary_account_type" => $ben['beneficiary_account_type'],
-                "beneficiary_bank_code" => "bci", //$ben['beneficiary_bank_code'],            
+                "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
                 "beneficiary_email" => $ben['beneficiary_email'],
                 "description" => $ben['description']
             ];
@@ -184,7 +184,7 @@ class FlowController extends Controller
             ])->post($url, $requestData);
 
             $result = $response->json();
-            var_dump($result); exit;
+            // var_dump($result); exit;
             return ["error" => $result];
         } catch (\Throwable $e) {
             return ["error" => $e->getMessage()];
