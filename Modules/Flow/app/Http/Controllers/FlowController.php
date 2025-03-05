@@ -145,8 +145,13 @@ class FlowController extends Controller
 
             $beneficiaryId = $payload->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
-            $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
-            var_dump($ben); exit;
+            $ben = [];
+            $data= $model->getBeneficiaryPaymentMethod($beneficiaryId);
+            // var_dump($ben); exit;
+
+            if($data) {
+                $ben = $data->payment_data;
+            }
 
             if (!$ben) {
                 return ['error' => 'Beneficiary not found'];
@@ -172,6 +177,7 @@ class FlowController extends Controller
                 "beneficiary_email" => $ben['beneficiary_email'],
                 "description" => $ben['description']
             ];
+
             var_dump($requestData); exit;
             $response = Http::withToken($authToken)->withHeaders([
                 'Content-Type' => 'application/json',
