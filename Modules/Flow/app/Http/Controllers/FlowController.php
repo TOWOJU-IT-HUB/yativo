@@ -173,12 +173,12 @@ class FlowController extends Controller
                 "beneficiary_account" => $ben['beneficiary_account'],
                 "amount" => floatval($amount * $rate),
                 "beneficiary_account_type" => $ben['beneficiary_account_type'],
-                "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
+                "beneficiary_bank_code" => "bci", //$ben['beneficiary_bank_code'],            
                 "beneficiary_email" => $ben['beneficiary_email'],
                 "description" => $ben['description']
             ];
 
-            var_dump($requestData); exit;
+            // var_dump($requestData); exit;
             $response = Http::withToken($authToken)->withHeaders([
                 'Content-Type' => 'application/json',
             ])->post($url, $requestData);
