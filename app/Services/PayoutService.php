@@ -28,6 +28,7 @@ use Modules\PayPal\app\Http\Controllers\PayPalDepositController;
 use Modules\PayPal\app\Providers\PayPalServiceProvider;
 use Modules\SendMoney\app\Models\SendQuote;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
+use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 use Towoju5\Localpayments\Localpayments;
 use App\Services\BrlaDigitalService;
@@ -222,14 +223,16 @@ class PayoutService
 
             $payload = array_merge($formArray, $requestBody);
 
-            // echo json_encode($payload, JSON_PRETTY_PRINT); exit;
+            // echo json_encode($payload, JSON_PRETTY_PRINT); exit; - 
             Log::info("My request payload is:", ['payload' => $payload]);
             $vita = new VitaWalletController();
             $prices = $vita->prices();
+            
+            $curl = new VitaWalletTestController();
 
             Log::info("Price response is: ", ['price' => $prices]);
 
-            $process = $vita->create_withdrawal($payload);
+            $process = $curl->create_withdrawal($payload);
 
             Log::info("Main process response is: ", ['main_vita' => $process]);
             if (!is_array($process)) {
