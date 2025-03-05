@@ -55,6 +55,7 @@ class VitaBusinessAPI
      */
     private function generateSignature(array|string $requestBody, $xDate)
     {
+        Log::info("vita controller 003");
         // Sort and concatenate the request body (if it's not null)
         $sortedRequestBody = $this->prepareHeaders($requestBody);
 
@@ -78,6 +79,7 @@ class VitaBusinessAPI
                 return '';
             }
 
+            Log::info("vita controller 004");
             // Sort the request body by keys
             ksort($requestBody);
 
@@ -97,9 +99,11 @@ class VitaBusinessAPI
         $X_Trans_Key = $credentials['X_Trans_Key'];
         $secret = $credentials['secret'];
 
+        Log::info("vita controller 005");
         $X_Date = (new DateTime())->format('Y-m-d\TH:i:s.v\Z');
         $result = self::prepareResult($payload);
 
+        Log::info("vita controller 006");
         $signature = hash_hmac('sha256', $X_Login . $X_Date . $result, $secret);
 
         return [
@@ -123,6 +127,8 @@ class VitaBusinessAPI
      */
     public function makeSignedRequest(string $endpoint, array $body = [], $method = "post")
     {
+
+        Log::info("vita controller 007");
         $credentials = self::getInstance()->credentials;
         $baseUrl = $credentials['BASE_URL'];
         
