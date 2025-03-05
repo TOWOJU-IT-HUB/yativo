@@ -126,30 +126,31 @@ class CronController extends Controller
         foreach ($payouts as $payout) {
             $txn_id = $payout->id;
             $curl = $bitso->getPayoutStatus($txn_id);
-            if($curl['success'] == false) continue;
-            Log::info("Below is the payout detail: ", ["curl" => $curl]);
-            $payload = $curl['payload'][0];
-            $payout->status = strtolower($payload['status']);
-            $payout->save();
+            if($curl['success'] != false){
+                Log::info("Below is the payout detail: ", ["curl" => $curl]);
+                $payload = $curl['payload'][0];
+                $payout->status = strtolower($payload['status']);
+                $payout->save();
 
-            // update transaction record also
-            $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
-            if($txn) {
-                $txn->transaction_status = $payout->status;
-                $txn->save();
-            }
+                // update transaction record also
+                $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
+                if($txn) {
+                    $txn->transaction_status = $payout->status;
+                    $txn->save();
+                }
 
-            if($payout->save() && $txn->save()) {
-                // if transaction is failed refund customer
-                if(strtolower($payout->status) === "failed") {
-                    $user = User::whereId($payout->user_id)->first();
-                    if($user) {
-                        $wallet = $user->getWallet($payout->debit_wallet);
-                        $wallet->deposit($payout->debit_amount, [
-                            "description" => "refund",
-                            "full_desc" => "Refund for payout {$payout->id}",
-                            "payload" => $payout
-                        ]);
+                if($payout->save() && $txn->save()) {
+                    // if transaction is failed refund customer
+                    if(strtolower($payout->status) === "failed") {
+                        $user = User::whereId($payout->user_id)->first();
+                        if($user) {
+                            $wallet = $user->getWallet($payout->debit_wallet);
+                            $wallet->deposit($payout->debit_amount, [
+                                "description" => "refund",
+                                "full_desc" => "Refund for payout {$payout->id}",
+                                "payload" => $payout
+                            ]);
+                        }
                     }
                 }
             }
