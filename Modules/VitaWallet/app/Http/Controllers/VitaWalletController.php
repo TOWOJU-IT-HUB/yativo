@@ -21,19 +21,19 @@ use Modules\VitaWallet\app\Services\VitaWalletService;
 
 class VitaWalletController extends Controller
 {
-    protected $bis, $url;
+    protected $vitaWalletService, $url;
     protected $vitaBusinessAPI;
 
     public function __construct()
     {
         // $this->url = "https://api.stage.vitawallet.io/api/businesses/";
-        $this->bis = new VitaBusinessAPI();
+        $this->vitaWalletService = new VitaBusinessAPI();
         $this->vitaBusinessAPI = new VitaWalletAPI();
     }
 
     public function wallets()
     {
-        $response = $this->bis->makeSignedRequest('wallets', [], 'get');
+        $response = $this->vitaWalletService->makeSignedRequest('wallets', [], 'get');
 
         return $response;
     }
@@ -218,11 +218,9 @@ class VitaWalletController extends Controller
      */
     public function create_withdrawal($requestBody)
     {
-        // var_dump($curl); exit;
-        Log::info("vita controller 001");
-        
-        // $curl = $this->vitaBusinessAPI->makeSignedRequest("transactions", $requestBody);
-        // var_dump(["curl request response is: " => $curl]); exit;
+        $xprices = cache()->remember('xprices', 300, function () {
+            return $this->prices();
+        });
         $array = $requestBody;
 
         // Initialize Configuration and set credentials
@@ -234,6 +232,7 @@ class VitaWalletController extends Controller
             "X-Date: " . $headers['headers']["X-Date"],
             "X-Login: " . $headers['headers']["X-Login"],
             "X-Trans-Key: " . $headers['headers']["X-Trans-Key"],
+            "X-Api-Key: " . $headers['headers']["X-Trans-Key"],
             "Content-Type: " . $headers['headers']["Content-Type"],
             "Authorization: " . $headers['headers']["Authorization"],
         ];
@@ -262,25 +261,7 @@ class VitaWalletController extends Controller
         }
 
         curl_close($ch);
-
-
-        $vitawallet = new VitaWalletAPI();
-        $secondary_request = $vitawallet->makeSignedRequest($endpoint, $requestBody, "POST");
-        $resp = $this->vitaBusinessAPI->makeSignedRequest("transactions", $array);
-        // var_dump($resp); exit;
-
-        var_dump([
-            "initial_request" => $response,
-            "xheaders" => $xheaders,
-            "payload" => $requestBody,
-            "secondary" => [
-                "endpoint" => $endpoint,
-                "payload" => $requestBody,
-                "response" => $secondary_request
-            ],
-            "resp" => $resp,
-        ]); exit;
-        
+        var_dump($result); exit;        
         return $result;
     }
 
