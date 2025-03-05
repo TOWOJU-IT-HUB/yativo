@@ -225,7 +225,7 @@ class VitaWalletController extends Controller
         // var_dump($curl); exit;
         Log::info("vita controller 001");
         
-        $curl = $this->bis->makeSignedRequest("transactions", $requestBody);
+        $curl = $this->vitaBusinessAPI->makeSignedRequest("transactions", $requestBody);
         var_dump(["curl request response is: " => $curl]); exit;
         $array = $requestBody;
 

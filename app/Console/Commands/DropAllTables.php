@@ -19,25 +19,25 @@ class DropAllTables extends Command
     public function handle()
     {
         // Get the list of all tables in the database
-        $tables = DB::select('SHOW TABLES');
-        $tableKey = 'Tables_in_' . env('DB_DATABASE');
+        // $tables = DB::select('SHOW TABLES');
+        // $tableKey = 'Tables_in_' . env('DB_DATABASE');
 
-        if (empty($tables)) {
-            $this->info('No tables found in the database.');
-            return;
-        }
+        // if (empty($tables)) {
+        //     $this->info('No tables found in the database.');
+        //     return;
+        // }
 
-        // Disable foreign key checks before dropping tables
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        // // Disable foreign key checks before dropping tables
+        // DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-        foreach ($tables as $table) {
-            $tableName = $table->$tableKey;
-            Schema::dropIfExists($tableName);
-            $this->info("Dropped table: $tableName");
-        }
+        // foreach ($tables as $table) {
+        //     $tableName = $table->$tableKey;
+        //     Schema::dropIfExists($tableName);
+        //     $this->info("Dropped table: $tableName");
+        // }
 
-        // Re-enable foreign key checks after dropping tables
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        // // Re-enable foreign key checks after dropping tables
+        // DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $this->info('All tables have been dropped successfully!');
     }
