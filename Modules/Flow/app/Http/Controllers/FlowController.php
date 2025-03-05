@@ -156,7 +156,7 @@ class FlowController extends Controller
             if (!$ben) {
                 return ['error' => 'Beneficiary not found'];
             }
-            $gateway = payoutMethods::whereId($ben->gateway_id)->first();
+            $gateway = payoutMethods::whereId($data->gateway_id)->first();
 
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
