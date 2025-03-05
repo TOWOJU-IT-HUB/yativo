@@ -54,8 +54,8 @@ class DepositController extends Controller
                 $request->all(),
                 [
                     'gateway' => 'required',
-                    'amount' => 'required',
-                    'currency' => 'sometimes',
+                    'amount' => 'required|numeric|min:0',
+                    'currency' => 'required',
                     'credit_wallet' => 'sometimes'
                 ]
             );
@@ -66,65 +66,73 @@ class DepositController extends Controller
 
             $user = $request->user();
 
-            if (!$user->hasWallet($request->credit_wallet ?? $request->currency)) {
-                return get_error_response(['error' => "Invalid wallet selected"], 400);
+            // Validate credit_wallet and currency
+            if ($request->has('credit_wallet')) {
+                if (!$user->hasWallet($request->credit_wallet)) {
+                    return get_error_response(['error' => "Invalid credit wallet selected"], 400);
+                }
+                $wallet = $user->getWallet($request->credit_wallet);
+                if ($wallet->currency !== $request->currency) {
+                    return get_error_response(['error' => "Credit wallet must be in currency {$request->currency}"], 400);
+                }
+            } else {
+                $walletExists = $user->wallets()->where('currency', $request->currency)->exists();
+                if (!$walletExists) {
+                    return get_error_response(['error' => "No wallet found for currency {$request->currency}"], 400);
+                }
             }
 
-            $payin = PayinMethods::whereId($request->gateway)->first();
-            
-            if($payin->minimum_deposit > $request->amount) {
-                return get_error_response(['error' => "Minimum deposit amount for the selected Gateway is {$payin->minimum_deposit}"], 400);
+            $deposit_currency = $request->currency;
+
+            $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
+
+            if ($payin->minimum_deposit > $request->amount) {
+                return get_error_response(['error' => "Minimum deposit amount is {$payin->minimum_deposit} {$payin->currency}"], 400);
             }
 
-            if($payin->maximum_deposit < $request->amount) {
-                return get_error_response(['error' => "Maximum deposit amount for the selected Gateway is {$payin->maximum_deposit}"], 400);
+            if ($payin->maximum_deposit < $request->amount) {
+                return get_error_response(['error' => "Maximum deposit amount is {$payin->maximum_deposit} {$payin->currency}"], 400);
             }
 
-            $exchange_rate = floatval($this->get_transaction_rate($payin->currency, $request->credit_wallet ?? $request->currency, $payin->id, "payin"));
+            $exchange_rate = floatval($this->get_transaction_rate($payin->currency, $deposit_currency, $payin->id, "payin"));
 
-            // record deposit info into the DB
+            // Record deposit
             $deposit = new Deposit();
             $deposit->currency = $payin->currency;
-            $deposit->deposit_currency = $request->credit_wallet ?? $request->currency;
+            $deposit->deposit_currency = $deposit_currency;
             $deposit->user_id = active_user();
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
-            $deposit->receive_amount = floatval($request->amount * $exchange_rate);
+            $deposit->receive_amount = $request->amount * $exchange_rate;
             $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
-            // var_dump($deposit);
-            // Log::info("Your transaction fee for this deposit is: $transaction_fee $payin->currency");
-
             if (!$payin) {
-                return get_error_response(['error' => 'Invalid gateway, please contact support']);
+                return get_error_response(['error' => 'Invalid gateway']);
             }
 
-            $deposit->currency = $payin->currency;
             if ($deposit->save()) {
-                $total_amount_due = round($request->amount / $exchange_rate, 4) + $transaction_fee;
+                $total_amount_due = round($request->amount + $transaction_fee, 4);
                 $arr['payment_info'] = [
-                    "send_amount" => round($request->amount / $exchange_rate, 4)." $payin->currency",
-                    "receive_amount" => ($request->amount * $exchange_rate) .explode(".", $deposit->deposit_currency)[0],
-                    "exchange_rate" => "1" . strtoupper($payin->currency) . " ~ $exchange_rate" . strtoupper($request->credit_wallet ?? $request->currency),
-                    "transaction_fee" => "$transaction_fee $payin->currency",
+                    "send_amount" => round($request->amount, 4) . " " . strtoupper($payin->currency),
+                    "receive_amount" => round($deposit->receive_amount, 4) . " " . strtoupper($deposit_currency),
+                    "exchange_rate" => "1 " . strtoupper($payin->currency) . " = " . $exchange_rate . " " . strtoupper($deposit_currency),
+                    "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($payin->currency),
                     "payment_method" => $payin->method_name,
-                    "estimate_delivery_time" => formatSettlementTime($payin['settlement_time']),
-                    "total_amount_due" => "$total_amount_due $payin->currency"
+                    "estimate_delivery_time" => formatSettlementTime($payin->settlement_time),
+                    "total_amount_due" => $total_amount_due . " " . strtoupper($payin->currency)
                 ];
-                // var_dump($arr); exit;
 
                 $process = $this->process_store($request->gateway, $payin->currency, $total_amount_due, $deposit->toArray());
 
-                if (isset($process['error']) || in_array('error', $process)) {
+                if (isset($process['error'])) {
                     return get_error_response($process);
                 }
                 return get_success_response(array_merge($process, $arr));
             }
 
-            return get_error_response(['error' => "Sorry we're currently unable to process your deposit request"]);
+            return get_error_response(['error' => "Unable to process deposit"]);
         } catch (\Throwable $th) {
-            // return response()->json(['error' => $th->getTraceAsString()]);
-            return get_error_response(['error' => $th->getMessage(), "trace" => $th->getTrace()]);
+            return get_error_response(['error' => $th->getMessage()]);
         }
     }
     
