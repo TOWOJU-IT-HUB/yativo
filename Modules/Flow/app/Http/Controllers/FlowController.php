@@ -185,7 +185,11 @@ class FlowController extends Controller
 
             $result = $response->json();
             // var_dump($result); exit;
-            return ["error" => $result];
+            if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
+                $error = $result['data']['error_message'] ?? $result['error_message'];
+                return ['error' => $error];
+            }
+            return $result;
         } catch (\Throwable $e) {
             return ["error" => $e->getMessage()];
         }

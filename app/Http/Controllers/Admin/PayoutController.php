@@ -61,14 +61,14 @@ class PayoutController extends Controller
             $checkout = $payout->makePayment($id, $payoutMethod);
             Log::info('Checkout final response', ['response' => $checkout]);
 
-            var_dump($checkout); exit;
+            // var_dump($checkout); exit;
             // return response()->json($checkout); exit;
 
             if(is_array($checkout) && isset($checkout['error'])) {
                 return redirect()->back()->with('error', $checkout['error']);
             }
 
-            return $checkout;
+            // return $checkout;
 
             return back()->with('success', 'Payout approved successfully');
         }
