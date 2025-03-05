@@ -222,8 +222,6 @@ class VitaWalletController extends Controller
 
         $this->prices();
 
-        var_dump($payload); exit;
-
         // Initialize Configuration and set credentials
         $configuration = Configuration::getInstance();
         // Prepare headers
