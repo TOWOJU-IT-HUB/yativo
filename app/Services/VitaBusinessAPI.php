@@ -138,12 +138,6 @@ class VitaBusinessAPI
 
         $headers = $this->prepareHeaders($body);
 
-        var_dump([
-            "credentials" => $credentials,
-            "endpoint" => $endpoint,
-            "headers" => $headers,
-        ]); exit;
-
         $xheaders = [
             "X-Date: " . $headers['headers']["X-Date"],
             "X-Login: " . $headers['headers']["X-Login"],
