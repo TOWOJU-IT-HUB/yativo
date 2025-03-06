@@ -656,36 +656,44 @@ class BridgeController extends Controller
     {        
         $payload = $request->all();
         Log::info("Incoming data: ", ['bridge_webhook' => $payload]);
-        foreach ($payload['data'] as $event) {
-            $eventType = $event['event_type'];
-            $eventData = $event['event_object'];
-
-            WebhookLog::create([
-                'event_id' => $event['event_id'],
-                'event_type' => $eventType,
-                'payload' => json_encode($event),
-            ]);
-
-            switch ($eventType) {
-                case 'virtual_account.activity.created':
-                    $this->handleVirtualAccountTransaction($eventData);
-                    break;
-
-                case 'kyc_link.updated.status_transitioned':
-                    $this->handleKycStatusUpdate($eventData);
-                    break;
-
-                case 'customer.updated.status_transitioned':
-                    $this->handleCustomerStatusUpdate($eventData);
-                    break;
-
-                default:
-                    Log::info("Unhandled webhook event: $eventType");
-                    break;
+        if(isset($payload['data'])) {
+            foreach ($payload['data'] as $event) {
+                $this->_processWebhook($event);
             }
+        } else {
+            $this->_processWebhook($payload);
         }
 
         return response()->json(['status' => 'success']);
+    }
+
+    private function _processWebhook($event){
+        $eventType = $event['event_type'];
+        $eventData = $event['event_object'];
+
+        WebhookLog::create([
+            'event_id' => $event['event_id'],
+            'event_type' => $eventType,
+            'payload' => json_encode($event),
+        ]);
+
+        switch ($eventType) {
+            case 'virtual_account.activity.created':
+                $this->handleVirtualAccountTransaction($eventData);
+                break;
+
+            case 'kyc_link.updated.status_transitioned':
+                $this->handleKycStatusUpdate($eventData);
+                break;
+
+            case 'customer.updated.status_transitioned':
+                $this->handleCustomerStatusUpdate($eventData);
+                break;
+
+            default:
+                Log::info("Unhandled webhook event: $eventType");
+                break;
+        }
     }
 
     private function processVirtualAccountWebhook($eventData)
@@ -725,7 +733,25 @@ class BridgeController extends Controller
         $deposit->meta = $payload;
         $deposit->save();
     
+
+
+        if (!Schema::hasTable('virtual_account_deposits')) {
+            Schema::create('virtual_account_deposits', function (Blueprint $table) {
+                $table->id();
+                $table->string('user_id')->nullable();
+                $table->string('deposit_id')->nullable();
+                $table->string('currency')->nullable();
+                $table->string('amount')->nullable();
+                $table->string('account_number')->nullable();
+                $table->string('status')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
+
+
         VirtualAccountDeposit::updateOrCreate([
+            "user_id" => $deposit->user_id,
             "deposit_id" => $deposit->id,
             "currency" => "usd",
             "amount" => $deposit->amount,
