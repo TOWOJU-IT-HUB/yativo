@@ -717,7 +717,7 @@ class BridgeController extends Controller
     
         $payload = $eventData;
 
-        if($payload['type'] == "payment_processed") {
+        if($payload['type'] != "payment_processed") {
             return false;
         }
 

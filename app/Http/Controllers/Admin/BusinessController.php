@@ -61,7 +61,7 @@ class BusinessController extends Controller
     {
         $user = null;
         $business = Business::whereId($id)->with('user')->first();
-        if($business->user) {
+        if(isset($business->user)) {
             $user = $business->user;
         }
         $customers = Customer::latest()->limit(20)->where('user_id', $user->id)->get();
