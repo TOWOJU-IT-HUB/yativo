@@ -676,7 +676,7 @@ class BridgeController extends Controller
 
         switch ($eventType) {
             case 'virtual_account.activity.created':
-                $this->handleVirtualAccountTransaction($eventData);
+                $this->processVirtualAccountWebhook($eventData);
                 break;
 
             case 'kyc_link.updated.status_transitioned':
