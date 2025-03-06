@@ -697,25 +697,25 @@ class BridgeController extends Controller
     {
         $accountId = $eventData['virtual_account_id'];
         $customer = Customer::where('bridge_customer_id', $eventData['customer_id'])->first();
-        if($customer) {
+        if ($customer) {
             $customer = [];
         }
-
+    
         $vc = VirtualAccount::where("account_id", $accountId)->first();
         
         if (!$vc) {
             Log::error("Virtual account not found for ID: $accountId");
             return;
         }
-
+    
         $payload = $eventData;
-        $user = $vc->user;
+        $user = User::where($vc->user_id)->first();
         if (!$user) {
             Log::error("User not found for virtual account ID: $accountId");
             return;
         }
-
-        if(strtolower($payload['type']) === "payment_processed"){
+    
+        if (strtolower($payload['type']) === "payment_processed") {
             $vc_status = "complete";
         }                                                        
     
@@ -808,7 +808,17 @@ class BridgeController extends Controller
         if (strtolower($payload['type']) === "payment_processed") {
             $wallet = $user->getWallet('usd');
             if ($wallet) {
-                $wallet->deposit(floatval($payload['amount'] * 100));
+                // Check if transaction already exists for this deposit
+                $existingTransaction = $wallet->transactions()
+                    ->where('meta->deposit_id', $deposit->id)
+                    ->first();
+    
+                if (!$existingTransaction) {
+                    $wallet->deposit(floatval($payload['amount'] * 100), [
+                        'deposit_id' => $deposit->id, // Store deposit ID in meta
+                        'gateway_deposit_id' => $payload['id'], // Optional: Add gateway reference
+                    ]);
+                }
             }
         }
         
