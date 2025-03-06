@@ -737,19 +737,20 @@ class BridgeController extends Controller
         }
 
         $deposit_amount = 0;
+        $sent_amount = $payload['receipt']['initial_amount'];
         $payment_rail = $payload['source']['payment_rail'];
         $percentage = floatval(0.60 / 100);
-        $float_fee = floatval($payload['amount'] * $percentage);
+        $float_fee = floatval($sent_amount * $percentage);
 
         if($payment_rail == "ach_push") {
             // fee for ach is 0.60% + $0.60
             $fixed_fee = 0.60;
             $total_fee = floatval($float_fee + $fixed_fee);
-            $deposit_amount = floatval($payload['amount'] - $total_fee);
+            $deposit_amount = floatval($sent_amount - $total_fee);
         } else {
             $fixed_fee = 25;
             $total_fee = floatval($float_fee + $fixed_fee);
-            $deposit_amount = floatval($payload['amount'] - $total_fee);
+            $deposit_amount = floatval($sent_amount - $total_fee);
         } 
 
         
