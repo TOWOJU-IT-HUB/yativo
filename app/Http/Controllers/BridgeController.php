@@ -737,6 +737,8 @@ class BridgeController extends Controller
         }
 
         $deposit_amount = 0;
+
+        Log::info($payload); exit;
         $sent_amount = $payload['receipt']['initial_amount'];
         $payment_rail = $payload['source']['payment_rail'];
         $percentage = floatval(0.60 / 100);
