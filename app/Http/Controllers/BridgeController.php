@@ -725,6 +725,11 @@ class BridgeController extends Controller
             
         $vc_status = strtolower($payload['type']) === "payment_processed" ? SendMoneyController::SUCCESS : "pending";
         
+        if (Schema::hasColumn('deposits', 'gateway')) {
+            Schema::table('deposits', function (Blueprint $table) {
+                $table->string('gateway')->nullable()->change();
+            });
+        }
         // Update or create the deposit record
         $deposit = Deposit::updateOrCreate(
             [
@@ -735,7 +740,7 @@ class BridgeController extends Controller
                 'amount' => $payload['amount'],
                 'currency' => strtoupper($payload['currency']),
                 'deposit_currency' => strtoupper($payload['currency']),
-                'gateway' => 0,
+                'gateway' => 999,
                 'status' => $vc_status,
                 'receive_amount' => floatval($payload['amount']),
                 'meta' => $payload,
