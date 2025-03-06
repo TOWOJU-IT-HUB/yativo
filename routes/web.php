@@ -53,9 +53,7 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
-    $user = User::findorfail($id);
-    return response()->json($user->wallets());
-    // return redirect()->to('https://yativo.com');
+    return redirect()->to('https://yativo.com');
 });
 
 
