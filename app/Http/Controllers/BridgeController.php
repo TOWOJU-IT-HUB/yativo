@@ -18,6 +18,7 @@ use App\Models\WebhookLog;
 use App\Models\User;
 use App\Models\Deposit;
 use App\Models\TransactionRecord;
+use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 
 class BridgeController extends Controller
 {
@@ -719,10 +720,10 @@ class BridgeController extends Controller
         }
     
         if (strtolower($payload['type']) === "payment_processed") {
-            $vc_status = "complete";
+            $vc_status = SendMoneyController::SUCCESS;
         }                                                        
             
-        $vc_status = strtolower($payload['type']) === "payment_processed" ? "complete" : "pending";
+        $vc_status = strtolower($payload['type']) === "payment_processed" ? SendMoneyController::SUCCESS : "pending";
         
         // Update or create the deposit record
         $deposit = Deposit::updateOrCreate(
@@ -811,8 +812,9 @@ class BridgeController extends Controller
     
                 if (!$existingTransaction) {
                     $wallet->deposit(floatval($payload['amount'] * 100), [
-                        'deposit_id' => $deposit->id, // Store deposit ID in meta
-                        'gateway_deposit_id' => $payload['id'], // Optional: Add gateway reference
+                        'deposit_id' => $deposit->id,
+                        'gateway_deposit_id' => $payload['id'],
+                        'sender' => $payload['source']['description']
                     ]);
                 }
             }
