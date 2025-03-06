@@ -90,7 +90,7 @@ class DojahVerificationController extends Controller
             return get_error_response(['errors' => $validator->errors()], 422);
         }
 
-        if (QSchema::hasColumn('customers', 'customer_kyc_email')) {
+        if (!Schema::hasColumn('customers', 'customer_kyc_email')) {
             Schema::table('customers', function (Blueprint $table) {
                 $table->string('customer_kyc_email')->nullable()->change();
             });
