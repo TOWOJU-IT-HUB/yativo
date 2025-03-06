@@ -224,7 +224,7 @@ class BrlaController extends Controller
             "transaction_currency" => $payload['currency'] ?? "BRL",
             "base_currency" => $payload['currency'] ?? "BRL",
             "secondary_currency" => $payload['currency'] ?? "BRL",
-            "transaction_purpose" => "VIRTUAL ACCOUNT DEPOSIT",
+            "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
             "transaction_payin_details" => ['payin_data' => $payload],
             "transaction_payout_details" => null,
         ]);

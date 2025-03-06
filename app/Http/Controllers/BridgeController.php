@@ -653,81 +653,109 @@ class BridgeController extends Controller
     }
 
     public function BridgeWebhook(Request $request)
-    {
-        if($this->processEvent($request) !== true) {
-            return http_respnose_code(200);
-        }
-        // Get the request body
-        $incoming = $request->all();
-        if(isset($request->event_object)) {
-            $data = (array)$request->event_object;
-            if($request->event_type == "customer.created" OR $request->event_type == "customer.updated.status_transitioned") {
-                $customer = Customer::where('customer_email', $data['email'])->first();
-                $userId = $customer->user_id;
-                if($customer && $data['status'] == "approved" or $data['status'] == "active"  or $data['status'] == "completed") {
-                    $customer->customer_status = 'active';
-                    $customer->customer_kyc_status = 'approved';
-                    $customer->save();
-                    // Queue webhook notification
-                    dispatch(function () use ($userId, $customer) {
-                        $webhook = Webhook::whereUserId($userId)->first();
-                        if ($webhook) {
-                            WebhookCall::create()
-                                ->meta(['_uid' => $webhook->user_id])
-                                ->url($webhook->url)
-                                ->useSecret($webhook->secret)
-                                ->payload([
-                                    "event.type" => "customer.created",
-                                    "payload" => $customer,
-                                ])
-                                ->dispatchSync();
-                        }
-                    })->afterResponse();
-                }
-            }
+    {        
+        $payload = $request->all();
 
-            if($request->event_type == "virtual_account.activity.created" OR $request->event_type == "virtual_account.activity.updated") {
-                return $this->processVirtualAccountWebhook($data);
+        foreach ($payload['data'] as $event) {
+            $eventType = $event['event_type'];
+            $eventData = $event['event_object'];
+
+            WebhookLog::create([
+                'event_id' => $event['event_id'],
+                'event_type' => $eventType,
+                'payload' => json_encode($event),
+            ]);
+
+            switch ($eventType) {
+                case 'virtual_account.activity.created':
+                    $this->handleVirtualAccountTransaction($eventData);
+                    break;
+
+                case 'kyc_link.updated.status_transitioned':
+                    $this->handleKycStatusUpdate($eventData);
+                    break;
+
+                case 'customer.updated.status_transitioned':
+                    $this->handleCustomerStatusUpdate($eventData);
+                    break;
+
+                default:
+                    Log::info("Unhandled webhook event: $eventType");
+                    break;
             }
         }
-          
-        return get_success_response($incoming);
+
+        return response()->json(['status' => 'success']);
     }
 
-    private function processVirtualAccountWebhook($incomingData)
+    private function processVirtualAccountWebhook($eventData)
     {
-        $customer = Customer::where("bridge_customer_id", $incomingData['customer_id'])->first();
-        $vc = VirtualAccount::where("customer_id", $customer->id)->first();
+        $accountId = $eventData['virtual_account_id'];
+        $customer = Customer::where('bridge_customer_id', $eventData['customer_id'])->first();
+        if($customer) {
+            $customer = [];
+        }
 
-        $userId = $vc->user_id;
-
-        $txn = add_usd_virtual_card_deposit($incomingData);
+        $vc = VirtualAccount::where("account_id", $accountId)->first();
         
-        $webhookData = [
-            "event.type" => "virtual_account.deposit",
-            "payload" => [
-                "amount" => $incomingData['amount'],
-                "currency" => $incomingData['currency'],
-                "status" => "completed",
-                "credited_amount" => $incomingData['subtotal_amount'],
-                "transaction_type" => "virtual_account_topup",
-                "transaction_id" => "TXN123456789",
-                "customer" => $customer,
-                "raw_data" => $incomingData['source']
-            ]
-        ];
+        if (!$vc) {
+            Log::error("Virtual account not found for ID: $accountId");
+            return;
+        }
 
-        dispatch(function () use ($userId, $webhookData) {
-            $webhook = Webhook::whereUserId($userId)->first();
-            if ($webhook) {
-                WebhookCall::create()
-                    ->meta(['_uid' => $webhook->user_id])
-                    ->url($webhook->url)
-                    ->useSecret($webhook->secret)
-                    ->payload($webhookData)
-                    ->dispatchSync();
+        $payload = $eventData;
+        $user = $vc->user;
+        if (!$user) {
+            Log::error("User not found for virtual account ID: $accountId");
+            return;
+        }
+
+        if(strtolower($payload['type']) === "payment_processed"){
+            $vc_status = "complete";
+        }                                                        
+    
+        $deposit = new Deposit();
+        $deposit->currency = "USD";
+        $deposit->deposit_currency = "USD";
+        $deposit->user_id = $user->id;
+        $deposit->amount = $payload['amount'];
+        $deposit->gateway = 0;
+        $deposit->status = $vc_status;
+        $deposit->receive_amount = floatval($payload['amount']);
+        $deposit->meta = $payload;
+        $deposit->save();
+    
+        VirtualAccountDeposit::updateOrCreate([
+            "deposit_id" => $deposit->id,
+            "currency" => "usd",
+            "amount" => $deposit->amount,
+            "account_number" => $vc->account_number,
+            "status" => $vc_status,
+        ]);
+    
+        TransactionRecord::create([
+            "user_id" => $user->id,
+            "transaction_beneficiary_id" => $customer->customer_id ?? $user->id,
+            "transaction_id" => $payload['fid'] ?? null,
+            "transaction_amount" => $payload['amount'] ?? null,
+            "gateway_id" => null,
+            "transaction_status" => $vc_status,
+            "transaction_type" => 'virtual_account',
+            "transaction_memo" => "payin",
+            "transaction_currency" => $payload['currency'] ?? "BRL",
+            "base_currency" => $payload['currency'] ?? "BRL",
+            "secondary_currency" => $payload['currency'] ?? "BRL",
+            "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
+            "transaction_payin_details" => ['payin_data' => $payload['source']],
+            "transaction_payout_details" => null,
+        ]);
+       
+        if(strtolower($payload['type']) === "payment_processed"){
+            $wallet = $user->getWallet('usd');
+            if($wallet) {
+                $wallet->deposit(floatval($payload['amount'] * 100));
             }
-        })->afterResponse();
+        }
     }
 
     private function processPayinWebhook($data)
@@ -754,11 +782,11 @@ class BridgeController extends Controller
     {
         $signatureHeader = $request->header('X-Webhook-Signature');
         
-        // if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
-        //     return false; // $this->render400('Malformed signature header');
-        // }
+        if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
+            return false; // $this->render400('Malformed signature header');
+        }
         $matches = [];
-        [, $timestamp, $signature] = $matches;
+        [$timestamp, $signature] = $matches;
 
         if (!$timestamp || !$signature) {
             return false; // $this->render400('Malformed signature header');
