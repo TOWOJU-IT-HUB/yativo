@@ -716,6 +716,11 @@ class BridgeController extends Controller
         }
     
         $payload = $eventData;
+
+        if($payload['type'] == "payment_processed") {
+            return false;
+        }
+
         $user = User::whereId($vc->user_id)->first();
         if (!$user) {
             Log::error("User not found for virtual account ID: $accountId");
