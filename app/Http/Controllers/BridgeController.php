@@ -15,6 +15,7 @@ use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
 use App\Models\WebhookLog;
+use App\Models\User;
 
 class BridgeController extends Controller
 {
