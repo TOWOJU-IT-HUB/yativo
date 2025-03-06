@@ -57,12 +57,13 @@ class Customer extends Model
         "updated_at",
         "deleted_at",
         "vc_customer_id",
-        "customer_kyc_status",
+        // "customer_kyc_status",
         "customer_type",
         "admin_kyc_reject_reason",
         "customer_kyc_link_id",
         "customer_kyc_link",
         "bridge_customer_id",
+        "customer_kyc_email",
         "can_create_vc", // can_create_virtual_card
         "can_create_va", // can_create_virtual_account
     ];

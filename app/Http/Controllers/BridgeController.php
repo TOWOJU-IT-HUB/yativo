@@ -123,7 +123,7 @@ class BridgeController extends Controller
         if(is_array($data) && isset($data['count'])) {
             // customer bridge ID is empty so check if it exists
             foreach ($data['data'] as $k => $v) {
-                if($customer->customer_email == $v['email']) {
+                if($customer->customer_kyc_email == $v['email']) {
                     $update = $customer->update([
                         'bridge_customer_id' => $v['id']
                     ]);  
@@ -197,7 +197,7 @@ class BridgeController extends Controller
         $endpoint = 'v0/kyc_links';
         $payload = [
             'full_name' => $customer['customer_name'],
-            'email' => $customer['customer_email'],
+            'email' => $customer['customer_kyc_email'],
             'type' => $customer['customer_type'] ?? 'individual',
             'endorsements' => ['sepa'],
             'redirect_uri' => request()->redirect_url ?? $customer['redirect_uri'] ?? env('WEB_URL', request()->redirect_url),
@@ -215,7 +215,7 @@ class BridgeController extends Controller
 
         $customer = Customer::updateOrCreate(
             [
-                'customer_email' => $customer['customer_email'],
+                'customer_kyc_email' => $customer['customer_kyc_email'],
                 'user_id' => active_user(),
             ],
             [
@@ -269,7 +269,7 @@ class BridgeController extends Controller
     
         // Find a match in API response
         foreach ($data['data'] as $entry) {
-            if ($customer->customer_email === $entry['email']) {
+            if ($customer->customer_kyc_email === $entry['email']) {
                 $customer->update(['bridge_customer_id' => $entry['id']]);
     
                 // Update customer status if active
@@ -691,7 +691,7 @@ class BridgeController extends Controller
                 break;
 
             case 'customer.updated.status_transitioned':
-                $this->handleCustomerStatusUpdate($eventData);
+                $this->handleKycStatusUpdate($eventData);
                 break;
 
             default:
@@ -735,6 +735,24 @@ class BridgeController extends Controller
                 $table->string('receive_amount')->nullable()->change();
             });
         }
+
+        $deposit_amount = 0;
+        $payment_rail = $payload['source']['payment_rail'];
+        $percentage = floatval(0.60 / 100);
+        $float_fee = floatval($payload['amount'] * $percentage);
+
+        if($payment_rail == "ach_push") {
+            // fee for ach is 0.60% + $0.60
+            $fixed_fee = 0.60;
+            $total_fee = floatval($float_fee + $fixed_fee);
+            $deposit_amount = floatval($payload['amount'] - $total_fee);
+        } else {
+            $fixed_fee = 25;
+            $total_fee = floatval($float_fee + $fixed_fee);
+            $deposit_amount = floatval($payload['amount'] - $total_fee);
+        } 
+
+        
         // Update or create the deposit record
         $deposit = Deposit::updateOrCreate(
             [
@@ -742,30 +760,15 @@ class BridgeController extends Controller
             ],
             [
                 'user_id' => $user->id,
-                'amount' => $payload['amount'],
+                'amount' => $deposit_amount,
                 'currency' => "usd", //strtoupper($payload['currency']),
                 'deposit_currency' => "USD", //strtoupper($payload['currency']),
                 'gateway' => 99999999,
                 'status' => $vc_status,
-                'receive_amount' => floatval($payload['amount']),
+                'receive_amount' => floatval($deposit_amount),
                 'meta' => $payload,
             ]
         );
-        
-        // Ensure virtual_account_deposits table exists
-        if (!Schema::hasTable('virtual_account_deposits')) {
-            Schema::create('virtual_account_deposits', function (Blueprint $table) {
-                $table->id();
-                $table->string('user_id')->nullable();
-                $table->string('deposit_id')->nullable();
-                $table->string('currency')->nullable();
-                $table->string('amount')->nullable();
-                $table->string('account_number')->nullable();
-                $table->string('status')->nullable();
-                $table->timestamps();
-                $table->softDeletes();
-            });
-        }
                 
         // Update or create VirtualAccountDeposit
         VirtualAccountDeposit::updateOrCreate(
@@ -786,7 +789,7 @@ class BridgeController extends Controller
             "user_id" => $user->id,
             "transaction_beneficiary_id" => $user->id,
             "transaction_id" => $payload['deposit_id'],
-            "transaction_amount" => $payload['amount'],
+            "transaction_amount" => $deposit_amount,
             "gateway_id" => 99999999,
             "transaction_status" => $vc_status,
             "transaction_type" => 'virtual_account',
@@ -800,6 +803,7 @@ class BridgeController extends Controller
                 'trace_number' => $payload['source']['trace_number'],
                 'bank_routing_number' => $payload['source']['sender_bank_routing_number'],
                 'description' => $payload['source']['description'],
+                "transaction_fees" => $total_fee
             ],
             "transaction_payout_details" => null,
         ]);
@@ -814,7 +818,7 @@ class BridgeController extends Controller
                     ->first();
     
                 if (!$existingTransaction) {
-                    $wallet->deposit(floatval($payload['amount'] * 100), [
+                    $wallet->deposit(floatval($deposit_amount * 100), [
                         'deposit_id' => $deposit->id,
                         'gateway_deposit_id' => $payload['id'],
                         'sender' => $payload['source']['description']
@@ -823,6 +827,21 @@ class BridgeController extends Controller
             }
         }
         Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
+    }
+
+    private function handleKycStatusUpdate($data)
+    {
+        Log::info("Customer KYC details: ", ['details' => $data]);
+        $customer = Customer::where('bridge_customer_id', $data['id'])->first();
+        // Update customer status if active
+        if ($customer && $data['status'] === 'active') {
+            $customer->update([
+                'customer_status' => 'active',
+                'customer_kyc_status' => 'approved'
+            ]);
+        }
+
+        return $this->fetchAndReturnCustomerData($data['id'], $customer);
     }
 
     private function processPayinWebhook($data)

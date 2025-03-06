@@ -18,6 +18,8 @@ use Modules\Customer\App\Services\DojahServices;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Towoju5\Bitnob\Bitnob;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 /* The `DojahVerificationController` class in PHP handles customer verification, KYC webhook
     processing, KYC status requests, and occupation code retrieval with error handling and webhook
@@ -47,7 +49,7 @@ class DojahVerificationController extends Controller
         $rules = [
             'customer_id' => 'required|exists:customers,customer_id',
             'type' => 'required|in:individual,business',
-            'email' => 'required|email',
+            // 'email' => 'required|email',
             'address' => 'required|array',
             'documents' => ['required', 'array', 'min:1'],
             'documents.*.purposes' => ['required', 'array'],
@@ -87,7 +89,19 @@ class DojahVerificationController extends Controller
         if ($validator->fails()) {
             return get_error_response(['errors' => $validator->errors()], 422);
         }
-    
+
+        if (QSchema::hasColumn('customers', 'customer_kyc_email')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('customer_kyc_email')->nullable()->change();
+            });
+        }
+
+        $customer = Customer::where("customer_id", $request->customer_id)->first();
+        $kyc_email = "yativo_customer+{$customer->customer_id}@gmail.com";
+        $customer->update([
+            "customer_kyc_email" => $kyc_email
+        ]);
+        $validatedData['email'] = $kyc_email;
         $validatedData = $request->all();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
         $validatedData['residential_address'] = $request->address;

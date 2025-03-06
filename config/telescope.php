@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'domain' => env('TELESCOPE_DOMAIN', 'https://office.yativo.com/backoffice/admin/'),
+    'domain' => env('ADMIN_URL'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,7 +42,7 @@ return [
     |
     */
 
-    'path' => env('TELESCOPE_PATH', 'monitor'),
+    'path' => env('TELESCOPE_PATH', 'backoffice/admin/g-eye'),
 
     /*
     |--------------------------------------------------------------------------
