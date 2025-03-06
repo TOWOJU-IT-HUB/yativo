@@ -784,7 +784,7 @@ class BridgeController extends Controller
         // Create Transaction Record
         TransactionRecord::create([
             "user_id" => $user->id,
-            "transaction_beneficiary_id" => $payload['customer_id'],
+            "transaction_beneficiary_id" => $user->id,
             "transaction_id" => $payload['deposit_id'],
             "transaction_amount" => $payload['amount'],
             "gateway_id" => null,
