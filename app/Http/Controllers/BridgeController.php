@@ -19,6 +19,8 @@ use App\Models\User;
 use App\Models\Deposit;
 use App\Models\TransactionRecord;
 use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class BridgeController extends Controller
 {
