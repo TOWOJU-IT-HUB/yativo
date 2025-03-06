@@ -731,11 +731,12 @@ class BridgeController extends Controller
         // Update or create the deposit record
         $deposit = Deposit::updateOrCreate(
             [
-                'user_id' => $user->id,
-                'amount' => $payload['amount'],
-                'currency' => strtoupper($payload['currency'])
+                'gateway_deposit_id' => $payload["id"]
             ],
             [
+                'user_id' => $user->id,
+                'amount' => $payload['amount'],
+                'currency' => strtoupper($payload['currency']),
                 'deposit_currency' => strtoupper($payload['currency']),
                 'gateway' => 0,
                 'status' => $vc_status,
