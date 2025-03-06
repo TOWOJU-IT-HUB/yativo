@@ -765,14 +765,7 @@ class BridgeController extends Controller
                 $table->softDeletes();
             });
         }
-        
-        // Fetch virtual account
-        $vc = VirtualAccount::where('id', $payload['virtual_account_id'])->first();
-        if (!$vc) {
-            \Log::error("Virtual Account not found for ID: " . $payload['virtual_account_id']);
-            return response()->json(['error' => 'Virtual Account not found'], 404);
-        }
-        
+                
         // Update or create VirtualAccountDeposit
         VirtualAccountDeposit::updateOrCreate(
             [
