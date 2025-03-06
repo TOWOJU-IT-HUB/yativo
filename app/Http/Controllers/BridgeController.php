@@ -655,7 +655,7 @@ class BridgeController extends Controller
     public function BridgeWebhook(Request $request)
     {        
         $payload = $request->all();
-
+        Log::info("Incoming data: ", ['bridge_webhook' => $payload]);
         foreach ($payload['data'] as $event) {
             $eventType = $event['event_type'];
             $eventData = $event['event_object'];
