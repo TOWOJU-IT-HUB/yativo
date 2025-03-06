@@ -17,6 +17,7 @@ use Spatie\WebhookServer\WebhookCall;
 use App\Models\WebhookLog;
 use App\Models\User;
 use App\Models\Deposit;
+use App\Models\VirtualAccountDeposit;
 use App\Models\TransactionRecord;
 use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 use Illuminate\Support\Facades\Schema;
