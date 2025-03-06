@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
+use App\Models\WebhookLog;
 
 class BridgeController extends Controller
 {
@@ -660,6 +661,8 @@ class BridgeController extends Controller
             foreach ($payload['data'] as $event) {
                 $this->_processWebhook($event);
             }
+        } else if(isset($payload['bridge_webhook'])) { 
+            $this->_processWebhook($payload['bridge_webhook']);
         } else {
             $this->_processWebhook($payload);
         }
@@ -670,12 +673,6 @@ class BridgeController extends Controller
     private function _processWebhook($event){
         $eventType = $event['event_type'];
         $eventData = $event['event_object'];
-
-        WebhookLog::create([
-            'event_id' => $event['event_id'],
-            'event_type' => $eventType,
-            'payload' => json_encode($event),
-        ]);
 
         switch ($eventType) {
             case 'virtual_account.activity.created':
@@ -722,19 +719,32 @@ class BridgeController extends Controller
             $vc_status = "complete";
         }                                                        
     
-        $deposit = new Deposit();
-        $deposit->currency = "USD";
-        $deposit->deposit_currency = "USD";
-        $deposit->user_id = $user->id;
-        $deposit->amount = $payload['amount'];
-        $deposit->gateway = 0;
-        $deposit->status = $vc_status;
-        $deposit->receive_amount = floatval($payload['amount']);
-        $deposit->meta = $payload;
-        $deposit->save();
-    
-
-
+        // Extract required details from the payload
+        $user = User::where('id', $payload['customer_id'])->first(); // Assuming customer_id maps to user ID
+        if (!$user) {
+            \Log::error("User not found for customer_id: " . $payload['customer_id']);
+            return response()->json(['error' => 'User not found'], 404);
+        }
+        
+        $vc_status = strtolower($payload['type']) === "payment_processed" ? "completed" : "pending";
+        
+        // Update or create the deposit record
+        $deposit = Deposit::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'amount' => $payload['amount'],
+                'currency' => strtoupper($payload['currency'])
+            ],
+            [
+                'deposit_currency' => strtoupper($payload['currency']),
+                'gateway' => 0,
+                'status' => $vc_status,
+                'receive_amount' => floatval($payload['amount']),
+                'meta' => $payload,
+            ]
+        );
+        
+        // Ensure virtual_account_deposits table exists
         if (!Schema::hasTable('virtual_account_deposits')) {
             Schema::create('virtual_account_deposits', function (Blueprint $table) {
                 $table->id();
@@ -748,40 +758,59 @@ class BridgeController extends Controller
                 $table->softDeletes();
             });
         }
-
-
-        VirtualAccountDeposit::updateOrCreate([
-            "user_id" => $deposit->user_id,
-            "deposit_id" => $deposit->id,
-            "currency" => "usd",
-            "amount" => $deposit->amount,
-            "account_number" => $vc->account_number,
-            "status" => $vc_status,
-        ]);
-    
+        
+        // Fetch virtual account
+        $vc = VirtualAccount::where('id', $payload['virtual_account_id'])->first();
+        if (!$vc) {
+            \Log::error("Virtual Account not found for ID: " . $payload['virtual_account_id']);
+            return response()->json(['error' => 'Virtual Account not found'], 404);
+        }
+        
+        // Update or create VirtualAccountDeposit
+        VirtualAccountDeposit::updateOrCreate(
+            [
+                "user_id" => $deposit->user_id,
+                "deposit_id" => $deposit->id,
+            ],
+            [
+                "currency" => strtoupper($payload['currency']),
+                "amount" => $deposit->amount,
+                "account_number" => $vc->account_number,
+                "status" => $vc_status,
+            ]
+        );
+        
+        // Create Transaction Record
         TransactionRecord::create([
             "user_id" => $user->id,
-            "transaction_beneficiary_id" => $customer->customer_id ?? $user->id,
-            "transaction_id" => $payload['fid'] ?? null,
-            "transaction_amount" => $payload['amount'] ?? null,
+            "transaction_beneficiary_id" => $payload['customer_id'],
+            "transaction_id" => $payload['deposit_id'],
+            "transaction_amount" => $payload['amount'],
             "gateway_id" => null,
             "transaction_status" => $vc_status,
             "transaction_type" => 'virtual_account',
             "transaction_memo" => "payin",
-            "transaction_currency" => $payload['currency'] ?? "BRL",
-            "base_currency" => $payload['currency'] ?? "BRL",
-            "secondary_currency" => $payload['currency'] ?? "BRL",
+            "transaction_currency" => strtoupper($payload['currency']),
+            "base_currency" => strtoupper($payload['currency']),
+            "secondary_currency" => strtoupper($payload['currency']),
             "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
-            "transaction_payin_details" => ['payin_data' => $payload['source']],
+            "transaction_payin_details" => [
+                'sender_name' => $payload['source']['sender_name'],
+                'trace_number' => $payload['source']['trace_number'],
+                'bank_routing_number' => $payload['source']['sender_bank_routing_number'],
+                'description' => $payload['source']['description'],
+            ],
             "transaction_payout_details" => null,
         ]);
-       
-        if(strtolower($payload['type']) === "payment_processed"){
+        
+        
+        if (strtolower($payload['type']) === "payment_processed") {
             $wallet = $user->getWallet('usd');
-            if($wallet) {
+            if ($wallet) {
                 $wallet->deposit(floatval($payload['amount'] * 100));
             }
         }
+        
     }
 
     private function processPayinWebhook($data)

@@ -59,8 +59,11 @@ class BusinessController extends Controller
 
     public function show($id)
     {
+        $user = null;
         $business = Business::whereId($id)->with('user')->first();
-        $user = $business->user;
+        if($business->user) {
+            $user = $business->user;
+        }
         $customers = Customer::latest()->limit(20)->where('user_id', $user->id)->get();
         $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $user->id)->get();
         $virtualCards = CustomerVirtualCards::latest()->limit(20)->where('business_id', $business->id)->get();
