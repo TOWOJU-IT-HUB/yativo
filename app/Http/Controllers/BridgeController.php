@@ -710,7 +710,7 @@ class BridgeController extends Controller
         }
     
         $payload = $eventData;
-        $user = User::where($vc->user_id)->first();
+        $user = User::whereId($vc->user_id)->first();
         if (!$user) {
             Log::error("User not found for virtual account ID: $accountId");
             return;
@@ -719,15 +719,8 @@ class BridgeController extends Controller
         if (strtolower($payload['type']) === "payment_processed") {
             $vc_status = "complete";
         }                                                        
-    
-        // Extract required details from the payload
-        $user = User::where('id', $payload['customer_id'])->first(); // Assuming customer_id maps to user ID
-        if (!$user) {
-            \Log::error("User not found for customer_id: " . $payload['customer_id']);
-            return response()->json(['error' => 'User not found'], 404);
-        }
-        
-        $vc_status = strtolower($payload['type']) === "payment_processed" ? "completed" : "pending";
+            
+        $vc_status = strtolower($payload['type']) === "payment_processed" ? "complete" : "pending";
         
         // Update or create the deposit record
         $deposit = Deposit::updateOrCreate(
