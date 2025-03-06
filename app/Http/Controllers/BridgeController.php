@@ -832,10 +832,11 @@ class BridgeController extends Controller
     private function handleKycStatusUpdate($data)
     {
         Log::info("Customer KYC details: ", ['details' => $data]);
-        $customer = Customer::where('bridge_customer_id', $data['id'])->first();
+        $customer = Customer::where('bridge_customer_id', $data['id'])->orWhere('customer_kyc_email', $data['email'])->first();
         // Update customer status if active
         if ($customer && $data['status'] === 'active') {
             $customer->update([
+                'bridge_customer_id' => $data['id'],
                 'customer_status' => 'active',
                 'customer_kyc_status' => 'approved'
             ]);
