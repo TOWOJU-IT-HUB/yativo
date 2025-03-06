@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'domain' => env('ADMIN_URL'),
+    'domain' => env('TELESCOPE_DOMAIN'),
 
     /*
     |--------------------------------------------------------------------------
@@ -42,7 +42,7 @@ return [
     |
     */
 
-    'path' => env('TELESCOPE_PATH', 'backoffice/admin/g-eye'),
+    'path' => env('TELESCOPE_PATH'),
 
     /*
     |--------------------------------------------------------------------------
