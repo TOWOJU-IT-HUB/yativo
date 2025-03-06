@@ -61,9 +61,10 @@ class BusinessController extends Controller
     {
         $user = null;
         $business = Business::whereId($id)->with('user')->first();
-        if(isset($business->user)) {
-            $user = $business->user;
+        if(!isset($business->user)) {
+            return back()->with('error', 'User data not found');
         }
+        $user = $business->user;
         $customers = Customer::latest()->limit(20)->where('user_id', $user->id)->get();
         $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $user->id)->get();
         $virtualCards = CustomerVirtualCards::latest()->limit(20)->where('business_id', $business->id)->get();
@@ -71,19 +72,6 @@ class BusinessController extends Controller
         $deposits = Deposit::latest()->limit(20)->where('user_id', $user->id)->get();
         $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $user->id)->get();
         $wallets =  $this->getUserWallets($user->id);
-
-        // $business = $user;
-
-        // return [
-        //     "business" => $business,
-        //     "user" => $user,
-        //     "customers" => $customers,
-        //     "virtualAccounts" => $virtualAccounts,
-        //     "virtualCards" => $virtualCards,
-        //     "transactions" => $transactions,
-        //     "deposits" => $deposits,
-        //     "withdrawals" => $withdrawals,
-        // ];
 
         return view('admin.business.show', compact('business', 'wallets', 'user', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
     }
