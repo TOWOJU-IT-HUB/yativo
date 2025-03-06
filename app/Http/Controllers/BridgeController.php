@@ -822,7 +822,7 @@ class BridgeController extends Controller
                 }
             }
         }
-        
+        Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
     }
 
     private function processPayinWebhook($data)
