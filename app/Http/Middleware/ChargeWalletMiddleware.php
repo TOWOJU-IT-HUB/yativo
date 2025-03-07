@@ -20,7 +20,7 @@ class ChargeWalletMiddleware
             ]);
 
             $calculator = new PayoutCalculator();
-            echo "I'm at pos: 1";
+            // echo "I'm at pos: 1";
             
             $result = $calculator->calculate(
                 floatval($request->amount),
@@ -34,7 +34,7 @@ class ChargeWalletMiddleware
                 return get_error_response(['error' => 'Currency pair error. Supported are: '.json_encode($result['base_currencies'])], 400);
             }
 
-            echo "I'm at pos: 2";
+            // echo "I'm at pos: 2";
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
                 floatval($result['debit_amount'] * 100),
@@ -43,7 +43,7 @@ class ChargeWalletMiddleware
                 $result
             );
 
-            echo "I'm at pos: 3";
+            // echo "I'm at pos: 3";
             if($request->has('debug')) {
                 // $array = array_merge($re)
                 dd($result);
@@ -57,8 +57,8 @@ class ChargeWalletMiddleware
             return $next($request);
 
         } catch (\Throwable $th) {
-            var_dump($th->getTrace()); exit;
-            echo "I'm at pos: error";
+            // var_dump($th->getTrace()); exit;
+            // echo "I'm at pos: error";
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
