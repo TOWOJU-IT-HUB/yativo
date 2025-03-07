@@ -157,10 +157,11 @@
                     <table class="min-w-full bg-white dark:bg-boxdark">
                         <thead class="bg-gray-200 dark:bg-gray-700">
                             <tr>
-                                <th class="px-6 py-2 text-gray-500 dark:text-gray-300">Customer Name</th>
-                                <th class="px-6 py-2 text-gray-500 dark:text-gray-300">Email</th>
-                                <th class="px-6 py-2 text-gray-500 dark:text-gray-300">Phone</th>
-                                <th class="px-6 py-2 text-gray-500 dark:text-gray-300">Status</th>
+                                <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Customer Name</th>
+                                <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Email</th>
+                                <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Phone</th>
+                                <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Status</th>
+                                <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">KYC Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -169,8 +170,8 @@
                                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_name ?></td>
                                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_email ?></td>
                                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_phone ?></td>
-                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_status ?>
-                                </td>
+                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_status ?></td>
+                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_kyc_status ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
