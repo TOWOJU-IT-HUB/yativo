@@ -247,6 +247,7 @@ class WithdrawalConntroller extends Controller
             return get_success_response($responseData, 201, "Withdrawal request initiated successfully");
     
         } catch (\Throwable $th) {
+            var_dump($th); exit;
             return get_error_response([
                 'error' => $th->getMessage(),
                 'trace' => config('app.debug') ? $th->getTrace() : []
