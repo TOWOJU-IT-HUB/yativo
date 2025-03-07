@@ -57,6 +57,7 @@ class ChargeWalletMiddleware
             return $next($request);
 
         } catch (\Throwable $th) {
+            var_dump($th->getTrace()); exit;
             echo "I'm at pos: error";
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
