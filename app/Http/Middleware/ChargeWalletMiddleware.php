@@ -13,14 +13,14 @@ class ChargeWalletMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        try {
-            $request->validate([
+        try {$request->validate([
                 "amount" => "required",
                 "debit_wallet" => "required",
                 "payment_method_id" => "required",
             ]);
 
             $calculator = new PayoutCalculator();
+            echo "I'm at pos: 1";
             
             $result = $calculator->calculate(
                 floatval($request->amount),
@@ -34,6 +34,7 @@ class ChargeWalletMiddleware
                 return get_error_response(['error' => 'Currency pair error. Supported are: '.$result['base_currencies']], 400);
             }
 
+            echo "I'm at pos: 2";
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
                 floatval($result['debit_amount'] * 100),
@@ -42,6 +43,7 @@ class ChargeWalletMiddleware
                 $result
             );
 
+            echo "I'm at pos: 3";
             if($request->has('debug')) {
                 // $array = array_merge($re)
                 dd($result);
@@ -51,9 +53,11 @@ class ChargeWalletMiddleware
                 return get_error_response(['error' => 'Insufficient wallet balance']);
             }
 
+            echo "I'm at pos: 4";
             return $next($request);
 
         } catch (\Throwable $th) {
+            echo "I'm at pos: error";
             return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
