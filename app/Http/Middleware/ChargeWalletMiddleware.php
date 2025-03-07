@@ -31,7 +31,7 @@ class ChargeWalletMiddleware
 
             // Validate allowed currencies
             if (!in_array($request->debit_wallet, $result['base_currencies'])) {
-                return get_error_response(['error' => 'Currency pair error. Supported are: '.$result['base_currencies']], 400);
+                return get_error_response(['error' => 'Currency pair error. Supported are: '.json_encode($result['base_currencies'])], 400);
             }
 
             echo "I'm at pos: 2";
