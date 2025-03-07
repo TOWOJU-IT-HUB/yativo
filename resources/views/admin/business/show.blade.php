@@ -662,7 +662,7 @@
                                         <td class="py-3 px-6">{{ $index + 1 }}</td>
                                         <td class="py-3 px-6 font-medium">{{ $wallet->slug }}</td>
                                         <td class="py-3 px-6 font-semibold text-green-600">
-                                            ${{ number_format($wallet->balanceFloat, 2) }}
+                                            ${{ number_format($wallet->balanceFloat/100, 2) }}
                                         </td>
                                     </tr>
                                 @empty
