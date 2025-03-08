@@ -53,7 +53,7 @@ class ChargeWalletMiddleware
                 return get_error_response(['error' => 'Insufficient wallet balance']);
             }
 
-            echo "I'm at pos: 4";
+            // echo "I'm at pos: 4";
             return $next($request);
 
         } catch (\Throwable $th) {

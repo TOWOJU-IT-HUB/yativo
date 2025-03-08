@@ -63,6 +63,7 @@ class Customer extends Model
         "customer_kyc_link_id",
         "customer_kyc_link",
         "bridge_customer_id",
+        "brla_subaccount_id",
         "customer_kyc_email",
         "can_create_vc", // can_create_virtual_card
         "can_create_va", // can_create_virtual_account
