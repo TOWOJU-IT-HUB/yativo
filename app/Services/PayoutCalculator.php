@@ -43,13 +43,14 @@ class PayoutCalculator
             $walletCurrency,
             $targetCurrency,
             $payoutMethod->float_charge,
-            $payoutMethod->fixed_charge
+            $payoutMethod->fixed_charge,
+            $payoutMethod
         );
 
         // Calculate adjusted exchange rate
         $adjustedRate = $this->applyExchangeRateFloat(
             $rates['wallet_to_target'],
-            $exchangeRateFloat
+            $payoutMethod->exchange_rate_float // Use the exchange_rate_float from the payout method
         );
 
         // Calculate final amounts
@@ -59,7 +60,8 @@ class PayoutCalculator
             $rates['wallet_to_target'],
             $adjustedRate,
             $targetCurrency,
-            $payoutMethod
+            $payoutMethod,
+            $walletCurrency
         );
     }
 
@@ -69,10 +71,12 @@ class PayoutCalculator
         return [
             'wallet_to_usd' => $walletCurrency === 'USD' 
                 ? 1.0 
-                : $this->getLiveExchangeRate($walletCurrency, 'USD'),
+                : $this->getLiveExchangeRate('USD', $walletCurrency),
                 
             'usd_to_target' => $this->getLiveExchangeRate('USD', $targetCurrency),
-            'wallet_to_target' => $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
+            'wallet_to_target' => $walletCurrency === 'USD' && $targetCurrency === 'USD' 
+                ? 1.0 
+                : $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
         ];
     }
 
@@ -82,7 +86,8 @@ class PayoutCalculator
         string $walletCurrency,
         string $targetCurrency,
         float $floatPercent,
-        float $fixedFeeUSD
+        float $fixedFeeUSD,
+        PayoutMethods $payoutMethod
     ): array {
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
         $amountUSD = $amount / $rates['wallet_to_usd'];
@@ -93,6 +98,10 @@ class PayoutCalculator
 
         // Calculate total fee
         $totalFee = $floatFee + $fixedFee;
+
+        // Ensure fee is within min/max boundaries
+        $totalFee = max($totalFee, $payoutMethod->minimum_charge);
+        $totalFee = min($totalFee, $payoutMethod->maximum_charge);
 
         return [
             'float_fee' => $floatFee,
@@ -119,8 +128,7 @@ class PayoutCalculator
                 $client = new Client();
                 $apis = [
                     "https://min-api.cryptocompare.com/data/price" => ['fsym' => $from, 'tsyms' => $to],
-                    // Uncomment if Coinbase API is working
-                    // "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from]
+                    "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from]
                 ];
 
                 foreach ($apis as $url => $params) {
@@ -153,32 +161,56 @@ class PayoutCalculator
         float $exchangeRate,
         float $adjustedRate,
         string $targetCurrency,
-        PayoutMethods $payoutMethod
+        PayoutMethods $payoutMethod,
+        string $walletCurrency
     ): array {
-        $total_fee = $fees['total_fee'];
-        if ($total_fee < $payoutMethod->minimum_charge) {
-            $total_fee = $payoutMethod->minimum_charge;
-        } else if ($total_fee > $payoutMethod->maximum_charge) {
-            $total_fee = $payoutMethod->maximum_charge;
-        } else {
-            $total_fee = $fees['total_fee'];
-        }
-
         $amountInTarget = $amount * $adjustedRate;
-        $totalAmount = $amountInTarget + $total_fee;
+        $totalAmount = $amountInTarget + $fees['total_fee'];
+
+        // Calculate fees in payout method currency
+        $feesInPayoutCurrency = [
+            'float_fee' => round($fees['float_fee'] / $exchangeRate, 6),
+            'fixed_fee' => round($fees['fixed_fee'] / $exchangeRate, 6),
+            'total_fee' => round($fees['total_fee'] / $exchangeRate, 6)
+        ];
+
+        // Calculate debit amount and customer receive amount in both currencies
+        $debitAmountInWalletCurrency = round($totalAmount * $exchangeRate, 6);
+        $debitAmountInPayoutCurrency = round($totalAmount, 6);
+
+        $customerReceiveAmountInWalletCurrency = round($amount, 6);
+        $customerReceiveAmountInPayoutCurrency = round($amount / $exchangeRate, 6);
 
         return [
-            'total_fee' => round($total_fee, 6),
-            'total_amount' => round($totalAmount, 6),
+            'total_fee' => [
+                'wallet_currency' => round($fees['total_fee'], 6),
+                'payout_currency' => $feesInPayoutCurrency['total_fee']
+            ],
+            'total_amount' => [
+                'wallet_currency' => $debitAmountInWalletCurrency,
+                'payout_currency' => $debitAmountInPayoutCurrency
+            ],
             'exchange_rate' => $exchangeRate,
             'adjusted_rate' => $adjustedRate,
             'target_currency' => $targetCurrency,
             'base_currencies' => explode(',', $payoutMethod->base_currency),
-            'debit_amount' => round($totalAmount / $exchangeRate, 6),
-            'debit_amount_1' => round($amount + $total_fee, 6),
+            'debit_amount' => [
+                'wallet_currency' => $debitAmountInWalletCurrency,
+                'payout_currency' => $debitAmountInPayoutCurrency
+            ],
+            'customer_receive_amount' => [
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency,
+                'payout_currency' => $customerReceiveAmountInPayoutCurrency
+            ],
             'fee_breakdown' => [
-                'float' => round($fees['float_fee'], 6),
-                'fixed' => round($fees['fixed_fee'], 6)
+                'float' => [
+                    'wallet_currency' => round($fees['float_fee'], 6),
+                    'payout_currency' => $feesInPayoutCurrency['float_fee']
+                ],
+                'fixed' => [
+                    'wallet_currency' => round($fees['fixed_fee'], 6),
+                    'payout_currency' => $feesInPayoutCurrency['fixed_fee']
+                ]
             ],
             "PayoutMethod" => $payoutMethod
         ];
