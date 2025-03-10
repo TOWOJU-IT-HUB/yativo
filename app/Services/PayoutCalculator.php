@@ -156,7 +156,8 @@ class PayoutCalculator
             'adjusted_rate' => $adjustedRate,
             'target_currency' => $targetCurrency,
             'base_currencies' => explode(',', $payoutMethod->base_currency),
-            'debit_amount' => round($amount / $exchangeRate, 6),
+            'debit_amount' => round($totalAmount / $exchangeRate, 6),
+            'debit_amount_1' => round($amount + $fees['total_fee'], 6),
             'fee_breakdown' => [
                 'float' => round($fees['float_fee'], 6),
                 'fixed' => round($fees['fixed_fee'], 6)
