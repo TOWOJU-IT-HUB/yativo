@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\payoutMethods;
 use App\Models\Withdraw;
+use App\Models\User;
 use App\Models\TransactionRecord;
 use App\Services\PayoutService;
 use Illuminate\Http\Request;
