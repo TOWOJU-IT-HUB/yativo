@@ -34,6 +34,22 @@ class ChargeWalletMiddleware
                 return get_error_response(['error' => 'Currency pair error. Supported are: '.json_encode($result['base_currencies'])], 400);
             }
 
+            // Fetch payment method details
+            $payoutMethod = payoutMethods::findOrFail($request->payment_method_id);
+
+            // Convert min and max limits to debit currency
+            $minLimitInDebitCurrency = $payoutMethod->minimum_charge / $result['exchange_rate'];
+            $maxLimitInDebitCurrency = $payoutMethod->maximum_charge / $result['exchange_rate'];
+
+            // Validate transaction amount against limits
+            if (floatval($request->amount) < $minLimitInDebitCurrency) {
+                return get_error_response(['error' => 'Transaction amount is below the minimum allowed limit.'], 400);
+            }
+
+            if (floatval($request->amount) > $maxLimitInDebitCurrency) {
+                return get_error_response(['error' => 'Transaction amount exceeds the maximum allowed limit.'], 400);
+            }
+
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
                 floatval($result['debit_amount'] * 100),
