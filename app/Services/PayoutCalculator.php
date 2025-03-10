@@ -95,7 +95,7 @@ class PayoutCalculator
         $payoutMethod = PayoutMethods::where('currency', $targetCurrency)->firstOrFail();
         $totalFee = $floatFee + $fixedFee; //min(max($floatFee + $fixedFee, $payoutMethod->min_charge), $payoutMethod->max_charge);
     
-        return $totalFee;
+        // return $totalFee;
         return [
             'float_fee' => $floatFee,
             'fixed_fee' => $fixedFee,
