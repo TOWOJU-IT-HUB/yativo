@@ -356,12 +356,12 @@ class BridgeController extends Controller
         }
 
         $payload = [
-            "developer_fee_percent" => env('BRIDGE_DEVELOPER_FEE_PERCENT', "0.6"),
+            "developer_fee_percent" => 0,
             "source" => [
                 "currency" => "usd"
             ],
             "destination" => [
-                "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
+                "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdc"),
                 "payment_rail" => "solana", //env('BRIDGE_PAYMENT_RAIL', "polygon"),
                 "address" => $destinationAddress
             ]
