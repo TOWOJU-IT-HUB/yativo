@@ -60,7 +60,8 @@ class PayoutCalculator
             $rates['wallet_to_target'],
             $adjustedRate,
             $targetCurrency,
-            $payoutMethod
+            $payoutMethod,
+            $walletCurrency
         );
     }
 
@@ -159,23 +160,56 @@ class PayoutCalculator
         float $exchangeRate,
         float $adjustedRate,
         string $targetCurrency,
-        PayoutMethods $payoutMethod
+        PayoutMethods $payoutMethod,
+        string $walletCurrency
     ): array {
         $amountInTarget = $amount * $adjustedRate;
         $totalAmount = $amountInTarget + $fees['total_fee'];
 
+        // Calculate fees in payout method currency
+        $feesInPayoutCurrency = [
+            'float_fee' => round($fees['float_fee'] / $exchangeRate, 6),
+            'fixed_fee' => round($fees['fixed_fee'] / $exchangeRate, 6),
+            'total_fee' => round($fees['total_fee'] / $exchangeRate, 6)
+        ];
+
+        // Calculate debit amount and customer receive amount in both currencies
+        $debitAmountInWalletCurrency = round($totalAmount * $exchangeRate, 6);
+        $debitAmountInPayoutCurrency = round($totalAmount, 6);
+
+        $customerReceiveAmountInWalletCurrency = round($amount, 6);
+        $customerReceiveAmountInPayoutCurrency = round($amount / $exchangeRate, 6);
+
         return [
-            'total_fee' => round($fees['total_fee'], 6),
-            'total_amount' => round($totalAmount, 6),
+            'total_fee' => [
+                'wallet_currency' => round($fees['total_fee'], 6),
+                'payout_currency' => $feesInPayoutCurrency['total_fee']
+            ],
+            'total_amount' => [
+                'wallet_currency' => $debitAmountInWalletCurrency,
+                'payout_currency' => $debitAmountInPayoutCurrency
+            ],
             'exchange_rate' => $exchangeRate,
             'adjusted_rate' => $adjustedRate,
             'target_currency' => $targetCurrency,
             'base_currencies' => explode(',', $payoutMethod->base_currency),
-            'debit_amount' => round($totalAmount / $exchangeRate, 6),
-            'debit_amount_1' => round($amount + $fees['total_fee'], 6),
+            'debit_amount' => [
+                'wallet_currency' => $debitAmountInWalletCurrency,
+                'payout_currency' => $debitAmountInPayoutCurrency
+            ],
+            'customer_receive_amount' => [
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency,
+                'payout_currency' => $customerReceiveAmountInPayoutCurrency
+            ],
             'fee_breakdown' => [
-                'float' => round($fees['float_fee'], 6),
-                'fixed' => round($fees['fixed_fee'], 6)
+                'float' => [
+                    'wallet_currency' => round($fees['float_fee'], 6),
+                    'payout_currency' => $feesInPayoutCurrency['float_fee']
+                ],
+                'fixed' => [
+                    'wallet_currency' => round($fees['fixed_fee'], 6),
+                    'payout_currency' => $feesInPayoutCurrency['fixed_fee']
+                ]
             ],
             "PayoutMethod" => $payoutMethod
         ];
