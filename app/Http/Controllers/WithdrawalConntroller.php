@@ -202,8 +202,8 @@ class WithdrawalConntroller extends Controller
                 "debit_amount" => $result['debit_amount'],
                 "send_amount" => $validated['amount'],
                 "customer_receive_amount" => "",
-                "calculator_result" => $result,
                 'raw_data' => json_encode([
+                    "calculator_result" => $result,
                     "rates" => [
                         'base_rate' => $result['exchange_rate'],
                         'adjusted_rate' => $result['adjusted_rate']
