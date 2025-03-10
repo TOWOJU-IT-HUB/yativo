@@ -340,7 +340,7 @@ class BridgeController extends Controller
         $request = request();
         
         $customer = Customer::where('customer_id', $customerId)->first();
-
+        var_dump($customer); exit;
         if(!$customer) {
             return ['error' => "Customer with ID: {$customerId} not found!."];
         }
