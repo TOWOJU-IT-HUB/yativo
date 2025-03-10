@@ -396,6 +396,10 @@ class BridgeController extends Controller
                 "extra_data" => $data
             ]);
         }
+
+        if(isset($data['message']) && isset($data['code'])) {
+            return ['error' => $data['message']];
+        }
     }
 
     public function getVirtualAccount($virtual_account_id)
