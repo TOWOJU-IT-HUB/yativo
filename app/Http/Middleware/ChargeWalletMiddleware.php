@@ -43,11 +43,11 @@ class ChargeWalletMiddleware
 
             // Validate transaction amount against limits
             if (floatval($request->amount) < $minLimitInDebitCurrency) {
-                return get_error_response(['error' => 'Transaction amount is below the minimum allowed limit.'], 400);
+                return get_error_response(['error' => 'Transaction amount is below the minimum allowed limit.', 'amount_passed' => $minLimitInDebitCurrency], 400);
             }
 
             if (floatval($request->amount) > $maxLimitInDebitCurrency) {
-                return get_error_response(['error' => 'Transaction amount exceeds the maximum allowed limit.'], 400);
+                return get_error_response(['error' => 'Transaction amount exceeds the maximum allowed limit.', 'amount_passed' => $maxLimitInDebitCurrency], 400);
             }
 
             // Deduct from wallet
