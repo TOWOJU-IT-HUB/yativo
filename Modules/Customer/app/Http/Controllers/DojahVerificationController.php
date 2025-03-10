@@ -98,8 +98,8 @@ class DojahVerificationController extends Controller
 
         $customer = Customer::where("customer_id", $request->customer_id)->first();
         $validatedData = $request->all();
-        
-        $kyc_email = "yativo_customer+{$customer->customer_id}@gmail.com";
+
+        $kyc_email = "yativo.customer+{$customer->customer_id}@gmail.com";
         $customer->update([
             "customer_kyc_email" => $kyc_email
         ]);
