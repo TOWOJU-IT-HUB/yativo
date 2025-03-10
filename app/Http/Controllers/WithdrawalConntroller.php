@@ -203,6 +203,7 @@ class WithdrawalConntroller extends Controller
                 "send_amount" => $validated['amount'],
                 "customer_receive_amount" => $validated['amount'],
                 'raw_data' => $result,
+                'status' => 'pending'
             ];
 
             if(request()->has('debug')) {
