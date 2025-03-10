@@ -90,14 +90,15 @@ class PayoutController extends Controller
 
             // Update transaction record also found
 
-            $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payout'])->first();
-            if ($txn) {
-                $txn->transaction_status = $request->status;
-                $txn->save();
-            } else {
-                // Log the error if the transaction record does not exist
-                Log::error("Transaction record not found for payout ID: $id");
-            }
+            // since the transaction has not been processed no transaction record is available
+            // $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payout'])->first();
+            // if ($txn) {
+            //     $txn->transaction_status = $request->status;
+            //     $txn->save();
+            // } else {
+            //     // Log the error if the transaction record does not exist
+            //     Log::error("Transaction record not found for payout ID: $id");
+            // }
 
             // Save the payout status update
             $payout->save();
