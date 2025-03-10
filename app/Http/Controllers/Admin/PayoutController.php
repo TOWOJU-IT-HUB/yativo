@@ -110,7 +110,7 @@ class PayoutController extends Controller
                 if ($user) {
                     $wallet = $user->getWallet($payout->debit_wallet);
                     if ($wallet) {
-                        $wallet->deposit($payout->debit_amount, [
+                        $wallet->deposit($payout->debit_amount * 100, [
                             "description" => "refund",
                             "full_desc" => "Refund for payout {$payout->id}",
                             "payload" => $payout
