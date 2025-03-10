@@ -152,18 +152,28 @@ class PayoutCalculator
         string $targetCurrency,
         PayoutMethods $payoutMethod
     ): array {
+
+        $total_fee = $fees['total_fee'];
+        if($total_fee < $payoutMethod->minimum_charge) {
+            $total_fee = $payoutMethod->minimum_charge;
+        } else if($total_fee > $payoutMethod->maximum_charge) {
+            $total_fee = $payoutMethod->maximum_charge;
+        } else {
+            $total_fee = $fees['total_fee'];
+        }
+
         $amountInTarget = $amount * $adjustedRate;
-        $totalAmount = $amountInTarget + $fees['total_fee'];
+        $totalAmount = $amountInTarget + $fees;
         
         return [
-            'total_fee' => round($fees['total_fee'], 6),
+            'total_fee' => round($total_fee, 6),
             'total_amount' => round($totalAmount, 6),
             'exchange_rate' => $exchangeRate,
             'adjusted_rate' => $adjustedRate,
             'target_currency' => $targetCurrency,
             'base_currencies' => explode(',', $payoutMethod->base_currency),
             'debit_amount' => round($totalAmount / $exchangeRate, 6),
-            'debit_amount_1' => round($amount + $fees['total_fee'], 6),
+            'debit_amount_1' => round($amount + $total_fee, 6),
             'fee_breakdown' => [
                 'float' => round($fees['float_fee'], 6),
                 'fixed' => round($fees['fixed_fee'], 6)
