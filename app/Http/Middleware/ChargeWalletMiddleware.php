@@ -11,8 +11,6 @@ use App\Services\PayoutCalculator;
 
 class ChargeWalletMiddleware 
 {
-    use Bavix\Wallet\Wallet;
-
     public function handle(Request $request, Closure $next)
     {
         try {
