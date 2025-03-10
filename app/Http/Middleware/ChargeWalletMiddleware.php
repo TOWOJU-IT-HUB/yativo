@@ -8,6 +8,7 @@ use App\Models\payoutMethods;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Illuminate\Support\Facades\Log;
 use App\Services\PayoutCalculator;
+use GuzzleHttp\Client;
 
 class ChargeWalletMiddleware 
 {
