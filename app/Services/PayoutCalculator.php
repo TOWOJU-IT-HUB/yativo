@@ -68,6 +68,13 @@ class PayoutCalculator
     // Exchange rate handling
     private function getExchangeRates(string $walletCurrency, string $targetCurrency): array
     {
+        if($walletCurrency === $targetCurrency) {
+            return [
+                'wallet_to_usd' => 1,
+                'usd_to_target' => 1,
+                'wallet_to_target' => 1 
+            ];
+        }
         return [
             'wallet_to_usd' => $walletCurrency === 'USD' 
                 ? 1.0 
