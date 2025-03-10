@@ -82,20 +82,26 @@ class PayoutCalculator
         string $walletCurrency,
         string $targetCurrency,
         float $floatPercent,
-        float $fixedFeeUSD,
+        float $fixedFeeUSD
     ): array {
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
-
         $amountUSD = $amount / $rates['wallet_to_usd'];
+    
+        // Calculate float and fixed fees
         $floatFee = $amountUSD * ($floatPercent / 100) * $rates['usd_to_target'];
         $fixedFee = $fixedFeeUSD * $rates['usd_to_target'];
-
+    
+        // ✅ Ensure fee is within min/max boundaries
+        $payoutMethod = PayoutMethods::where('currency', $targetCurrency)->firstOrFail();
+        $totalFee = min(max($floatFee + $fixedFee, $payoutMethod->min_charge), $payoutMethod->max_charge);
+    
         return [
             'float_fee' => $floatFee,
             'fixed_fee' => $fixedFee,
-            'total_fee' => $floatFee + $fixedFee
+            'total_fee' => $totalFee
         ];
     }
+    
 
     // Exchange rate adjustment
     private function applyExchangeRateFloat(float $rate, float $floatPercent): float
@@ -165,4 +171,30 @@ class PayoutCalculator
             "PayoutMethod" => $payoutMethod
         ];
     }
+
+    // private function calculateFees(
+    //     float $amount,
+    //     string $walletCurrency,
+    //     string $targetCurrency,
+    //     float $floatPercent,
+    //     float $fixedFeeUSD
+    // ): array {
+    //     $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
+    //     $amountUSD = $amount / $rates['wallet_to_usd'];
+    
+    //     // Calculate float and fixed fees
+    //     $floatFee = $amountUSD * ($floatPercent / 100) * $rates['usd_to_target'];
+    //     $fixedFee = $fixedFeeUSD * $rates['usd_to_target'];
+    
+    //     // ✅ Ensure fee is within min/max boundaries
+    //     $payoutMethod = PayoutMethods::where('currency', $targetCurrency)->firstOrFail();
+    //     $totalFee = min(max($floatFee + $fixedFee, $payoutMethod->min_charge), $payoutMethod->max_charge);
+    
+    //     return [
+    //         'float_fee' => $floatFee,
+    //         'fixed_fee' => $fixedFee,
+    //         'total_fee' => $totalFee
+    //     ];
+    // }
+    
 }
