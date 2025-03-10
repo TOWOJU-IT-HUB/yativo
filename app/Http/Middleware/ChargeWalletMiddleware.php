@@ -39,6 +39,11 @@ class ChargeWalletMiddleware
             Log::debug('Amount:', ['amount' => $request->amount]);
             Log::debug('Exchange Rate:', ['rate' => $result['exchange_rate']]);
 
+
+            if ($request->has('debug')) {
+                dd($result); exit;
+            }
+            
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
                 floatval($result['debit_amount'] * 100),
@@ -46,10 +51,6 @@ class ChargeWalletMiddleware
                 "Payout transaction",
                 $result
             );
-
-            if ($request->has('debug')) {
-                dd($result); exit;
-            }
 
             if (!$chargeNow || isset($chargeNow['error'])) {
                 return get_error_response(['error' => 'Insufficient wallet balance']);
