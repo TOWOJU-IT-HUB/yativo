@@ -128,31 +128,31 @@ class WithdrawalConntroller extends Controller
                     $table->string('customer_receive_amount')->nullable();
                 });
             }
-    
+
             $validate = Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:0.01',
                 'payment_method_id' => 'required|integer',
                 'customer_id' => 'sometimes|exists:customers,customer_id',
                 'debit_wallet' => 'required|string'
             ]);
-    
+
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
-    
+
             $validated = $validate->validated();
             $beneficiary = BeneficiaryPaymentMethod::find($validated['payment_method_id']);
-    
+
             // Validate beneficiary and payment method
             if (!$beneficiary || !$beneficiary->gateway_id) {
                 return get_error_response(['error' => "Invalid payment method configuration"]);
             }
-    
+
             $payoutMethod = PayoutMethods::find($beneficiary->gateway_id);
             if (!$payoutMethod) {
                 return get_error_response(['error' => "Unsupported withdrawal method"]);
             }
-    
+
             // Validate allowed debit currencies
             $allowedCurrencies = explode(',', $payoutMethod->base_currency);
             if (!in_array($validated['debit_wallet'], $allowedCurrencies)) {
@@ -160,7 +160,7 @@ class WithdrawalConntroller extends Controller
                     'error' => "Supported debit currencies: " . implode(', ', $allowedCurrencies)
                 ], 400);
             }
-    
+
             // Calculate payout details
             $calculator = new PayoutCalculator();
             $result = $calculator->calculate(
@@ -169,12 +169,12 @@ class WithdrawalConntroller extends Controller
                 $validated['payment_method_id'],
                 $payoutMethod->exchange_rate_float
             );
-    
+
             // Validate exchange rate
             if ($result['adjusted_rate'] <= 0) {
                 return get_error_response(['error' => 'Invalid exchange rate configuration'], 400);
             }
-    
+
             // Validate withdrawal limits in DEBIT CURRENCY
             if ($validated['amount'] < $payoutMethod->minimum_withdrawal) {
                 return get_error_response([
@@ -182,14 +182,14 @@ class WithdrawalConntroller extends Controller
                             . " " . $payoutMethod->currency
                 ]);
             }
-    
+
             if ($validated['amount'] > $payoutMethod->maximum_withdrawal) {
                 return get_error_response([
                     'error' => "Maximum withdrawal: " . number_format($payoutMethod->maximum_withdrawal, 2)
                             . " " . $payoutMethod->currency
                 ]);
             }
-    
+
             // Prepare withdrawal record
             $withdrawalData = [
                 'user_id' => auth()->id(),
@@ -202,8 +202,8 @@ class WithdrawalConntroller extends Controller
                 "debit_amount" => $result['debit_amount'],
                 "send_amount" => $validated['amount'],
                 "customer_receive_amount" => "",
-                'raw_data' => [
-                    "calculator_result" => $result,
+                "calculator_result" => $result,
+                'raw_data' => json_encode([
                     "rates" => [
                         'base_rate' => $result['exchange_rate'],
                         'adjusted_rate' => $result['adjusted_rate']
@@ -222,15 +222,15 @@ class WithdrawalConntroller extends Controller
                         'min' => $payoutMethod->minimum_withdrawal,
                         'max' => $payoutMethod->maximum_withdrawal
                     ]
-                ]
+                ]),
             ];
 
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
             }
-    
+
             $withdrawal = Withdraw::create($withdrawalData);
-    
+
             // Format response data
             $responseData = [
                 'withdrawal_id' => $withdrawal->id,
@@ -248,9 +248,9 @@ class WithdrawalConntroller extends Controller
                 // ],
                 'processed_at' => $withdrawal->created_at
             ];
-    
+
             return get_success_response($responseData, 201, "Withdrawal request initiated successfully");
-    
+
         } catch (\Throwable $th) {
             var_dump($th); exit;
             return get_error_response([
