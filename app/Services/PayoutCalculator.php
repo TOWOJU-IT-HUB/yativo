@@ -50,7 +50,7 @@ class PayoutCalculator
         // Calculate adjusted exchange rate
         $adjustedRate = $this->applyExchangeRateFloat(
             $rates['wallet_to_target'],
-            $exchangeRateFloat
+            $payoutMethod->exchange_rate_float // Use the exchange_rate_float from the payout method
         );
 
         // Calculate final amounts
