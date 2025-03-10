@@ -210,7 +210,7 @@ class PayoutCalculator
             ],
             'customer_receive_amount' => [
                 'wallet_currency' => $customerReceiveAmountInWalletCurrency,
-                'payout_currency' => $debitAmountInPayoutCurrency 
+                'payout_currency' => $customerReceiveAmountInWalletCurrency * $adjustedRate,
             ],
             'fee_breakdown' => [
                 'float' => [
