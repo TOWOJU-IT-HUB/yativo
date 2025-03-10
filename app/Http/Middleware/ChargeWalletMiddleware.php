@@ -60,7 +60,8 @@ class ChargeWalletMiddleware
         } catch (\Throwable $th) {
             // Log the error or notify
             \Log::error("Error processing payout: ", ['message' => $th->getMessage(), 'trace' => $th->getTrace()]);
-            var_dump($th->getTrace()); exit;
+           
+            return reponse()->json($th); exit;
 
             // Safe check for chargeNow['amount_charged']
             if (isset($chargeNow) && (is_array($chargeNow) && isset($chargeNow['amount_charged']) || property_exists($chargeNow, 'amount_charged'))) {
