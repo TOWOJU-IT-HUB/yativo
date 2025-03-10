@@ -43,7 +43,7 @@ class ChargeWalletMiddleware
             if ($request->has('debug')) {
                 dd($result); exit;
             }
-            
+
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
                 floatval($result['debit_amount'] * 100),
@@ -62,8 +62,6 @@ class ChargeWalletMiddleware
             // Log the error or notify
             \Log::error("Error processing payout: ", ['message' => $th->getMessage(), 'trace' => $th->getTrace()]);
            
-            return reponse()->json($th); exit;
-
             // Safe check for chargeNow['amount_charged']
             if (isset($chargeNow) && (is_array($chargeNow) && isset($chargeNow['amount_charged']) || property_exists($chargeNow, 'amount_charged'))) {
                 // Refund the user
