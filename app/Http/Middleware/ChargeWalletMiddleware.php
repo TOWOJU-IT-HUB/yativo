@@ -1,98 +1,183 @@
 <?php
+// app/Services/PayoutCalculator.php
 
-namespace App\Http\Middleware;
+namespace App\Services;
 
-use Closure;
-use Illuminate\Http\Request;
-use App\Models\payoutMethods;
-use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use App\Services\PayoutCalculator;
+use App\Models\payoutMethods as PayoutMethods;
+use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
-class ChargeWalletMiddleware 
+class PayoutCalculator
 {
-    public function handle(Request $request, Closure $next)
-    {
-        try {
-            $request->validate([
-                "amount" => "required",
-                "debit_wallet" => "required",
-                "payment_method_id" => "required",
-            ]);
+    // Main calculation method
+    public function calculate(
+        float $amount,
+        string $walletCurrency,
+        int $paymentMethodId,
+        float $exchangeRateFloat = 0
+    ): array {
+        $request = request();
 
-            $calculator = new PayoutCalculator();
-            
-            $result = $calculator->calculate(
-                floatval($request->amount),
-                $request->debit_wallet,
-                $request->payment_method_id,
-                floatval($request->exchange_rate_float ?? 0)
-            );
-
-            // Validate allowed currencies
-            if (!in_array($request->debit_wallet, $result['base_currencies'])) {
-                return get_error_response(['error' => 'Currency pair error. Supported are: '.json_encode($result['base_currencies'])], 400);
-            }
-
-            // Fetch payment method details
-            $payoutMethod = payoutMethods::findOrFail($request->payment_method_id);
-
-            // Convert min and max limits to debit currency
-            $minLimitInDebitCurrency = $payoutMethod->minimum_charge / $result['exchange_rate'];
-            $maxLimitInDebitCurrency = $payoutMethod->maximum_charge / $result['exchange_rate'];
-
-            // Validate transaction amount against limits
-            if (floatval($request->amount) < $minLimitInDebitCurrency) {
-                return get_error_response(['error' => 'Transaction amount is below the minimum allowed limit.'], 400);
-            }
-
-            if (floatval($request->amount) > $maxLimitInDebitCurrency) {
-                return get_error_response(['error' => 'Transaction amount exceeds the maximum allowed limit.'], 400);
-            }
-
-            // Deduct from wallet
-            $chargeNow = debit_user_wallet(
-                floatval($result['debit_amount'] * 100),
-                $request->debit_wallet,
-                "Payout transaction",
-                $result
-            );
-
-            if ($request->has('debug')) {
-                dd($result);
-            }
-
-            if (!$chargeNow || isset($chargeNow['error'])) {
-                return get_error_response(['error' => 'Insufficient wallet balance']);
-            }
-
-            return $next($request);
-
-        } catch (\Throwable $th) {
-            // Log the error or notify
-            \Log::error("Error processing payout: ", ['message' => $th->getMessage(), 'trace' => $th->getTrace()]);
-
-            // Safe check for chargeNow['amount_charged']
-            if (isset($chargeNow) && (is_array($chargeNow) && isset($chargeNow['amount_charged']) || property_exists($chargeNow, 'amount_charged'))) {
-                // Refund the user
-                $user = auth()->user();
-                $wallet = $user->getWallet($request->debit_wallet); 
-
-                // Define a description for the refund
-                $description = "Refund for failed payout transaction: " . (is_array($chargeNow) ? $chargeNow['transaction_id'] : $chargeNow->transaction_id); 
-                
-                // Credit the wallet back (refund)
-                $refundResult = $wallet->credit(floatval(is_array($chargeNow) ? $chargeNow['amount_charged'] : $chargeNow->amount_charged), $description);
-
-                // Check if the refund was successful
-                if ($refundResult) {
-                    return get_error_response(['error' => $th->getMessage()]);
-                } else {
-                    return get_error_response(['error' => $th->getMessage(), 'message' => 'Transaction failed and refund could not be processed.']);
-                }
-            }
-
-            return get_error_response(['error' => $th->getMessage()]);
+        if ($request->has('method_id') && !empty($request->method_id)) {
+            // Direct gateway mode - use request currencies
+            $gatewayId = $paymentMethodId;
+            $targetCurrency = strtoupper($request->to_currency);
+            $walletCurrency = strtoupper($request->from_currency); // Override parameter
+        } else {
+            // Beneficiary mode - get from stored beneficiary
+            $beneficiary = BeneficiaryPaymentMethod::findOrFail($paymentMethodId);
+            $gatewayId = $beneficiary->gateway_id;
+            $targetCurrency = $beneficiary->currency;
         }
+
+        $payoutMethod = PayoutMethods::findOrFail($gatewayId);
+
+        // Get exchange rates
+        $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
+
+        // Calculate fees
+        $fees = $this->calculateFees(
+            $amount,
+            $walletCurrency,
+            $targetCurrency,
+            $payoutMethod->float_charge,
+            $payoutMethod->fixed_charge,
+            $payoutMethod
+        );
+
+        // Calculate adjusted exchange rate
+        $adjustedRate = $this->applyExchangeRateFloat(
+            $rates['wallet_to_target'],
+            $payoutMethod->exchange_rate_float // Use the exchange_rate_float from the payout method
+        );
+
+        // Calculate final amounts
+        return $this->compileResults(
+            $amount,
+            $fees,
+            $rates['wallet_to_target'],
+            $adjustedRate,
+            $targetCurrency,
+            $payoutMethod
+        );
+    }
+
+    // Exchange rate handling
+    private function getExchangeRates(string $walletCurrency, string $targetCurrency): array
+    {
+        return [
+            'wallet_to_usd' => $walletCurrency === 'USD' 
+                ? 1.0 
+                : $this->getLiveExchangeRate('USD', $walletCurrency),
+                
+            'usd_to_target' => $this->getLiveExchangeRate('USD', $targetCurrency),
+            'wallet_to_target' => $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
+        ];
+    }
+
+    // Fee calculation
+    private function calculateFees(
+        float $amount,
+        string $walletCurrency,
+        string $targetCurrency,
+        float $floatPercent,
+        float $fixedFeeUSD,
+        PayoutMethods $payoutMethod
+    ): array {
+        $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
+        $amountUSD = $amount / $rates['wallet_to_usd'];
+
+        // Calculate float and fixed fees
+        $floatFee = $amountUSD * ($floatPercent / 100) * $rates['usd_to_target'];
+        $fixedFee = $fixedFeeUSD * $rates['usd_to_target'];
+
+        // Calculate total fee
+        $totalFee = $floatFee + $fixedFee;
+
+        // Ensure fee is within min/max boundaries
+        $totalFee = max($totalFee, $payoutMethod->minimum_charge);
+        $totalFee = min($totalFee, $payoutMethod->maximum_charge);
+
+        return [
+            'float_fee' => $floatFee,
+            'fixed_fee' => $fixedFee,
+            'total_fee' => $totalFee
+        ];
+    }
+
+    // Exchange rate adjustment
+    private function applyExchangeRateFloat(float $rate, float $floatPercent): float
+    {
+        return round($rate - ($rate * ($floatPercent / 100)), 6);
+    }
+
+    // Live exchange rate fetch
+    public function getLiveExchangeRate(string $from, string $to): float
+    {
+        $from = strtoupper($from);
+        $to = strtoupper($to);
+        if ($from === $to) return 1.0;
+
+        return Cache::remember("exchange_rate_{$from}_{$to}", now()->addMinutes(30), 
+            function () use ($from, $to) {
+                $client = new Client();
+                $apis = [
+                    "https://min-api.cryptocompare.com/data/price" => ['fsym' => $from, 'tsyms' => $to],
+                    // Uncomment if Coinbase API is working
+                    // "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from]
+                ];
+
+                foreach ($apis as $url => $params) {
+                    try {
+                        $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
+                        if (isset($response['Response']) && $response['Response'] === 'Error') {
+                            Log::error("API Error: " . $response['Message']);
+                            continue;
+                        }
+                        $rate = match(str_contains($url, 'cryptocompare')) {
+                            true => $response[$to] ?? null,
+                            false => $response['data']['rates'][$to] ?? null
+                        };
+
+                        if ($rate) return (float) $rate;
+                    } catch (\Exception $e) {
+                        Log::error("Exchange rate error: {$e->getMessage()}");
+                    }
+                }
+
+                throw new \RuntimeException("Failed to fetch exchange rate for {$from}->{$to}");
+            }
+        );
+    }
+
+    // Compile final results
+    private function compileResults(
+        float $amount,
+        array $fees,
+        float $exchangeRate,
+        float $adjustedRate,
+        string $targetCurrency,
+        PayoutMethods $payoutMethod
+    ): array {
+        $amountInTarget = $amount * $adjustedRate;
+        $totalAmount = $amountInTarget + $fees['total_fee'];
+
+        return [
+            'total_fee' => round($fees['total_fee'], 6),
+            'total_amount' => round($totalAmount, 6),
+            'exchange_rate' => $exchangeRate,
+            'adjusted_rate' => $adjustedRate,
+            'target_currency' => $targetCurrency,
+            'base_currencies' => explode(',', $payoutMethod->base_currency),
+            'debit_amount' => round($totalAmount / $exchangeRate, 6),
+            'debit_amount_1' => round($amount + $fees['total_fee'], 6),
+            'fee_breakdown' => [
+                'float' => round($fees['float_fee'], 6),
+                'fixed' => round($fees['fixed_fee'], 6)
+            ],
+            "PayoutMethod" => $payoutMethod
+        ];
     }
 }
