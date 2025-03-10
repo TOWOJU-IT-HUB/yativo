@@ -74,7 +74,9 @@ class PayoutCalculator
                 : $this->getLiveExchangeRate('USD', $walletCurrency),
                 
             'usd_to_target' => $this->getLiveExchangeRate('USD', $targetCurrency),
-            'wallet_to_target' => $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
+            'wallet_to_target' => $walletCurrency === 'USD' && $targetCurrency === 'USD' 
+                ? 1.0 
+                : $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
         ];
     }
 
