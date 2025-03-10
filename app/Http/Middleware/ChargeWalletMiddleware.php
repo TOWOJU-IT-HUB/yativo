@@ -60,14 +60,15 @@ class ChargeWalletMiddleware
 
             // Safe check for chargeNow['amount_charged']
             if (isset($chargeNow) && (is_array($chargeNow) && isset($chargeNow['amount_charged']) || property_exists($chargeNow, 'amount_charged'))) {
-                // Refund the user (using Bavix wallet system)
-                $user = Wallet::find($request->debit_wallet); 
+                // Refund the user
+                $user = auth()->user();
+                $wallet = $user->getWallet($request->debit_wallet); 
 
                 // Define a description for the refund
                 $description = "Refund for failed payout transaction: " . (is_array($chargeNow) ? $chargeNow['transaction_id'] : $chargeNow->transaction_id); 
                 
                 // Credit the wallet back (refund)
-                $refundResult = $user->credit(floatval(is_array($chargeNow) ? $chargeNow['amount_charged'] : $chargeNow->amount_charged), $description);
+                $refundResult = $wallet->credit(floatval(is_array($chargeNow) ? $chargeNow['amount_charged'] : $chargeNow->amount_charged), $description);
 
                 // Check if the refund was successful
                 if ($refundResult) {
