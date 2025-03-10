@@ -197,8 +197,8 @@ class PayoutCalculator
                 'payout_currency' => $feesInPayoutCurrency['total_fee']
             ],
             'total_amount' => [
-                'wallet_currency' => $debitAmountInWalletCurrency / $adjustedRate,
-                'payout_currency' => $debitAmountInPayoutCurrency
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency * $feesInPayoutCurrency['total_fee'],
+                'payout_currency' => $debitAmountInWalletCurrency / $adjustedRate
             ],
             'exchange_rate' => $exchangeRate,
             'adjusted_rate' => $adjustedRate,
