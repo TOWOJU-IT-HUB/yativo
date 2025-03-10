@@ -15,9 +15,9 @@ class ChargeWalletMiddleware
     {
         try {
             $request->validate([
-                "amount" => "required",
-                "debit_wallet" => "required",
-                "payment_method_id" => "required",
+                "amount" => "required|numeric",
+                "debit_wallet" => "required|string",
+                "payment_method_id" => "required|integer",
             ]);
 
             $calculator = new PayoutCalculator();
@@ -33,6 +33,11 @@ class ChargeWalletMiddleware
             if (!in_array($request->debit_wallet, $result['base_currencies'])) {
                 return get_error_response(['error' => 'Currency pair error. Supported are: '.json_encode($result['base_currencies'])], 400);
             }
+
+            // Debugging: Check the types of the values
+            Log::debug('Debit Amount:', ['amount' => $result['debit_amount']]);
+            Log::debug('Amount:', ['amount' => $request->amount]);
+            Log::debug('Exchange Rate:', ['rate' => $result['exchange_rate']]);
 
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
