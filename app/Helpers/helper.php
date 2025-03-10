@@ -993,7 +993,7 @@ if (!function_exists('debit_user_wallet')) {
                 'description' => $description,
             ]);
 
-            return ['success' => true, 'message' => 'Transaction completed successfully'];
+            return ['success' => true, 'message' => 'Transaction completed successfully', 'amount_charged' => $amount, 'currency' => $currency];
         } catch (InsufficientFunds $exception) {
             // User doesn't have enough balance in wallet
             return ['error' => $exception->getMessage()];

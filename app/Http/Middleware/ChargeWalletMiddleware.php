@@ -35,10 +35,11 @@ class ChargeWalletMiddleware
             }
 
             // Debugging: Check the types of the values
-            Log::debug('Debit Amount:', ['amount' => $result['debit_amount']]);
+            Log::debug('Debit Amount:', ['amount' => $result['amount_due']]);
             Log::debug('Amount:', ['amount' => $request->amount]);
             Log::debug('Exchange Rate:', ['rate' => $result['exchange_rate']]);
 
+            $amount_due = $result['amount_due'];
 
             if ($request->has('debug')) {
                 dd($result); exit;
@@ -46,7 +47,7 @@ class ChargeWalletMiddleware
 
             // Deduct from wallet
             $chargeNow = debit_user_wallet(
-                floatval($result['debit_amount'] * 100),
+                floatval($amount_due * 100),
                 $request->debit_wallet,
                 "Payout transaction",
                 $result
