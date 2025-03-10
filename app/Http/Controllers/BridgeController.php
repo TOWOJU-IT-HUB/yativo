@@ -373,7 +373,11 @@ class BridgeController extends Controller
             var_dump($data); exit;
         }
 
-        if (isset($data['error']) || $data['status'] < 200) {
+        if(isset($data['message']) && isset($data['code'])) {
+            return ['error' => $data['message']];
+        }
+
+        if (isset($data['error']) || (isset($data['status']) && $data['status'] < 200)) {
             return ["error" => $data['error'] ?? $data];
         }
 
@@ -395,10 +399,6 @@ class BridgeController extends Controller
                 ],
                 "extra_data" => $data
             ]);
-        }
-
-        if(isset($data['message']) && isset($data['code'])) {
-            return ['error' => $data['message']];
         }
     }
 
