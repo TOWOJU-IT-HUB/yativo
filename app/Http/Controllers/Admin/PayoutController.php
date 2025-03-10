@@ -74,43 +74,58 @@ class PayoutController extends Controller
         }
     }
 
-    /**
+   /**
      * Process manual payout update/approval
      */
     public function manual(Request $request, $id) 
     {
         try {
+            $request->validate([
+                'status' => 'required|string'
+            ]);
+            
             $payout = Withdraw::findOrFail($id);
             $payout->status = $request->status;
-            $payout->save();
 
-            // update transaction record also
+            // Update transaction record also
             $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payout'])->first();
-            if($txn) {
+            if ($txn) {
                 $txn->transaction_status = $request->status;
                 $txn->save();
+            } else {
+                // Log the error if the transaction record does not exist
+                Log::error("Transaction record not found for payout ID: $id");
             }
 
-            if($payout->save() && $txn->save()) {
+            // Save the payout status update
+            $payout->save();
 
-                // if transaction is rejected refund customer
-                if(strtolower($request->status) !== "complete") {
-                    $user = User::whereId($payout->user_id)->first();
-                    if($user) {
-                        $wallet = $user->getWallet($payout->debit_wallet);
+            // If transaction is rejected, refund customer
+            if (in_array(strtolower($request->status), ["failed", "expired"])) {
+                $user = User::find($payout->user_id);
+                if ($user) {
+                    $wallet = $user->getWallet($payout->debit_wallet);
+                    if ($wallet) {
                         $wallet->deposit($payout->debit_amount, [
                             "description" => "refund",
                             "full_desc" => "Refund for payout {$payout->id}",
                             "payload" => $payout
                         ]);
+                    } else {
+                        // Log the error if the wallet does not exist
+                        Log::error("Wallet not found for user ID: {$user->id} and currency: {$payout->debit_wallet}");
                     }
+                } else {
+                    // Log the error if the user does not exist
+                    Log::error("User not found for ID: {$payout->user_id}");
                 }
-
-
-                return back()->with('success', 'Transaction updated successfully');
             }
-        } catch(\Throwable $th) {
-            return back()->with('error', $th->getMessage());
+
+            return back()->with('success', 'Transaction updated successfully');
+        } catch (\Throwable $th) {
+            // Log the error for debugging
+            Log::error("Error processing manual payout update: " . $th->getMessage());
+            return back()->with('error', 'An error occurred while updating the transaction.');
         }
-    } 
+    }
 }
