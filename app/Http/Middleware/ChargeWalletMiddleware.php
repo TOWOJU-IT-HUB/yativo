@@ -48,7 +48,7 @@ class ChargeWalletMiddleware
             );
 
             if ($request->has('debug')) {
-                dd($result);
+                dd($result); exit;
             }
 
             if (!$chargeNow || isset($chargeNow['error'])) {
