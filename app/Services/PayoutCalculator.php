@@ -171,6 +171,9 @@ class PayoutCalculator
         PayoutMethods $payoutMethod,
         string $walletCurrency
     ): array {
+        if(strtolower($payoutMethod->currency) === strtolower(request()->debit_wallet)) {
+            $adjustedRate = 1;
+        }
         $amountInTarget = $amount * $adjustedRate;
         $totalAmount = $amountInTarget + $fees['total_fee'];
 
