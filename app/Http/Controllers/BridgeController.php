@@ -348,7 +348,7 @@ class BridgeController extends Controller
         if(!$customer->bridge_customer_id) {
             return ['error' => 'Customer not enrolled for service or KYC not complete'];
         }
-        $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
+        $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
         $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; //$this->createWallet($this->customer->bridge_customer_id);
 
         if($destinationAddress == false) {
