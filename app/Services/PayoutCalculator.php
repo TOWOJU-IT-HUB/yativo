@@ -93,8 +93,9 @@ class PayoutCalculator
     
         // ✅ Ensure fee is within min/max boundaries
         $payoutMethod = PayoutMethods::where('currency', $targetCurrency)->firstOrFail();
-        $totalFee = min(max($floatFee + $fixedFee, $payoutMethod->min_charge), $payoutMethod->max_charge);
+        $totalFee = $floatFee + $fixedFee; //min(max($floatFee + $fixedFee, $payoutMethod->min_charge), $payoutMethod->max_charge);
     
+        return $totalFee;
         return [
             'float_fee' => $floatFee,
             'fixed_fee' => $fixedFee,
