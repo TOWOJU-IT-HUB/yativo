@@ -200,8 +200,9 @@ class WithdrawalConntroller extends Controller
                 'debit_wallet' => $validated['debit_wallet'],
                 'amount' => $validated['amount'],
                 "debit_amount" => $result['debit_amount'],
-                "send_amount" => "",
+                "send_amount" => $validated['amount'],
                 "customer_receive_amount" => "",
+                "calculator_result" => $result,
                 'raw_data' => [
                     "rates" => [
                         'base_rate' => $result['exchange_rate'],
@@ -223,6 +224,10 @@ class WithdrawalConntroller extends Controller
                     ]
                 ]
             ];
+
+            if(request()->has('debug')) {
+                dd($withdrawalData); exit;
+            }
     
             $withdrawal = Withdraw::create($withdrawalData);
     

@@ -20,16 +20,17 @@ class WithdrawalController extends Controller
     public function singlePayout(Request $request)
     {
         try {
+            $request->merge([
+                'payment_method_id' => $request->beneficiary_details_id,
+                'user_id' => auth()->id()
+            ]);
+            
             $validate = Validator::make($request->all(), [
                 'beneficiary_id' => 'sometimes',
                 'amount' => 'required',
                 'beneficiary_details_id' => 'required'
             ]);
 
-            $request->merge([
-                'payment_method_id' => $request->beneficiary_details_id,
-                'user_id' => auth()->id()
-            ]);
 
             if ($validate->fails()) {
                 return get_error_response($validate->errors()->toArray());
