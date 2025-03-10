@@ -199,30 +199,10 @@ class WithdrawalConntroller extends Controller
                 'beneficiary_id' => $validated['payment_method_id'],
                 'debit_wallet' => $validated['debit_wallet'],
                 'amount' => $validated['amount'],
-                "debit_amount" => $result['debit_amount'],
+                "debit_amount" => $result['amount_due'],
                 "send_amount" => $validated['amount'],
-                "customer_receive_amount" => "",
-                'raw_data' => json_encode([
-                    "calculator_result" => $result,
-                    "rates" => [
-                        'base_rate' => $result['exchange_rate'],
-                        'adjusted_rate' => $result['adjusted_rate']
-                    ],
-                    "fees" => [
-                        'total_fee' => $result['total_fee'],
-                        'fee_breakdown' => $result['fee_breakdown']
-                    ],
-                    "amounts" => [
-                        "debit_amount" => $result['debit_amount'],
-                        'requested' => $validated['amount'],
-                        'converted' => $result['total_amount'],
-                        'debit_currency' => $validated['debit_wallet']
-                    ],
-                    "limits" => [
-                        'min' => $payoutMethod->minimum_withdrawal,
-                        'max' => $payoutMethod->maximum_withdrawal
-                    ]
-                ]),
+                "customer_receive_amount" => $validated['amount'],
+                'raw_data' => $result,
             ];
 
             if(request()->has('debug')) {
@@ -230,29 +210,25 @@ class WithdrawalConntroller extends Controller
             }
 
             $withdrawal = Withdraw::create($withdrawalData);
-
+            
+            unset($result['exchange_rate']);
+            unset($result['debit_amount']);
             // Format response data
             $responseData = [
                 'withdrawal_id' => $withdrawal->id,
+                'payout_id' => $withdrawal->payout_id,
                 'status' => $withdrawal->status,
-                'debit_amount' => $result['debit_amount'],
+                'debit_amount' => $result['amount_due'],
                 'target_amount' => $result['total_amount'],
                 'currency' => $payoutMethod->currency,
-                'fees' => [
-                    'total' => $result['total_fee'],
-                    // 'breakdown' => $result['fee_breakdown']
-                ],
-                // 'exchange_rate' => [
-                //     'base' => $result['exchange_rate'],
-                //     'adjusted' => $result['adjusted_rate']
-                // ],
+                'fees' => $result,
                 'processed_at' => $withdrawal->created_at
             ];
 
             return get_success_response($responseData, 201, "Withdrawal request initiated successfully");
 
         } catch (\Throwable $th) {
-            var_dump($th); exit;
+            // var_dump($th); exit;
             return get_error_response([
                 'error' => $th->getMessage(),
                 'trace' => config('app.debug') ? $th->getTrace() : []
