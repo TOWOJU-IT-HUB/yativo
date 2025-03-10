@@ -162,12 +162,8 @@ class PayoutCalculator
             $total_fee = $fees['total_fee'];
         }
 
-        if(request()->has('debug')) {
-            dd($total_fee); exit;
-        }
-
         $amountInTarget = $amount * $adjustedRate;
-        $totalAmount = $amountInTarget + $fees;
+        $totalAmount = $amountInTarget + $total_fee;
         
         return [
             'total_fee' => round($total_fee, 6),
