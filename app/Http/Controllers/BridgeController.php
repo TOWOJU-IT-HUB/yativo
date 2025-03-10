@@ -369,9 +369,14 @@ class BridgeController extends Controller
 
         $data = $this->sendRequest($endpoint, "POST", $payload);
 
+        if(request()->has('debug')) {
+            var_dump($data); exit;
+        }
+
         if (isset($data['error']) || $data['status'] < 200) {
             return ["error" => $data['error'] ?? $data];
         }
+
         if (isset($data['source_deposit_instructions']['bank_account_number'])) {
             return VirtualAccount::create([
                 "account_id" => $data['id'],
