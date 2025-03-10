@@ -97,12 +97,14 @@ class DojahVerificationController extends Controller
         }
 
         $customer = Customer::where("customer_id", $request->customer_id)->first();
+        $validatedData = $request->all();
+        
         $kyc_email = "yativo_customer+{$customer->customer_id}@gmail.com";
         $customer->update([
             "customer_kyc_email" => $kyc_email
         ]);
+
         $validatedData['email'] = $kyc_email;
-        $validatedData = $request->all();
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
         $validatedData['residential_address'] = $request->address;
         $validatedData['expected_monthly_payments_usd'] = $request->expected_monthly_payments;
