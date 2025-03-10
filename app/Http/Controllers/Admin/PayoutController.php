@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\payoutMethods;
 use App\Models\Withdraw;
+use App\Models\TransactionRecord;
 use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
@@ -87,7 +88,8 @@ class PayoutController extends Controller
             $payout = Withdraw::findOrFail($id);
             $payout->status = $request->status;
 
-            // Update transaction record also
+            // Update transaction record also found
+
             $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payout'])->first();
             if ($txn) {
                 $txn->transaction_status = $request->status;
