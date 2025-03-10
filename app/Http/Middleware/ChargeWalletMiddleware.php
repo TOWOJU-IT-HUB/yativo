@@ -125,7 +125,7 @@ class ChargeWalletMiddleware
         $to = strtoupper($to_debit_wallet);
         if ($from === $to) return 1.0;
 
-        return Cache::remember("exchange_rate_{$from}_{$to}", now()->addMinutes(30), 
+        return cache()->remember("exchange_rate_{$from}_{$to}", now()->addMinutes(30), 
             function () use ($from, $to) {
                 $client = new Client();
                 $apis = [
