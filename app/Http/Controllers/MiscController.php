@@ -200,6 +200,10 @@ class MiscController extends Controller
     
 
             // return response()->json($result); exit;
+            $adjusted_rate =  $result['adjusted_rate'];
+            if($request->from_currency === $request->to_currency) {
+                $adjusted_rate =  1;
+            }
 
             // Build response format
             return get_success_response([
@@ -209,11 +213,11 @@ class MiscController extends Controller
                 "amount" => number_format($request->amount, 8),
                 "converted_amount" => "1{$request->from_currency} - " . number_format($result['adjusted_rate'], 8) . " {$request->to_currency}",
                 "payout_data" => [
-                    "total_transaction_fee_in_from_currency" => number_format($result['fee_breakdown']['float']['wallet_currency'] + $result['fee_breakdown']['fixed']['wallet_currency'], 8),
-                    "total_transaction_fee_in_to_currency" => number_format($result['total_fee']['payout_currency'], 8),
-                    "customer_sent_amount" => number_format($request->amount, 8),
-                    "customer_receive_amount" => number_format($result['customer_receive_amount']['payout_currency'], 8),
-                    "customer_total_amount_due" => number_format($result['amount_due'], 8)
+                    "total_transaction_fee_in_from_currency" => number_format($result['total_fee']['wallet_currency'] / $adjusted_rate, 8),
+                    "total_transaction_fee_in_to_currency" => number_format($result['total_fee']['payout_currency'], 2),
+                    "customer_sent_amount" => number_format($request->amount, 2),
+                    "customer_receive_amount" => number_format($request->amount, 2), //number_format($result['customer_receive_amount']['payout_currency'], 8),
+                    "customer_total_amount_due" => number_format($result['amount_due'], 2)
                 ]
             ]);
     
