@@ -191,16 +191,17 @@ class PayoutCalculator
         $customerReceiveAmountInWalletCurrency = round($amount, 6);
         $customerReceiveAmountInPayoutCurrency = round($amount / $exchangeRate, 6);
 
+        $total_fee_due =  $feesInPayoutCurrency['float_fee'] + $feesInPayoutCurrency['fixed_fee'];
         return [
             'total_fee' => [
                 'wallet_currency' => round($fees['total_fee'], 6),
-                'payout_currency' => $feesInPayoutCurrency['total_fee']
+                'payout_currency' => $total_fee_due
             ],
             'total_amount' => [
                 'wallet_currency' => $customerReceiveAmountInWalletCurrency + $feesInPayoutCurrency['total_fee'],
                 'payout_currency' => $debitAmountInWalletCurrency / $adjustedRate
             ],
-            "amount_due" => $customerReceiveAmountInWalletCurrency + $feesInPayoutCurrency['total_fee'],
+            "amount_due" => $customerReceiveAmountInWalletCurrency + $total_fee_due,
             'exchange_rate' => $exchangeRate,
             'adjusted_rate' => $adjustedRate,
             'target_currency' => $targetCurrency,

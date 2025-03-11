@@ -200,7 +200,7 @@ class PayoutService
                 "url_notify" => "https://api.yativo.com/callback/webhook/vitawallet", //route("vitawallet.callback.success"),
                 "country" => $country->iso2,
                 "currency" => "CLP",
-                "amount" => $payoutObject->amount * $rate,
+                "amount" => $payoutObject->customer_receive_amount * $rate,
                 "order" => $quoteId,
                 "type" => "business_transaction",
                 "beneficiary_email" => "emma@yativo.com"
