@@ -217,6 +217,11 @@ class WithdrawalConntroller extends Controller
             
             unset($result['exchange_rate']);
             unset($result['debit_amount']);
+            unset($result['PayoutMethod']);
+            unset($result['total_fee']);
+            unset($result['base_currencies']);
+            unset($result['fee_breakdown']);
+            $result['exchange_rate'] = $result['adjusted_rate'];
             // Format response data
             $responseData = [
                 'withdrawal_id' => $withdrawal->id,
