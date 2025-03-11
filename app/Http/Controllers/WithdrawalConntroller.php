@@ -175,18 +175,21 @@ class WithdrawalConntroller extends Controller
                 return get_error_response(['error' => 'Invalid exchange rate configuration'], 400);
             }
 
+            $xchangeRate = $this->getExchangeRate($payoutMethod->currency, $request->debit_wallet);
+            $comparedMinAmount = floatval($payoutMethod->minimum_withdrawal * $xchangeRate) + $result['total_fee']['payout_currency'];
+            $comparedMaxAmount = floatval($payoutMethod->maximum_withdrawal * $xchangeRate) + $result['total_fee']['payout_currency'];
             // Validate withdrawal limits in DEBIT CURRENCY
-            if ($validated['amount'] < $payoutMethod->minimum_withdrawal) {
+            // convert the $payoutMethod->minimum_withdrawal to debit_wallet currency and compare the amount
+            if ($validated['amount'] < $comparedMinAmount) {
                 return get_error_response([
-                    'error' => "Minimum withdrawal: " . number_format($payoutMethod->minimum_withdrawal, 2) 
-                            . " " . $payoutMethod->currency
+                    'error' => "Minimum withdrawal: " . number_format($comparedMinAmount, 2). " $request->debit_wallet"
                 ]);
             }
-
-            if ($validated['amount'] > $payoutMethod->maximum_withdrawal) {
+    
+            // convert the $payoutMethod->maximum_withdrawal to debit_wallet currency and compare the amount
+            if ($validated['amount'] > $comparedMaxAmount) {
                 return get_error_response([
-                    'error' => "Maximum withdrawal: " . number_format($payoutMethod->maximum_withdrawal, 2)
-                            . " " . $payoutMethod->currency
+                    'error' => "Minimum withdrawal: " . number_format($comparedMaxAmount, 2). " $request->debit_wallet"
                 ]);
             }
 
@@ -270,5 +273,43 @@ class WithdrawalConntroller extends Controller
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
+    }
+
+    private function getExchangeRate($from_currency, $to_debit_wallet)
+    {
+    
+        $from = strtoupper($from_currency);
+        $to = strtoupper($to_debit_wallet);
+        if ($from === $to) return 1.0;
+
+        return cache()->remember("exchange_rate_{$from}_{$to}", now()->addMinutes(30), 
+            function () use ($from, $to) {
+                $client = new Client();
+                $apis = [
+                    "https://min-api.cryptocompare.com/data/price" => ['fsym' => $from, 'tsyms' => $to],
+                    "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from]
+                ];
+
+                foreach ($apis as $url => $params) {
+                    try {
+                        $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
+                        if (isset($response['Response']) && $response['Response'] === 'Error') {
+                            Log::error("API Error: " . $response['Message']);
+                            continue;
+                        }
+                        $rate = match(str_contains($url, 'cryptocompare')) {
+                            true => $response[$to] ?? null,
+                            false => $response['data']['rates'][$to] ?? null
+                        };
+
+                        if ($rate) return (float) $rate;
+                    } catch (\Exception $e) {
+                        Log::error("Exchange rate error: {$e->getMessage()}");
+                    }
+                }
+
+                throw new \RuntimeException("Failed to fetch exchange rate for {$from}->{$to}");
+            }
+        );
     }
 }

@@ -171,7 +171,7 @@ class FlowController extends Controller
                 "beneficiary_id" => $ben['beneficiary_id'],
                 "beneficiary_name" => $ben['beneficiary_name'],
                 "beneficiary_account" => $ben['beneficiary_account'],
-                "amount" => floatval($payload->amount),
+                "amount" => floatval($payload->customer_receive_amount),
                 "beneficiary_account_type" => $ben['beneficiary_account_type'],
                 "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
                 "beneficiary_email" => $ben['beneficiary_email'],
