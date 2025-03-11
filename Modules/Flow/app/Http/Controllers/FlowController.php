@@ -166,7 +166,7 @@ class FlowController extends Controller
             
             // var_dump([$authToken]); exit;
             // $rate = getExchangeVal($gateway->currency, "CLP");
-            Log::debug("Processing payout requests", ['payload' => $payload]);
+            // Log::debug("Processing payout requests", ['payload' => $payload]);
             $requestData = [
                 "beneficiary_id" => $ben['beneficiary_id'],
                 "beneficiary_name" => $ben['beneficiary_name'],
@@ -179,21 +179,23 @@ class FlowController extends Controller
             ];
 
             // if(request()->has('debug')) {
-                var_dump(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
+                // dd(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
             // }
             // var_dump($requestData); exit;
-            // $response = Http::withToken($authToken)->withHeaders([
-            //     'Content-Type' => 'application/json',
-            // ])->post($url, $requestData);
+            $response = Http::withToken($authToken)->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($url, $requestData);
 
-            // $result = $response->json();
-            // var_dump($result); exit;
-            // if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
-            //     $error = $result['data']['error_message'] ?? $result['error_message'];
-            //     return ['error' => $error];
-            // }
-            // return $result;
+            $result = $response->json();
+            var_dump($result); exit;
+            if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
+                $error = $result['data']['error_message'] ?? $result['error_message'];
+                return ['error' => $error];
+            }
+            return $result;
+            
         } catch (\Throwable $e) {
+            var_dump($e); exit;
             return ["error" => $e->getMessage()];
         }
     }
