@@ -206,7 +206,7 @@ class PayoutCalculator
                 'payout_currency' => round($fees['total_fee'], 6)
             ],
             'total_amount' => [
-                'wallet_currency' => $customerReceiveAmountInWalletCurrency + $feesInPayoutCurrency['total_fee'],
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency + $$total_fee_due,,
                 'payout_currency' => $debitAmountInWalletCurrency / $adjustedRate
             ],
             "amount_due" => $customerReceiveAmountInWalletCurrency + $total_fee_due,
