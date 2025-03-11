@@ -178,9 +178,9 @@ class FlowController extends Controller
                 "description" => $ben['description']
             ];
 
-            if(request()->has('debug')) {
+            // if(request()->has('debug')) {
                 dd(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
-            }
+            // }
             // var_dump($requestData); exit;
             $response = Http::withToken($authToken)->withHeaders([
                 'Content-Type' => 'application/json',
