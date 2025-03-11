@@ -294,6 +294,11 @@ class PayoutService
         }
     }
 
+    public function manual($quoteId, $currency, $payoutObject)
+    {
+        //
+    }
+
     public function completePayout($transactionId, $status)
     {
         // Prepare the condition to find the TransactionRecord

@@ -198,6 +198,9 @@ class MiscController extends Controller
                 floatval($method->exchange_rate_float ?? 0)
             );
     
+
+            return response()->json($result); exit;
+
             // Build response format
             return get_success_response([
                 "from_currency" => strtoupper($request->from_currency),
