@@ -193,17 +193,17 @@ class PayoutCalculator
 
         $total_fee_due =  $feesInPayoutCurrency['float_fee'] + $feesInPayoutCurrency['fixed_fee'];
         
-        // if($total_fee_due < ($payoutMethod->minimum_charge)) {
-        //     $total_fee_due = $payoutMethod->minimum_charge;
-        // } else if($total_fee_due > $payoutMethod->maximum_charge) {
-        //     $total_fee_due = $payoutMethod->maximum_charge;
-        // }
+        if($total_fee_due < ($payoutMethod->minimum_charge)) {
+            $total_fee_due = $payoutMethod->minimum_charge;
+        } else if($total_fee_due > $payoutMethod->maximum_charge) {
+            $total_fee_due = $payoutMethod->maximum_charge;
+        }
 
 
         return [
             'total_fee' => [
-                'wallet_currency' => $total_fee_due,
-                'payout_currency' => round($fees['total_fee'], 6)
+                'payout_currency' => $total_fee_due,
+                'wallet_currency' => round($fees['total_fee'], 6)
             ],
             'total_amount' => [
                 'wallet_currency' => $customerReceiveAmountInWalletCurrency + $total_fee_due,
