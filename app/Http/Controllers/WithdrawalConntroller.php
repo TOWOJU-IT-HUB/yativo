@@ -204,7 +204,7 @@ class WithdrawalConntroller extends Controller
                 'amount' => $validated['amount'],
                 "debit_amount" => $result['amount_due'],
                 "send_amount" => $validated['amount'],
-                "customer_receive_amount" => $validated['amount'],
+                "customer_receive_amount" => $result['debit_amount'],
                 'raw_data' => $result,
                 'status' => 'pending'
             ];
