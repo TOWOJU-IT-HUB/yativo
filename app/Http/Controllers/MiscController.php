@@ -199,7 +199,7 @@ class MiscController extends Controller
             );
     
 
-            return response()->json($result); exit;
+            // return response()->json($result); exit;
 
             // Build response format
             return get_success_response([
@@ -209,11 +209,11 @@ class MiscController extends Controller
                 "amount" => number_format($request->amount, 8),
                 "converted_amount" => "1{$request->from_currency} - " . number_format($result['adjusted_rate'], 8) . " {$request->to_currency}",
                 "payout_data" => [
-                    "total_transaction_fee_in_from_currency" => number_format($result['fee_breakdown']['float'] + $result['fee_breakdown']['fixed'], 8),
-                    "total_transaction_fee_in_to_currency" => number_format($result['total_fee'], 8),
+                    "total_transaction_fee_in_from_currency" => number_format($result['fee_breakdown']['float']['wallet_currency'] + $result['fee_breakdown']['fixed']['wallet_currency'], 8),
+                    "total_transaction_fee_in_to_currency" => number_format($result['total_fee']['payout_currency'], 8),
                     "customer_sent_amount" => number_format($request->amount, 8),
-                    "customer_receive_amount" => number_format($result['total_amount'] - $result['total_fee'], 8),
-                    "customer_total_amount_due" => number_format($result['total_amount'], 8)
+                    "customer_receive_amount" => number_format($result['customer_receive_amount']['payout_currency'], 8),
+                    "customer_total_amount_due" => number_format($result['amount_due'], 8)
                 ]
             ]);
     
