@@ -215,13 +215,13 @@ class WithdrawalConntroller extends Controller
 
             $withdrawal = Withdraw::create($withdrawalData);
             
-            unset($result['exchange_rate']);
+            $result['exchange_rate'] = $result['adjusted_rate'];
             unset($result['debit_amount']);
             unset($result['PayoutMethod']);
             unset($result['total_fee']);
+            unset($result['adjusted_rate']);
             unset($result['base_currencies']);
             unset($result['fee_breakdown']);
-            $result['exchange_rate'] = $result['adjusted_rate'];
             // Format response data
             $responseData = [
                 'withdrawal_id' => $withdrawal->id,
