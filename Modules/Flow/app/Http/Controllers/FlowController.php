@@ -165,13 +165,13 @@ class FlowController extends Controller
             $authToken = env("FLOID_AUTH_TOKEN");
             
             // var_dump([$authToken]); exit;
-            $rate = getExchangeVal($gateway->currency, "CLP");
+            // $rate = getExchangeVal($gateway->currency, "CLP");
 
             $requestData = [
                 "beneficiary_id" => $ben['beneficiary_id'],
                 "beneficiary_name" => $ben['beneficiary_name'],
                 "beneficiary_account" => $ben['beneficiary_account'],
-                "amount" => floatval($amount * $rate),
+                "amount" => floatval($payload->amount * $payload->adjusted_rate),
                 "beneficiary_account_type" => $ben['beneficiary_account_type'],
                 "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
                 "beneficiary_email" => $ben['beneficiary_email'],
