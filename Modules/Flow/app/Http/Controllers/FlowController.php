@@ -179,7 +179,7 @@ class FlowController extends Controller
             ];
 
             // if(request()->has('debug')) {
-                ddd(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
+                var_dump(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
             // }
             // var_dump($requestData); exit;
             $response = Http::withToken($authToken)->withHeaders([
