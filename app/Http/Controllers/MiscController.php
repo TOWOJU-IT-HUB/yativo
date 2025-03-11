@@ -213,7 +213,7 @@ class MiscController extends Controller
                 "amount" => number_format($request->amount, 8),
                 "converted_amount" => "1{$request->from_currency} - " . number_format($adjusted_rate, 8) . " {$request->to_currency}",
                 "payout_data" => [
-                    "total_transaction_fee_in_from_currency" => number_format($result['total_fee']['payout_currency'], 8),
+                    "total_transaction_fee_in_from_currency" => number_format($result['total_fee']['wallet_currency'] / $adjusted_rate, 8),
                     "total_transaction_fee_in_to_currency" => number_format($result['total_fee']['wallet_currency'], 2),
                     "customer_sent_amount" => number_format($request->amount, 2),
                     "customer_receive_amount" => number_format($request->amount, 2), //number_format($result['customer_receive_amount']['payout_currency'], 8),
