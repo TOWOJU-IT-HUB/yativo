@@ -12,4 +12,9 @@ class UsersController extends Controller
     {
         return $dataTable->render('admin.users.index');
     }
+
+    public function customers()
+    {
+        //
+    }
 }

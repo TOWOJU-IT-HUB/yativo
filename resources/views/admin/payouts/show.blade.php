@@ -93,7 +93,7 @@
                     </div>
                     
                     <div class="flex justify-center gap-4 my-3">
-                        @if ($payout->status === 'pending')
+                        @if ($payout->status === 'pending' || $payout->status === "processing")
                             <div x-data="{ modalOpen: false }">
                                 <button @click="modalOpen = true"
                                     class="rounded-md bg-primary px-9 py-3 font-medium text-white">
