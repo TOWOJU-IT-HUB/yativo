@@ -171,7 +171,7 @@ class FlowController extends Controller
                 "beneficiary_id" => $ben['beneficiary_id'],
                 "beneficiary_name" => $ben['beneficiary_name'],
                 "beneficiary_account" => $ben['beneficiary_account'],
-                "amount" => floatval($payload->amount * $payload->adjusted_rate),
+                "amount" => floatval($payload->amount),
                 "beneficiary_account_type" => $ben['beneficiary_account_type'],
                 "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
                 "beneficiary_email" => $ben['beneficiary_email'],
@@ -179,7 +179,7 @@ class FlowController extends Controller
             ];
 
             if(request()->has('debug')) {
-                dd($requestData); exit;
+                dd(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
             }
             // var_dump($requestData); exit;
             $response = Http::withToken($authToken)->withHeaders([

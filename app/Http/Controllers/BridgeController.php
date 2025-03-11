@@ -42,10 +42,10 @@ class BridgeController extends Controller
     public function addCustomerV1(array|object $payload = [])
     {
         $customer = Customer::where('customer_id', request()->input('customer_id'))->first();
-        
-        if(request()->has('debug')) {
-            dd($payload); exit;
-        }
+
+        // if(request()->has('debug')) {
+        //     dd($payload); exit;
+        // }
 
         $bridgeData = $this->sendRequest("/v0/customers", 'POST', array_filter($payload));
 
