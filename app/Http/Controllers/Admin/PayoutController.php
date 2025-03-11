@@ -43,7 +43,7 @@ class PayoutController extends Controller
     public function approvePayout(Request $request, $id)
     {
         $payout = Withdraw::findOrFail($id);
-        if ($payout && $payout->status == 'pending') {
+        if ($payout && ($payout->status == 'pending' || $payout->status == 'processing')) {
 
             $is_beneficiary = BeneficiaryPaymentMethod::where(['id' => $payout->beneficiary_id])->first();
 
