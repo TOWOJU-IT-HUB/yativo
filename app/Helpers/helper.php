@@ -32,6 +32,7 @@ use Bavix\Wallet\Exceptions\InsufficientFunds;
 use Illuminate\Support\Facades\Cache;
 use Modules\SendMoney\app\Models\SendQuote;
 use Illuminate\Support\Facades\File;
+use Log;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('user_can')) {
@@ -1294,7 +1295,7 @@ if(!function_exists('telegram_table')){
             $formattedValue = sprintf($valueFormat, htmlspecialchars($value));
             $output .= $formattedKey . ': ' . $formattedValue . $lineBreak;
         }
-        var_dump($output);
+        // var_dump($output);
         return $output;
     }
 }
@@ -1303,7 +1304,7 @@ if(!function_exists('sendTelegramChannelMessage')) {
     function sendTelegramNotification(string $collection = null, array $payload = []) {
         $message = $collection ?? "Yativo Payout Notification";
 
-        $table = telegram_table($payload);
+        $table = ''; // telegram_table($payload);
 
         $payload = $message.'<br>'.$table;
         Log::debug("telegram_payload", ['payload' => $payload]);
