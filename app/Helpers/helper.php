@@ -1286,72 +1286,13 @@ if (!function_exists('config_can_peform')) {
     }
 }
 
-
-if(!function_exists('sendTelegramNotification')) {
-    function sendTelegramNotification($botToken = '7909625904:AAGHmqg3rsBHUs7os8wyc-1zZEQNdaKQjEg', $chatId = "towoju", $message = 'Sample test message', $parseMode = null) {
-        // Telegram API endpoint
-        $apiUrl = "https://api.telegram.org/bot$botToken/sendMessage";
-        
-        // Prepare POST data
-        $postData = [
-            'chat_id' => $chatId,
-            'text' => $message,
-        ];
-        
-        // Add parse mode if provided (supports Markdown or HTML)
-        if (!is_null($parseMode)) {
-            $postData['parse_mode'] = $parseMode;
-        }
-    
-        // Initialize cURL session
-        $ch = curl_init();
-        
-        // Set cURL options
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $apiUrl,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $postData,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
-        ]);
-    
-        // Execute the request
-        $response = curl_exec($ch);
-        
-        // Check for errors
-        if (curl_errno($ch)) {
-            error_log("cURL error: " . curl_error($ch));
-            curl_close($ch);
-            return false;
-        }
-        
-        // Close cURL session
-        curl_close($ch);
-        
-        // Decode the response
-        $responseData = json_decode($response, true);
-        
-        // Check if the request was successful
-        if ($responseData['ok'] ?? false) {
-            return true;
-        } else {
-            error_log("Telegram API error: " . ($responseData['description'] ?? 'Unknown error'));
-            return false;
-        }
-    }
-}
-
 if(!function_exists('sendTelegramChannelMessage')) {
-    function sendTelegramNotification($message, $parseMode = null, $collection = null, $format = 'table') {
+    function sendTelegramNotification($message = null, $parseMode = null, $collection = null, $format = null) {
         if ($collection) {
             $message = formatCollectionForTelegram($collection, $format);
             $parseMode = 'Markdown';
         }
     
-        $botToken = env("TELEGRAM_TOKEN");
-        $chatId = env('TELEGRAM_CHAT_ID');
-
         // Telegram API endpoint
         $apiUrl = "https://api.telegram.org/bot$botToken/sendMessage";
         
@@ -1420,7 +1361,10 @@ if(!function_exists('formatCollectionForTelegram')) {
             $colWidths = array_map('strlen', $headers);
             foreach ($rows as $row) {
                 foreach ($row as $key => $value) {
-                    $colWidths[array_search($key, $headers)] = max($colWidths[array_search($key, $headers)], strlen((string)$value));
+                    $colIndex = array_search($key, $headers);
+                    if ($colIndex !== false) {
+                        $colWidths[$colIndex] = max($colWidths[$colIndex], strlen((string)$value));
+                    }
                 }
             }
     
@@ -1455,4 +1399,5 @@ if(!function_exists('formatCollectionForTelegram')) {
             return "Unsupported format";
         }
     }
+    
 }
