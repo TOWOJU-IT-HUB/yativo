@@ -214,7 +214,15 @@ class WithdrawalConntroller extends Controller
             }
 
             $withdrawal = Withdraw::create($withdrawalData);
+
+            if(!$withdrawal) {
+                return get_error_response([], 400, 'Unable to process Withdrawal');
+            }
             
+            if($request->has('debug')){
+                sendTelegramNotification($withdrawal);
+            }
+
             $result['exchange_rate'] = $result['adjusted_rate'];
             unset($result['debit_amount']);
             unset($result['PayoutMethod']);
