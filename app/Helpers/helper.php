@@ -1300,11 +1300,11 @@ if(!function_exists('telegram_table')){
     }
 }
 
-if(!function_exists('sendTelegramChannelMessage')) {
+if(!function_exists('sendTelegramNotification')) {
     function sendTelegramNotification(string $collection = null, array $payload = []) {
         $message = $collection ?? "Yativo Payout Notification";
 
-        $table = ''; // telegram_table($payload);
+        $table = telegram_table($payload);
 
         $payload = $message.'<br>'.$table;
         Log::debug("telegram_payload", ['payload' => $payload]);
