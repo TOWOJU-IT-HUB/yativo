@@ -132,7 +132,7 @@ class PayoutService
             $local = new BitsoController();
             Log::info("Bitso payout model called");
             $payout = $local->withdraw(
-                $payoutObject->amount,
+                $payoutObject->customer_receive_amount,
                 $payoutObject->beneficiary_id,
                 $currency,
                 $payoutObject->id
@@ -146,7 +146,7 @@ class PayoutService
     public function transfi($deposit_id, $currency, $payoutObject)
     {
         $transFi = new TransFiController();
-        $checkout = $transFi->payout($deposit_id, $payoutObject->amount, $currency, $payoutObject);
+        $checkout = $transFi->payout($deposit_id, $payoutObject->customer_receive_amount, $currency, $payoutObject);
         return $checkout;
     }
 
@@ -160,7 +160,7 @@ class PayoutService
     public function floid($quoteId, $currency, $payoutObject)
     {
         $flow = new FlowController();
-        $checkout = $flow->payout($payoutObject, $payoutObject->amount, $currency);
+        $checkout = $flow->payout($payoutObject, $payoutObject->customer_receive_amount, $currency);
         return $checkout;
         // return ['error' => 'Payout method is currently unavailable'];
     }
@@ -254,7 +254,7 @@ class PayoutService
     {
         $request = request();
         try {
-            $amount = $payoutObject->amount;
+            $amount = $payoutObject->customer_receive_amount;
             $beneficiaryId = $request->payment_method_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
