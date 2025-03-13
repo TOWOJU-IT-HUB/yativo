@@ -211,12 +211,10 @@ class WithdrawalConntroller extends Controller
                 'status' => 'pending'
             ];
 
-            $telegramNotification = "You have a new payout request of $customer_receive_amount with below informations";
-            // sendTelegramNotification($telegramNotification);
             // Construct the message payload
-            $message_payload = $telegramNotification;
+            $message_payload = "<b>You have a new payout request of {$customer_receive_amount}</b>\n\n";
             foreach ($withdrawalData as $key => $value) {
-                $message_payload .= "<em>{$key}</em> | <b>{$value}</b>\n";
+                $message_payload .= "<em>{$key}</em>: <b>{$value}</b>\n";
             }
 
             // Retrieve environment variables

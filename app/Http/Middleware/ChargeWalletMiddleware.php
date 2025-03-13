@@ -72,6 +72,10 @@ class ChargeWalletMiddleware
             // Log::debug('Exchange Rate:', ['rate' => $result['exchange_rate']]);
 
             $amount_due = $result['amount_due'];
+            session()->put([
+                "__amount_due" => $amount_due,
+                '__debit_wallet' => $request->debit_wallet
+            ]);
 
             if ($request->has('debug')) {
                 dd($result); exit;
@@ -96,16 +100,16 @@ class ChargeWalletMiddleware
             \Log::error("Error processing payout: ", ['message' => $th->getMessage(), 'trace' => $th->getTrace()]);
            
             // Safe check for chargeNow['amount_charged']
-            if (isset($chargeNow) && (is_array($chargeNow) && isset($chargeNow['amount_charged']) || property_exists($chargeNow, 'amount_charged'))) {
+            if (!empty(session('__amount_due'))) {
                 // Refund the user
                 $user = auth()->user();
-                $wallet = $user->getWallet($request->debit_wallet); 
+                $wallet = $user->getWallet(session('__debit_wallet')); 
 
                 // Define a description for the refund
-                $description = "Refund for failed payout transaction: " . (is_array($chargeNow) ? $chargeNow['transaction_id'] : $chargeNow->transaction_id); 
+                $description = "Refund for failed payout transaction: "); 
                 
                 // Credit the wallet back (refund)
-                $refundResult = $wallet->credit(floatval(is_array($chargeNow) ? $chargeNow['amount_charged'] : $chargeNow->amount_charged), $description);
+                $refundResult = $wallet->credit(floatval(session('__amount_due')), $description);
 
                 // Check if the refund was successful
                 if ($refundResult) {
