@@ -60,9 +60,9 @@ Route::get('/', function () {
             ['id' => 2, 'name' => 'Jane Smith', 'email' => 'jane@example.com']
         ]);
 
-        sendTelegramNotification();
+        $resp = sendTelegramNotification();
         $rsp = sendTelegramNotification($users);
-        return response()->json(['result' => $rsp]);
+        return response()->json(['resp' => $resp, 'result' => $rsp]);
     } catch (\Throwable $th) {
         return get_error_response(['error' => $th->getMessage()]);
     }
