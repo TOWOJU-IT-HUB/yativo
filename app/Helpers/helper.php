@@ -1307,9 +1307,9 @@ if(!function_exists('sendTelegramChannelMessage')) {
         ];
         
         // Add parse mode if provided (supports Markdown or HTML)
-        if (!is_null($parseMode)) {
-            $postData['parse_mode'] = $parseMode;
-        }
+        // if (!is_null($parseMode)) {
+        //     $postData['parse_mode'] = $parseMode;
+        // }
     
         // Initialize cURL session
         $ch = curl_init();
@@ -1420,9 +1420,9 @@ if(!function_exists('sendTelegramNotification')) {
         ];
         
         // Add parse mode if provided (supports Markdown or HTML)
-        if (!is_null($parseMode)) {
-            $postData['parse_mode'] = $parseMode;
-        }
+        // if (!is_null($parseMode)) {
+        //     $postData['parse_mode'] = $parseMode;
+        // }
     
         // Initialize cURL session
         $ch = curl_init();
