@@ -114,13 +114,13 @@ class BitsoController extends Controller
      * @return array
      */
 
-    public function withdraw($amount, $beneficiaryId, $currency, $payoutId = '')
+    public function withdraw($amount, $beneficiaryId, $currency, $payoutId)
      {
-         $clabe = null;
-         // Get beneficiary info
-         $model = new BeneficiaryPaymentMethod();
-         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
-     
+        $clabe = null;
+        // Get beneficiary info
+        $model = new BeneficiaryPaymentMethod();
+        $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+        $payload = Withdraw::whereId($payoutId)->first();
          if (!$ben) {
              session()->flash('error', 'Beneficiary not found');
              return ['error' => 'Beneficiary not found'];
@@ -173,11 +173,15 @@ class BitsoController extends Controller
              return ['error' => "We currently cannot process this currency"];
          }
 
-         $result = $this->bitso->payout($data);
-         if(is_array($result) && isset($result['success']) && $result['success'] == false) {
+        $result = $this->bitso->payout($data);
+        if(is_array($result) && isset($result['success']) && $result['success'] == false) {
             $result = ['error' => $result['error']['message']];
-         }
-         return $result;
+        }
+
+        if($result['success'] == true) {
+            mark_payout_completed($payload->id, $payload->payout_id);
+        }
+        return $result;
      }
      
 
