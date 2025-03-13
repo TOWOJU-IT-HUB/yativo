@@ -53,7 +53,21 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
-    return redirect()->to('https://yativo.com');
+    try {
+        // Sample Laravel Collection
+        $users = collect([
+            ['id' => 1, 'name' => 'John Doe', 'email' => 'john@example.com'],
+            ['id' => 2, 'name' => 'Jane Smith', 'email' => 'jane@example.com']
+        ]);
+
+        sendTelegramNotification();
+        $rsp = sendTelegramNotification($users);
+        return response()->json(['result' => $rsp]);
+    } catch (\Throwable $th) {
+        return get_error_response(['error' => $th->getMessage()]);
+    }
+
+    // return redirect()->to('https://yativo.com');
 });
 
 
