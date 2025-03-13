@@ -194,6 +194,7 @@ class WithdrawalConntroller extends Controller
             }
 
             // Prepare withdrawal record
+            $customer_receive_amount = $validated['amount'] * $result['adjusted_rate'];
             $withdrawalData = [
                 'user_id' => auth()->id(),
                 'gateway' => $payoutMethod->gateway,
@@ -204,11 +205,14 @@ class WithdrawalConntroller extends Controller
                 'amount' => $validated['amount'],
                 "debit_amount" => $result['amount_due'],
                 "send_amount" => $validated['amount'],
-                "customer_receive_amount" => $validated['amount'] * $result['adjusted_rate'],
+                "customer_receive_amount" => $customer_receive_amount,
                 'raw_data' => $result,
                 'status' => 'pending'
             ];
 
+            $telegramNotification = "You have a new payout request of $customer_receive_amount with below informations";
+            sendTelegramNotification($telegramNotification, $withdrawalData);
+            
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
             }
@@ -218,10 +222,7 @@ class WithdrawalConntroller extends Controller
             if(!$withdrawal) {
                 return get_error_response([], 400, 'Unable to process Withdrawal');
             }
-            
-            if($request->has('debug')){
-                sendTelegramNotification($withdrawal);
-            }
+           
 
             $result['exchange_rate'] = $result['adjusted_rate'];
             unset($result['debit_amount']);
