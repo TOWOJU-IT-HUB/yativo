@@ -121,7 +121,7 @@ class BitsoController extends Controller
         $model = new BeneficiaryPaymentMethod();
         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
         $payload = Withdraw::whereId($payoutId)->first();
-        $amount = floor($payload->customer_receive_amount);
+        $amount = $payload->customer_receive_amount;
          if (!$ben) {
              session()->flash('error', 'Beneficiary not found');
              return ['error' => 'Beneficiary not found'];
@@ -129,57 +129,57 @@ class BitsoController extends Controller
      
          $pay_data = $ben->payment_data;
      
-         if (strtolower($currency) == 'mxn') {
-             if (isset($ben->payment_data)) {
-                 $clabe = $ben->payment_data['clabe'] ?? null;
-             }
-     
-             if (empty($clabe)) {
-                 session()->flash('error', 'Error retrieving clabe number');
-                 return ['error' => 'Error retrieving clabe number'];
-             }
-     
-             $data = [
-                 "method" => "praxis",
-                 "amount" => $amount,
-                 "currency" => "mxn",
-                 "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
-                 "clabe" => $clabe,
-                 "protocol" => "clabe",
-                 "origin_id" => $payoutId
-             ];
-         } elseif (strtolower($currency) == 'cop') {
-             // ✅ Trim and validate document_id to be between 6 and 10 digits
-             $document_id = preg_replace('/\D/', '', trim($pay_data['document_id'])); // Remove non-numeric characters
-             if (strlen($document_id) < 6 || strlen($document_id) > 10) {
-                 return ['error' => 'Invalid document_id format. Must be 6-10 digits.'];
+        if (strtolower($currency) == 'mxn') {
+            if (isset($ben->payment_data)) {
+                $clabe = $ben->payment_data['clabe'] ?? null;
+            }
+    
+            if (empty($clabe)) {
+                session()->flash('error', 'Error retrieving clabe number');
+                return ['error' => 'Error retrieving clabe number'];
              }
      
             $data = [
-                'currency' => 'cop',
-                'protocol' => 'ach_co',
-                'amount' => $amount,
-                'bankAccount' => $pay_data['bankAccount'],
-                'bankCode' => $pay_data['bankCode'],
-                'AccountType' => (int) $pay_data['AccountType'],
-                'beneficiary_name' => $pay_data['beneficiary_name'],
-                'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
-                'document_id' => $document_id,
-                'document_type' => strtoupper($pay_data['document_type']),
-                'email' => "noreply@yativo.com", 
-                "third_party_withdrawal" => true,
+                "method" => "praxis",
+                "amount" => $amount,
+                "currency" => "mxn",
+                "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
+                "clabe" => $clabe,
+                "protocol" => "clabe",
                 "origin_id" => $payoutId
             ];
-         } else {
-             return ['error' => "We currently cannot process this currency"];
-         }
+        } elseif (strtolower($currency) == 'cop') {
+            // ✅ Trim and validate document_id to be between 6 and 10 digits
+            $document_id = preg_replace('/\D/', '', trim($pay_data['document_id'])); // Remove non-numeric characters
+            if (strlen($document_id) < 6 || strlen($document_id) > 10) {
+                return ['error' => 'Invalid document_id format. Must be 6-10 digits.'];
+            }
+    
+        $data = [
+            'currency' => 'cop',
+            'protocol' => 'ach_co',
+            'amount' => $amount,
+            'bankAccount' => $pay_data['bankAccount'],
+            'bankCode' => $pay_data['bankCode'],
+            'AccountType' => (int) $pay_data['AccountType'],
+            'beneficiary_name' => $pay_data['beneficiary_name'],
+            'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
+            'document_id' => $document_id,
+            'document_type' => strtoupper($pay_data['document_type']),
+            'email' => "noreply@yativo.com", 
+            "third_party_withdrawal" => true,
+            "origin_id" => $payoutId
+        ];
+        } else {
+            return ['error' => "We currently cannot process this currency"];
+        }
 
         $result = $this->bitso->payout($data);
         if(is_array($result) && isset($result['success']) && $result['success'] == false) {
             $result = ['error' => $result['error']['message']];
         }
 
-        if($result['success'] == true) {
+        if(isset($result['success']) && $result['success'] == true) {
             mark_payout_completed($payload->id, $payload->payout_id);
         }
 
