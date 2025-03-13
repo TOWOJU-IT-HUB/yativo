@@ -142,6 +142,7 @@ class FlowController extends Controller
                 return ['error' => "Unsupported currency selected"];
             }
 
+            var_dump($payload); exit;
 
             $beneficiaryId = $payload->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
@@ -187,6 +188,9 @@ class FlowController extends Controller
             ])->post($url, $requestData);
 
             $result = $response->json();
+            if(isset($result["status"]) && strtoupper($result["status"]) === "SUCCESSFUL") {
+
+            }
             var_dump($result); exit;
             if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
                 $error = $result['data']['error_message'] ?? $result['error_message'];
