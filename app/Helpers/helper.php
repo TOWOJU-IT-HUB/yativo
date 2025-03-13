@@ -1299,12 +1299,13 @@ if(!function_exists('telegram_table')){
 }
 
 if(!function_exists('sendTelegramChannelMessage')) {
-    function sendTelegramNotification($collection, $payload) {
+    function sendTelegramNotification(string $collection = null, array $payload = []) {
         $message = $collection ?? "Yativo Payout Notification";
 
         $table = telegram_table($payload);
 
         $payload = $message.'<br>'.$table;
+        Log::debug("telegram_payload", ['payload' => $payload]);
     
         $botToken = env("TELEGRAM_TOKEN");
         $chatId = env('TELEGRAM_CHAT_ID');
@@ -1322,7 +1323,7 @@ if(!function_exists('sendTelegramChannelMessage')) {
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'POST',
             CURLOPT_POSTFIELDS => json_encode([
-                "text" => $payload,
+                "text" => $payload ?? $message,
                 "chat_id" => $chatId,
                 "protect_content" => true
             ]),
