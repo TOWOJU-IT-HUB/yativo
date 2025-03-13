@@ -1288,6 +1288,7 @@ if (!function_exists('config_can_peform')) {
 
 if(!function_exists('sendTelegramChannelMessage')) {
     function sendTelegramNotification($collection = null, $format = 'table') {
+        $message = "Sample test notification";
         if ($collection) {
             $message = formatCollectionForTelegram($collection, $format);
             $parseMode = 'Markdown';
