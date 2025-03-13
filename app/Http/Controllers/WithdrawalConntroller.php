@@ -214,7 +214,7 @@ class WithdrawalConntroller extends Controller
             $telegramNotification = "You have a new payout request of $customer_receive_amount with below informations";
             // sendTelegramNotification($telegramNotification);
             // Construct the message payload
-            // $message_payload = $telegramNotification . "<code>" . json_encode($withdrawalData) . "</code>";
+            $message_payload = $telegramNotification . "<code>" . json_encode($withdrawalData) . "</code>";
 
             // Retrieve environment variables
             $botToken = env("TELEGRAM_TOKEN");
@@ -229,7 +229,7 @@ class WithdrawalConntroller extends Controller
             // Send the HTTP request using Laravel's HTTP client
             try {
                 $response = Http::post($url, [
-                    'text' => $telegramNotification,
+                    'text' => $message_payload,
                     'chat_id' => $chatId,
                     'protect_content' => true,
                     'parse_mode' => 'html'
