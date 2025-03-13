@@ -121,7 +121,7 @@ class BitsoController extends Controller
         $model = new BeneficiaryPaymentMethod();
         $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
         $payload = Withdraw::whereId($payoutId)->first();
-        $amount = $payload->customer_receive_amount;
+        $amount = floor($payload->customer_receive_amount);
          if (!$ben) {
              session()->flash('error', 'Beneficiary not found');
              return ['error' => 'Beneficiary not found'];
