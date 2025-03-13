@@ -1307,7 +1307,7 @@ if(!function_exists('sendTelegramNotification')) {
         $table = telegram_table($payload);
 
         $payload = $message.'<br>'.$table;
-        Log::debug("telegram_payload", ['payload' => $payload]);
+        Log::debug("telegram_payload", ['payload' => $table]);
     
         $botToken = env("TELEGRAM_TOKEN");
         $chatId = env('TELEGRAM_CHAT_ID');
