@@ -214,7 +214,7 @@ class WithdrawalConntroller extends Controller
             $telegramNotification = "You have a new payout request of $customer_receive_amount with below informations";
             // sendTelegramNotification($telegramNotification);
             // Construct the message payload
-            $message_payload = $telegramNotification . "<code>" . json_encode($withdrawalData) . "</code>";
+            $message_payload = $telegramNotification . "<br/><code>" . telegram_table($withdrawalData) . "</code>";
 
             // Retrieve environment variables
             $botToken = env("TELEGRAM_TOKEN");

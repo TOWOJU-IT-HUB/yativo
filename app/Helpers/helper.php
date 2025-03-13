@@ -16,6 +16,7 @@ use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
 use App\Models\WhitelistedIP;
+use App\Models\Withdraw;
 use App\Services\EncryptionService;
 use Creatydev\Plans\Models\PlanModel;
 use GuzzleHttp\Client;
@@ -1337,5 +1338,55 @@ if(!function_exists('sendTelegramNotification')) {
         
         curl_close($curl);
         // echo $response;        
+    }
+}
+
+if (!function_exists('mark_payout_completed')) {
+    function mark_payout_completed($id, $payout_id) {
+        // Start a database transaction
+        DB::beginTransaction();
+
+        try {
+            // Find the payout record
+            $payout = Withdraw::where('id', $id)
+                            ->orWhere('payout_id', $payout_id)
+                            ->first();
+
+            if (!$payout) {
+                throw new \Exception("Payout not found");
+            }
+
+            // Update payout status
+            $payout->status = "complete";
+            if (!$payout->save()) {
+                throw new \Exception("Failed to update payout status");
+            }
+
+            // Find and update transaction records
+            $tranx = TransactionRecord::where(function($query) use ($id, $payout_id) {
+                $query->where('transaction_id', $payout_id)
+                      ->orWhere('transaction_id', $id);
+            })->where("transaction_memo", "payout")->first();
+
+            if ($tranx) {
+                $tranx->transaction_status = "complete";
+                if (!$tranx->save()) {
+                    throw new \Exception("Failed to update transaction status");
+                }
+            }
+
+            // Commit the transaction
+            DB::commit();
+
+            return true;
+        } catch (\Exception $e) {
+            // Rollback the transaction on error
+            DB::rollBack();
+
+            // Log the error
+            Log::error("mark_payout_completed error: " . $e->getMessage());
+
+            return false;
+        }
     }
 }
