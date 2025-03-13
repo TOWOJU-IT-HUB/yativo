@@ -189,9 +189,6 @@ class FlowController extends Controller
 
             $result = $response->json();
             if(isset($result["status"]) && strtoupper($result["status"]) === "SUCCESSFUL") {
-                $payout = $payload;
-                $payout->status = "complete";
-                $payout->save();
                 mark_payout_completed($payload->id, $payload->payout_id);
             }
             var_dump($result); exit;
