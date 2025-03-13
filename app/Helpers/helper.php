@@ -1294,6 +1294,7 @@ if(!function_exists('telegram_table')){
             $formattedValue = sprintf($valueFormat, htmlspecialchars($value));
             $output .= $formattedKey . ': ' . $formattedValue . $lineBreak;
         }
+        var_dump($output);
         return $output;
     }
 }
