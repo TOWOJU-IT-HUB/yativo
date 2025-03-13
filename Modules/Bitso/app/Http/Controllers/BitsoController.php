@@ -154,21 +154,21 @@ class BitsoController extends Controller
                  return ['error' => 'Invalid document_id format. Must be 6-10 digits.'];
              }
      
-             $data = [
-                 'currency' => 'cop',
-                 'protocol' => 'ach_co',
-                 'amount' => $amount,
-                 'bankAccount' => $pay_data['bankAccount'],
-                 'bankCode' => $pay_data['bankCode'],
-                 'AccountType' => (int) $pay_data['AccountType'], // Ensure integer
-                 'beneficiary_name' => $pay_data['beneficiary_name'],
-                 'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
-                 'document_id' => $document_id, // ✅ Cleaned document ID
-                 'document_type' => strtoupper($pay_data['document_type']), // Ensure uppercase format
-                 'email' => "noreply@yativo.com", 
-                 "third_party_withdrawal" => true,
-                 "origin_id" => $payoutId
-             ];
+            $data = [
+                'currency' => 'cop',
+                'protocol' => 'ach_co',
+                'amount' => $amount,
+                'bankAccount' => $pay_data['bankAccount'],
+                'bankCode' => $pay_data['bankCode'],
+                'AccountType' => (int) $pay_data['AccountType'],
+                'beneficiary_name' => $pay_data['beneficiary_name'],
+                'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
+                'document_id' => $document_id,
+                'document_type' => strtoupper($pay_data['document_type']),
+                'email' => "noreply@yativo.com", 
+                "third_party_withdrawal" => true,
+                "origin_id" => $payoutId
+            ];
          } else {
              return ['error' => "We currently cannot process this currency"];
          }

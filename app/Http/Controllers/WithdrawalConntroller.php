@@ -211,7 +211,27 @@ class WithdrawalConntroller extends Controller
             ];
 
             $telegramNotification = "You have a new payout request of $customer_receive_amount with below informations";
-            sendTelegramNotification($telegramNotification);
+            // sendTelegramNotification($telegramNotification);
+            // Construct the message payload
+            $message_payload = $telegramNotification . "<code>" . json_encode($withdrawalData) . "</code>";
+
+            // Retrieve environment variables
+            $botToken = env("TELEGRAM_TOKEN");
+            $chatId = env('TELEGRAM_CHAT_ID');
+
+            // Log the notification call
+            Log::debug("Telegram notification called");
+
+            // Construct the Telegram API URL
+            $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+
+            // Send the HTTP request using Laravel's HTTP client
+            $response = Http::post($url, [
+                'text' => $message_payload,
+                'chat_id' => $chatId,
+                'protect_content' => true,
+                'parse_mode' => 'html'
+            ]);
             
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
@@ -223,7 +243,6 @@ class WithdrawalConntroller extends Controller
                 return get_error_response([], 400, 'Unable to process Withdrawal');
             }
            
-
             $result['exchange_rate'] = $result['adjusted_rate'];
             unset($result['debit_amount']);
             unset($result['PayoutMethod']);

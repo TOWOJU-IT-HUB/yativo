@@ -1301,7 +1301,11 @@ if(!function_exists('telegram_table')){
 }
 
 if(!function_exists('sendTelegramNotification')) {
-    function sendTelegramNotification($message_payload) {
+    function sendTelegramNotification() {
+        $message = $collection ?? "Yativo Payout Notification";
+
+        $message_payload = $message."<code>".json_encode($payload)."</code>";
+    
         $botToken = env("TELEGRAM_TOKEN");
         $chatId = env('TELEGRAM_CHAT_ID');
         echo "Telegram notification called";
