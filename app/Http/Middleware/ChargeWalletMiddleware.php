@@ -106,7 +106,7 @@ class ChargeWalletMiddleware
                 $wallet = $user->getWallet(session('__debit_wallet')); 
 
                 // Define a description for the refund
-                $description = "Refund for failed payout transaction: "); 
+                $description = "Refund for failed payout transaction: "; 
                 
                 // Credit the wallet back (refund)
                 $refundResult = $wallet->credit(floatval(session('__amount_due')), $description);
