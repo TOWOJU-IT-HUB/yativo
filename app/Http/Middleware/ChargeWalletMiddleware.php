@@ -63,7 +63,7 @@ class ChargeWalletMiddleware
 
             // Validate allowed currencies
             if (!in_array($request->debit_wallet, $result['base_currencies'])) {
-                return get_error_response(['error' => 'Currency pair error. Supported are: '.explode(',', $result['base_currencies'])], 400);
+                return get_error_response(['error' => 'Currency pair error. Supported are: '.explode(',', (string)$result['base_currencies'])], 400);
             }
 
             // Debugging: Check the types of the values
