@@ -213,9 +213,9 @@ class WithdrawalConntroller extends Controller
 
             // Construct the message payload
             $message_payload = "<b>You have a new payout request of {$customer_receive_amount}</b>\n\n";
-            foreach ($withdrawalData as $key => $value) {
-                $message_payload .= "<em>{$key}</em>: <b>{$value}</b>\n";
-            }
+            // foreach ($withdrawalData as $key => $value) {
+            //     $message_payload .= "<em>{$key}</em>: <b>{$value}</b>\n";
+            // }
 
             // Retrieve environment variables
             $botToken = env("TELEGRAM_TOKEN");
