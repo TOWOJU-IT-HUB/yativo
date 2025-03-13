@@ -1304,10 +1304,10 @@ if(!function_exists('sendTelegramNotification')) {
     function sendTelegramNotification(string $collection = null, array $payload = []) {
         $message = $collection ?? "Yativo Payout Notification";
 
-        $table = telegram_table($payload);
+        // $table = telegram_table($payload);
 
-        $payload = $message.'<br>'.$table;
-        Log::debug("telegram_payload", ['payload' => $table]);
+        // $payload = $message.'<br>'.$table;
+        Log::debug("telegram_payload", ['payload' => $payload]);
     
         $botToken = env("TELEGRAM_TOKEN");
         $chatId = env('TELEGRAM_CHAT_ID');
