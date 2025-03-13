@@ -226,12 +226,22 @@ class WithdrawalConntroller extends Controller
             $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
 
             // Send the HTTP request using Laravel's HTTP client
-            $response = Http::post($url, [
-                'text' => $telegramNotification,
-                'chat_id' => $chatId,
-                'protect_content' => true,
-                'parse_mode' => 'html'
-            ]);
+            try {
+                $response = Http::post($url, [
+                    'text' => $telegramNotification,
+                    'chat_id' => $chatId,
+                    'protect_content' => true,
+                    'parse_mode' => 'html'
+                ]);
+                
+                if ($response->successful()) {
+                    Log::debug("Telegram notification sent successfully");
+                } else {
+                    Log::error("Telegram notification failed: " . $response->body());
+                }
+            } catch (\Exception $e) {
+                Log::error("Telegram notification error: " . $e->getMessage());
+            }
             
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
