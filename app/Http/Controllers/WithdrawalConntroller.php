@@ -20,7 +20,7 @@ use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use App\Services\PayoutCalculator;
-use Log;
+use Log, Http;
 
 /**
  * WithdrawalConntroller handles withdrawal requests.
