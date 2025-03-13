@@ -211,7 +211,7 @@ class WithdrawalConntroller extends Controller
             ];
 
             $telegramNotification = "You have a new payout request of $customer_receive_amount with below informations";
-            sendTelegramNotification($telegramNotification, $withdrawalData);
+            sendTelegramNotification($telegramNotification);
             
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
