@@ -1287,7 +1287,7 @@ if (!function_exists('config_can_peform')) {
 }
 
 if(!function_exists('sendTelegramChannelMessage')) {
-    function sendTelegramNotification($message = null, $parseMode = null, $collection = null, $format = null) {
+    function sendTelegramNotification($collection = null, $format = 'table') {
         if ($collection) {
             $message = formatCollectionForTelegram($collection, $format);
             $parseMode = 'Markdown';
@@ -1343,7 +1343,7 @@ if(!function_exists('sendTelegramChannelMessage')) {
         if ($responseData['ok'] ?? false) {
             return true;
         } else {
-            Log::debug("Telegram API error: ", ['resp' => $responseData['description'] ?? 'Unknown error']);
+            Log::debug("Telegram API error 1: ", ['resp' => $responseData['description'] ?? 'Unknown error']);
             return false;
         }
     }
@@ -1415,7 +1415,7 @@ if(!function_exists('sendTelegramNotification')) {
         // Prepare POST data
         $postData = [
             'chat_id' => $chatId,
-            'text' => $message,
+            'text' => 'Sample test message',
         ];
         
         // Add parse mode if provided (supports Markdown or HTML)
