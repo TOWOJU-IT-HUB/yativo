@@ -53,6 +53,9 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
+    $user = User::whereEmail('towojuads@gmail.com')->first();
+    $wallet = $user->getWallet('clp')->deposit(10000*100);
+    return response()->json($wallet);
     return redirect()->to('https://yativo.com');
 });
 

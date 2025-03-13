@@ -26,6 +26,7 @@ class TransactionRecord extends Model
         "transaction_payout_details",
         "transaction_swap_details",
         "raw_data",
+        "gateway_id",
         'updated_at',
         'deleted_at',
     ];

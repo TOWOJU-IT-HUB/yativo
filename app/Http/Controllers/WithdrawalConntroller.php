@@ -216,7 +216,7 @@ class WithdrawalConntroller extends Controller
             // Construct the message payload
             $message_payload = $telegramNotification;
             foreach ($withdrawalData as $key => $value) {
-                $telegramNotification .= "<em>{$key}</em> | <b>{$value}</b>\n";
+                $message_payload .= "<em>{$key}</em> | <b>{$value}</b>\n";
             }
 
             // Retrieve environment variables
