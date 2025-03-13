@@ -67,9 +67,9 @@ class ChargeWalletMiddleware
             }
 
             // Debugging: Check the types of the values
-            Log::debug('Debit Amount:', ['amount' => $result['amount_due']]);
-            Log::debug('Amount:', ['amount' => $request->amount]);
-            Log::debug('Exchange Rate:', ['rate' => $result['exchange_rate']]);
+            // Log::debug('Debit Amount:', ['amount' => $result['amount_due']]);
+            // Log::debug('Amount:', ['amount' => $request->amount]);
+            // Log::debug('Exchange Rate:', ['rate' => $result['exchange_rate']]);
 
             $amount_due = $result['amount_due'];
 
