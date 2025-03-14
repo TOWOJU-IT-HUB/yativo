@@ -295,7 +295,7 @@ class DojahVerificationController extends Controller
                 $customer->customer_kyc_link = $kyc_link;
                 $customer->save();
 
-                return redirect()->away()->to($customer->customer_kyc_link);
+                return redirect()->away($customer->customer_kyc_link);
                 // return view("kyc.index", compact('kyc_link'));
             } else {
                 $error = "Failed to retrieve KYC link. Please try again.";
