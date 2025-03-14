@@ -300,15 +300,17 @@ class BridgeController extends Controller
     {
         $endpoint = "v0/customers/{$bridgeCustomerId}";
         $data = $this->sendRequest($endpoint);
-        dd($data); exit;
+
+        // dd($data); exit;
         if (!is_array($data) || !isset($data['status'])) {
             return get_error_response(['error' => 'Failed to retrieve customer details', 'data' => $data]);
         }
-    
+
         return get_success_response([
             "first_name" => $data['first_name'] ?? '',
             "last_name" => $data['last_name'] ?? '',
             "status" => $data['status'],
+            "kyc_link" => route('checkout.kyc', $customer->customer_id),
             "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
             "kyc_requirements_due" => $data['requirements_due'] ?? [],
             "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],

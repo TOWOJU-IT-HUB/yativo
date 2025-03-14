@@ -261,12 +261,35 @@ class DojahVerificationController extends Controller
      * retrieve data from those requests. You can access request parameters, headers, and other information
      * using this object.
      */
-    public function kycStatus(Request $request)
+    public function kycStatus($customerId)
     {
         try {
-            //code...
+            $customer = Customer::where('customer_id', $customerId)->first();
+            if (!$customer) {
+                return get_error_response(['error' => 'Customer ID is invalid']);
+            }
+        
+            if (empty($customer->bridge_customer_id)) {
+                $error = "Please check the customer KYC status firstly to confirm customer is not already approved";
+                return view("kyc.index", compact('error'));
+            }
+    
+            $bridgeCustomerId = $customer->bridge_customer_id;
+            $kyc_endpoint = "v0/customers/{$bridgeCustomerId}/kyc_link";
+            $kyc_data = $this->sendRequest($kyc_endpoint);
+        
+            if (is_array($kyc_data) && isset($kyc_data['url'])) {
+                $kyc_link = $kyc_data['url'];
+                $customer->customer_kyc_link = $kyc_link;
+                $customer->save();
+                return view("kyc.index", compact('kyc_link'));
+            } else {
+                $error = "Failed to retrieve KYC link. Please try again.";
+                return view("kyc.index", compact('error'));
+            }
         } catch (\Throwable $th) {
-            //throw $th;
+            $error = $th->getMessage();
+            return view("kyc.index", compact('error'));
         }
     }
 
