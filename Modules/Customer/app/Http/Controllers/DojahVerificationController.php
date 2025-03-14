@@ -276,7 +276,7 @@ class DojahVerificationController extends Controller
 
             if (Schema::hasColumn('customers', 'customer_kyc_link')) {
                 Schema::table('customers', function (Blueprint $table) {
-                    $table->text('customer_kyc_link')->nullable();
+                    $table->text('customer_kyc_link')->nullable()->change();
                 });
             }
     
