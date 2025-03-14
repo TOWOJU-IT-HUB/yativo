@@ -267,7 +267,7 @@ class BridgeController extends Controller
         $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
     
-        var_dump($data); exit;
+        dd($data); exit;
         // Validate API response
         if (!is_array($data) || empty($data['data'])) {
             return get_error_response(['error' => 'Error on our end, Please contact support']);
