@@ -276,7 +276,8 @@ class DojahVerificationController extends Controller
     
             $bridgeCustomerId = $customer->bridge_customer_id;
             $kyc_endpoint = "v0/customers/{$bridgeCustomerId}/kyc_link";
-            $kyc_data = $this->sendRequest($kyc_endpoint);
+            $bridge = new BridgeController();
+            $kyc_data = $bridge->sendRequest($kyc_endpoint);
         
             if (is_array($kyc_data) && isset($kyc_data['url'])) {
                 $kyc_link = $kyc_data['url'];
