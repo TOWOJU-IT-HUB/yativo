@@ -273,11 +273,22 @@ class DojahVerificationController extends Controller
                 $error = "Please check the customer KYC status firstly to confirm customer is not already approved";
                 return view("kyc.index", compact('error'));
             }
+
+            if (Schema::hasColumn('customers', 'customer_kyc_link')) {
+                Schema::table('customers', function (Blueprint $table) {
+                    $table->text('customer_kyc_link')->nullable();
+                });
+            }
     
-            $bridgeCustomerId = $customer->bridge_customer_id;
-            $kyc_endpoint = "v0/customers/{$bridgeCustomerId}/kyc_link";
-            $bridge = new BridgeController();
-            $kyc_data = $bridge->sendRequest($kyc_endpoint);
+            if(empty($customer->customer_kyc_link)) {
+                $bridgeCustomerId = $customer->bridge_customer_id;
+                $kyc_endpoint = "v0/customers/{$bridgeCustomerId}/kyc_link";
+                $bridge = new BridgeController();
+                $kyc_data = $bridge->sendRequest($kyc_endpoint);
+            } else {
+                $kyc_data = [];
+                $kyc_data['url'] = $customer->customer_kyc_link;
+            }
         
             if (is_array($kyc_data) && isset($kyc_data['url'])) {
                 $kyc_link = $kyc_data['url'];
