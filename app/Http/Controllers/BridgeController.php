@@ -267,7 +267,7 @@ class BridgeController extends Controller
         $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
     
-        dd($data); exit;
+        // dd($data); exit;
         // Validate API response
         if (!is_array($data) || empty($data['data'])) {
             return get_error_response(['error' => 'Error on our end, Please contact support']);
@@ -300,7 +300,7 @@ class BridgeController extends Controller
     {
         $endpoint = "v0/customers/{$bridgeCustomerId}";
         $data = $this->sendRequest($endpoint);
-    
+        dd($data); exit;
         if (!is_array($data) || !isset($data['status'])) {
             return get_error_response(['error' => 'Failed to retrieve customer details', 'data' => $data]);
         }
