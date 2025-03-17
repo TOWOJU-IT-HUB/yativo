@@ -305,17 +305,19 @@ class BridgeController extends Controller
         if (!is_array($data) || !isset($data['status'])) {
             return get_error_response(['error' => 'Failed to retrieve customer details', 'data' => $data]);
         }
-
-        return get_success_response([
+        $resp = [
             "first_name" => $data['first_name'] ?? '',
             "last_name" => $data['last_name'] ?? '',
             "status" => $data['status'],
-            "kyc_link" => route('checkout.kyc', $customer->customer_id),
             "kyc_rejection_reasons" => $data['rejection_reasons'] ?? [],
             "kyc_requirements_due" => $data['requirements_due'] ?? [],
             "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
             'bio_data' => $customer
-        ]);
+        ];
+
+        // if($data['endorsements'])
+        $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
+        return get_success_response($resp);
     }
 
     public function createCustomerBridgeWallet($customerId)
