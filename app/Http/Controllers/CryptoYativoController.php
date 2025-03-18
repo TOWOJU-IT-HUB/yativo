@@ -56,8 +56,9 @@ class CryptoYativoController
         return ['error' => $curl['message'] ?? $curl['result']['message']];
     }
 
-    public function generateCustomerWallet(Request $request)
+    public function generateCustomerWallet()
     {
+        $request = request();
         $customer = Customer::where('customer_id', $request->customer_id)->first();
         if(!$customer) {
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
@@ -65,14 +66,14 @@ class CryptoYativoController
 
         $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer($request);
 
-        if(is_array($yativo_customer_id) && isset($yativo_customer_id)) {
+        if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
             return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
         }
 
         $payload = [
             "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
             "customer_id" => $yativo_customer_id,
-            "chain" => "SOL"
+            "chain" => "solana"
         ];
 
         $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->json();

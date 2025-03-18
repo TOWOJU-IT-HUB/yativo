@@ -30,8 +30,8 @@ class CryptoWalletsController extends Controller
     
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'currency' => 'required|in:USDT.BEP20,USDC.BEP20',
-            'customer_id' => 'required_if:is_customer,true',
+            'currency' => 'required',
+            'customer_id' => 'sometimes',
         ]);
     
         if ($validator->fails()) {
@@ -42,25 +42,26 @@ class CryptoWalletsController extends Controller
         $currency = $request->currency;
     
         $userId = auth()->id();
-        $isCustomer = filter_var($request->is_customer, FILTER_VALIDATE_BOOLEAN);
+        $isCustomer = $request->customer_id ? true : false;
     
         // Generate wallet address
-        $callbackUrl = route('crypto.wallet.address.callback', ['userId' => $userId, 'currency' => $currency]);
-        $curl = $this->coinpayment->GetCallbackAddress(currency: $currency, ipn_url: $callbackUrl);
+        $yativo = new CryptoYativoController();
+        $curl = $yativo->generateCustomerWallet();
     
-        if (!isset($curl['address'])) {
+        if (!isset($curl['data']['address'])) {
             return get_error_response(['error' => "We're currently unable to process your request at the moment."]);
         }
     
         // Create wallet record in the database
+        $data = $curl['data'];
         $walletData = [
             "user_id" => $userId,
             "is_customer" => $isCustomer,
-            "customer_id" => $isCustomer ? $request->customer_id : null,
-            "wallet_address" => $curl['address'],
-            "wallet_currency" => $currency,
-            "wallet_network" => explode('.', $currency)[1] ?? $currency,
-            "wallet_provider" => 'coinpayment',
+            "customer_id" => $request->customer_id ?? null,
+            "wallet_address" => $data['address'],
+            "wallet_currency" => $data['asset_short_name'],
+            "wallet_network" => "solana",
+            "wallet_provider" => 'yativo',
             "coin_name" => $currency,
             "wallet_balance" => 0,
         ];
@@ -76,7 +77,7 @@ class CryptoWalletsController extends Controller
                     ->url($webhook->url)
                     ->useSecret($webhook->secret)
                     ->payload([
-                        "event.type" => "wallet_generated",
+                        "event.type" => "crypto.wallet.created",
                         "payload" => $record,
                     ])
                     ->dispatchSync();
