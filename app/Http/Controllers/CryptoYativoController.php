@@ -67,7 +67,7 @@ class CryptoYativoController
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
 
-        $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer($request);
+        $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer();
 
         if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
             return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
