@@ -19,6 +19,7 @@ class CryptoYativoController
     }
 
     private $baseUrl = "https://crypto-api.yativo.com/api/";
+
     private function getToken()
     {
         $payload = [
@@ -34,8 +35,9 @@ class CryptoYativoController
         return $curl['message'] ?? $curl['result']['message'];
     }
 
-    public function addCustomer(Request $request)
+    public function addCustomer()
     {
+        $request = request();
         $customer = Customer::where('customer_id', $request->customer_id)->first();
         if(!$customer) {
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
@@ -45,7 +47,7 @@ class CryptoYativoController
             "email" => $customer->customer_email
         ];
 
-        $curl = Http::post($this->baseUrl."customers/create-customer", $payload)->json();
+        $curl = Http::withToken($this->getToken())->post($this->baseUrl."customers/create-customer", $payload)->json();
 
         if($curl['status'] == true) {
             $customer->yativo_customer_id = $curl['data']['_id'];
@@ -76,7 +78,7 @@ class CryptoYativoController
             "chain" => "solana"
         ];
 
-        $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->json();
+        $curl = Http::withToken($this->getToken())->post($this->baseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['success'] == true) {
             return $curl['result'];
@@ -104,7 +106,7 @@ class CryptoYativoController
             'approve_gas_funding' => true,
         ];
 
-        $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->json();
+        $curl = Http::withToken($this->getToken())->post($this->baseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['success'] == true) {
             return $curl['result']['token'];
