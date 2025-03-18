@@ -26,7 +26,7 @@ class CryptoYativoController
             "email" => env("YATIVO_CRYPTO_API_EMAIL"),
             "api_key" => env("YATIVO_CRYPTO_API_KEY")
         ];
-        $curl = Http::post($this->baseUrl."authentication/generate-key", $payload)->jso();
+        $curl = Http::post($this->baseUrl."authentication/generate-key", $payload)->json();
 
         if($curl['success'] == true) {
             return $curl['result']['token'];
