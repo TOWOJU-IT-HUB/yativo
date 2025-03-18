@@ -31,7 +31,7 @@ class CryptoYativoController
         if($curl['success'] == true) {
             return $curl['result']['token'];
         }
-
+        var_dump($curl); exit;
         return $curl['message'] ?? $curl['result']['message'];
     }
 
