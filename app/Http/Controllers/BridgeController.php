@@ -713,6 +713,7 @@ class BridgeController extends Controller
         $curl = Http::withToken($this->getYativoToken())->post($this->yativoBaseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['status'] == true) {
+            var_dump($curl['data']['address']); exit;
             return $curl['data']['address'];
         }
 
