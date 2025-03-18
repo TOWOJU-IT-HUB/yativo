@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Modules\Customer\app\Models\Customer;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Log;
+use Log, Http;
 
 class CryptoYativoController 
 {
