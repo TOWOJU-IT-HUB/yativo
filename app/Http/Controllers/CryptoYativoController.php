@@ -31,8 +31,8 @@ class CryptoYativoController
         if($curl['success'] == true) {
             return $curl['result']['token'];
         }
-        var_dump($curl); exit;
-        return $curl['message'] ?? $curl['result']['message'];
+        // var_dump($curl); exit;
+        return ['error' => $curl['message'] ?? $curl['result']];
     }
 
     public function addCustomer()
@@ -81,7 +81,7 @@ class CryptoYativoController
 
         $curl = Http::withToken($this->getToken())->post($this->baseUrl."assets/add-customer-asset", $payload)->json();
 
-        if($curl['success'] == true) {
+        if($curl['status'] == true) {
             return $curl['result'];
         }
 
