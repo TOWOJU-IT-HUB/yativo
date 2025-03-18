@@ -26,14 +26,31 @@ use Illuminate\Database\Schema\Blueprint;
 class BridgeController extends Controller
 {
     public $customer, $customerId;
+    private $yativoBaseUrl = "https://crypto-api.yativo.com/api/";
 
     public function __construct()
     {
-        // $customer = Customer::whereCustomerId(request()->customer_id)->first();
         $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
         // Log::info("Customer Info: ", (array) $this->customer);
-        $this->customerId = $this->customer->customer_id ?? "7316bfb1-0601-4056-8fca-77a6322960f2";
+        $this->customerId = $this->customer->customer_id ?? null;
     }
+
+
+    private function getYativoToken()
+    {
+        $payload = [
+            "email" => env("YATIVO_CRYPTO_API_EMAIL"),
+            "api_key" => env("YATIVO_CRYPTO_API_KEY")
+        ];
+        $curl = Http::post($this->yativoBaseUrl."authentication/generate-key", $payload)->json();
+
+        if($curl['success'] == true) {
+            return $curl['result']['token'];
+        }
+        // var_dump($curl); exit;
+        return ['error' => $curl['message'] ?? $curl['result']];
+    }
+
 
     /**
      * GEt KYC link to add a customer
@@ -368,8 +385,9 @@ class BridgeController extends Controller
         if(!$customer->bridge_customer_id) {
             return ['error' => 'Customer not enrolled for service or KYC not complete'];
         }
+
         $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
-        $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; //$this->createWallet($this->customer->bridge_customer_id);
+        $destinationAddress = $this->createWallet();
 
         if($destinationAddress == false) {
             return ["error"=> "Unable to generate virtual account"];
@@ -382,7 +400,7 @@ class BridgeController extends Controller
             ],
             "destination" => [
                 "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdc"),
-                "payment_rail" => "solana", //env('BRIDGE_PAYMENT_RAIL', "polygon"),
+                "payment_rail" => "solana",
                 "address" => $destinationAddress
             ]
         ];
@@ -674,19 +692,28 @@ class BridgeController extends Controller
         return "data:image/{$format};base64,{$encodedData}";
     }
 
-    public function createWallet($customerId)
+    public function createWallet()
     {
-        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
-        // $endpoint = "v0/customers/{$customerId}/wallets";
-        // $curl = $this->sendRequest($endpoint, "POST", $payload = [
-        //     'chain' => 'solana'
-        // ]);
+        // return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
+        $yativo = new CryptoYativoController();
+        $yativo_customer_id = $customer->yativo_customer_id ?? $yativo->addCustomer();
 
-        // if(isset($curl['address'])) {
-        //     return $curl['address'];
-        // }
+        if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
+            return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
+        }
 
-        // return false;
+        $payload = [
+            "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
+            "customer_id" => $yativo_customer_id,
+            "chain" => "solana"
+        ];
+
+        $curl = Http::withToken($this->getYativoToken())->post($this->yativoBaseUrl."assets/add-customer-asset", $payload)->json();
+
+        if($curl['status'] == true) {
+            return $curl['data']['address'];
+        }
+
     }
 
     public function BridgeWebhook(Request $request)
