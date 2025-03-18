@@ -24,7 +24,7 @@ class CryptoWalletsController extends Controller
         // $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
         // $this->middleware('can_create_crypto')->only(['createWallet']);
     }
-    
+
     public function createWallet(Request $request)
     {
         Log::info('Incoming request data:', $request->all());
@@ -50,7 +50,7 @@ class CryptoWalletsController extends Controller
         $curl = $yativo->generateCustomerWallet();
     
         if (!isset($curl['data']['address'])) {
-            return get_error_response(['error' => "We're currently unable to process your request at the moment."]);
+            return get_error_response(['error' => "We're currently unable to process your request at the moment.", "data" => $curl]);
         }
     
         // Create wallet record in the database
