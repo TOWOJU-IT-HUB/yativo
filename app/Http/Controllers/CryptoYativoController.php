@@ -82,10 +82,10 @@ class CryptoYativoController
         $curl = Http::withToken($this->getToken())->post($this->baseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['status'] == true) {
-            return $curl['result'];
+            return $curl['data'];
         }
 
-        return $curl['result']['message'];
+        return ['error' => $curl['message'] ?? $curl['result']['message']];
     }
 
     public function sendCrypto(Request $request)
