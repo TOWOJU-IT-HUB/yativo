@@ -31,7 +31,7 @@ class CryptoYativoController
             return $curl['result']['token'];
         }
 
-        return $curl['result']['message'];
+        return $curl['message'] ?? $curl['result']['message'];
     }
 
     public function addCustomer(Request $request)
@@ -41,17 +41,19 @@ class CryptoYativoController
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
         $payload = [
-            "username" => "customer1",
-            "email" => "customer1@example.com"
+            "username" => explode("@", $customer->customer_email),
+            "email" => $customer->customer_email
         ];
 
-        $curl = Http::post($this->baseUrl."customers/create-customer", $payload)->jso();
+        $curl = Http::post($this->baseUrl."customers/create-customer", $payload)->json();
 
-        if($curl['success'] == true) {
-            return $curl['result']['token'];
+        if($curl['status'] == true) {
+            $customer->yativo_customer_id = $curl['data']['_id'];
+            $customer->save();
+            return $curl['data']['_id'];
         }
 
-        return $curl['result']['message'];
+        return ['error' => $curl['message'] ?? $curl['result']['message']];
     }
 
     public function generateCustomerWallet(Request $request)
@@ -60,20 +62,23 @@ class CryptoYativoController
         if(!$customer) {
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
-        if(!isset($customer->yativo_customer_id) || empty($customer->yativo_customer_id)) {
+
+        $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer($request);
+
+        if(is_array($yativo_customer_id) && isset($yativo_customer_id)) {
             return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
         }
 
         $payload = [
             "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
-            "customer_id" => $customer->yativo_customer_id,
+            "customer_id" => $yativo_customer_id,
             "chain" => "SOL"
         ];
 
-        $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->jso();
+        $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['success'] == true) {
-            return $curl['result']['token'];
+            return $curl['result'];
         }
 
         return $curl['result']['message'];
@@ -98,7 +103,7 @@ class CryptoYativoController
             'approve_gas_funding' => true,
         ];
 
-        $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->jso();
+        $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['success'] == true) {
             return $curl['result']['token'];
