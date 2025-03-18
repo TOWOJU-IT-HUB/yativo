@@ -320,6 +320,8 @@ class BridgeController extends Controller
                 if($v["name"] == "base" && $v['status'] == "approved") {
                     $is_va_approved = true;
                     $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
+                    $customer->can_create_va = true;
+                    $customer->save();
                 } 
             }
         }

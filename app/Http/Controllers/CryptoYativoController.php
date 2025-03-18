@@ -3,9 +3,21 @@
 namespace App\Http\Controllers;
 
 use Modules\Customer\app\Models\Customer;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Log;
 
 class CryptoYativoController 
 {
+    public function __construct()
+    {
+        if (!Schema::hasColumn('customers', 'yativo_customer_id')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('yativo_customer_id')->nullable();
+            });
+        }
+    }
+
     private $baseUrl = "https://crypto-api.yativo.com/api/";
     private function getToken()
     {
@@ -48,10 +60,14 @@ class CryptoYativoController
         if(!$customer) {
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
+        if(!isset($customer->yativo_customer_id) || empty($customer->yativo_customer_id)) {
+            return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
+        }
+
         $payload = [
-            "asset_id" => "customer1",
-            "customer_id" => "customer_id",
-            "chain" => "xoxo"
+            "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
+            "customer_id" => $customer->yativo_customer_id,
+            "chain" => "SOL"
         ];
 
         $curl = Http::post($this->baseUrl."assets/add-customer-asset", $payload)->jso();
