@@ -389,6 +389,8 @@ class BridgeController extends Controller
         $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
         $destinationAddress = $this->createWallet();
 
+        return ['error' => $destinationAddress];
+
         if($destinationAddress == false) {
             return ["error"=> "Unable to generate virtual account"];
         }
