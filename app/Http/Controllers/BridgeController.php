@@ -315,13 +315,14 @@ class BridgeController extends Controller
             'bio_data' => $customer
         ];
         $is_va_approved = false;
+        $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
         if($data['endorsements']) {
             foreach ($data['endorsements'] as $v) {
                 if($v["name"] == "base" && $v['status'] == "approved") {
                     $is_va_approved = true;
-                    $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
                     $customer->can_create_va = true;
                     $customer->save();
+                    unset($resp["kyc_link"]);
                 } 
             }
         }
