@@ -49,11 +49,11 @@ class CryptoYativoController
         ];
 
         $curl = Http::withToken($this->getToken())->post($this->baseUrl."customers/create-customer", $payload)->json();
-        Log::dub("customer added", ["result" => $curl]);
+        Log::debug("customer added", ["result" => $curl]);
         if($curl['status'] == true) {
             $customer->yativo_customer_id = $curl['data']['_id'];
             $customer->save();
-            Log::dub("customer added", ["result_2" => true]);
+            Log::debug("customer added", ["result_2" => true]);
             return $curl['data']['_id'];
         }
 
