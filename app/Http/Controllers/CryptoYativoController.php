@@ -43,7 +43,7 @@ class CryptoYativoController
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
         $payload = [
-            "username" => explode("@", $customer->customer_email),
+            "username" => explode("@", $customer->customer_email).rand(0, 9999),
             "email" => $customer->customer_email
         ];
 
