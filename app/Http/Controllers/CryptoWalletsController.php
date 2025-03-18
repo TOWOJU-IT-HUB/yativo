@@ -19,11 +19,12 @@ class CryptoWalletsController extends Controller
 
     public function __construct()
     {
-        $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
-        $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
-        $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
-        $this->middleware('can_create_crypto')->only(['createWallet']);
+        // $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
+        // $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
+        // $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
+        // $this->middleware('can_create_crypto')->only(['createWallet']);
     }
+    
     public function createWallet(Request $request)
     {
         Log::info('Incoming request data:', $request->all());
