@@ -50,7 +50,7 @@ class CryptoWalletsController extends Controller
         $curl = $yativo->generateCustomerWallet();
     
         if (!isset($curl['data']['address'])) {
-            return get_error_response(['error' => "We're currently unable to process your request at the moment.", "data" => $curl]);
+            return get_error_response(['error' => ['error' => "We're currently unable to process your request at the moment.", "data" => $curl]]);
         }
     
         // Create wallet record in the database
