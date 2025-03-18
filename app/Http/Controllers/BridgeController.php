@@ -389,7 +389,7 @@ class BridgeController extends Controller
         $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
         $destinationAddress = $this->createWallet();
 
-        return ['error' => $destinationAddress];
+        Log::debug("wallet address for virtual account: ", ['addressie' => $destinationAddress]);
 
         if($destinationAddress == false) {
             return ["error"=> "Unable to generate virtual account"];
@@ -713,7 +713,7 @@ class BridgeController extends Controller
         $curl = Http::withToken($this->getYativoToken())->post($this->yativoBaseUrl."assets/add-customer-asset", $payload)->json();
 
         if($curl['status'] == true) {
-            var_dump($curl['data']['address']); exit;
+            // var_dump($curl['data']['address']); exit;
             return $curl['data']['address'];
         }
 
