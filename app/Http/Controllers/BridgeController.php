@@ -696,6 +696,8 @@ class BridgeController extends Controller
 
     public function createWallet()
     {
+        Log::debug("wallet address for virtual account: ", ['addressie' => 001]);
+
         // return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
         $yativo = new CryptoYativoController();
         $yativo_customer_id = $customer->yativo_customer_id ?? $yativo->addCustomer();
@@ -703,6 +705,7 @@ class BridgeController extends Controller
         if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
             return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
         }
+        Log::debug("wallet address for virtual account: ", ['addressie' => 002]);
 
         $payload = [
             "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
@@ -712,11 +715,12 @@ class BridgeController extends Controller
 
         $curl = Http::withToken($this->getYativoToken())->post($this->yativoBaseUrl."assets/add-customer-asset", $payload)->json();
 
+        Log::debug("wallet address for virtual account: ", ['addressie' => 003]);
         if($curl['status'] == true) {
             // var_dump($curl['data']['address']); exit;
             return $curl['data']['address'];
         }
-
+        return false;
     }
 
     public function BridgeWebhook(Request $request)
