@@ -314,9 +314,16 @@ class BridgeController extends Controller
             "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
             'bio_data' => $customer
         ];
-
-        // if($data['endorsements'])
-        $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
+        $is_va_approved = false;
+        if($data['endorsements']) {
+            foreach ($data['endorsements'] as $v) {
+                if($v["name"] == "base" && $v['status'] == "approved") {
+                    $is_va_approved = true;
+                    $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
+                } 
+            }
+        }
+        $resp['is_va_approved'] = $is_va_approved;
         return get_success_response($resp);
     }
 
