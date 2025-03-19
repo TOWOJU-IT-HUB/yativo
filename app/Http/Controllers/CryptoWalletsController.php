@@ -32,7 +32,7 @@ class CryptoWalletsController extends Controller
         // Validate the request
         $validator = Validator::make($request->all(), [
             'currency' => 'required',
-            'customer_id' => 'sometimes',
+            'customer_id' => 'required',
         ]);
     
         if ($validator->fails()) {

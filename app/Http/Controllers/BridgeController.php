@@ -705,7 +705,7 @@ class BridgeController extends Controller
         if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
             return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
         }
-        
+
         Log::debug("wallet address for virtual account: ", ['addressie' => 002]);
 
         $payload = [
@@ -718,7 +718,6 @@ class BridgeController extends Controller
 
         Log::debug("wallet address for virtual account: ", ['addressie' => 003]);
         if($curl['status'] == true) {
-            // var_dump($curl['data']['address']); exit;
             return $curl['data']['address'];
         }
         return false;

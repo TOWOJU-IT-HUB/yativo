@@ -42,6 +42,10 @@ class CryptoYativoController
         if(!$customer) {
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
+
+        if(!empty($customer->yativo_customer_id)) {
+            return $customer->yativo_customer_id;
+        }
         
         $payload = [
             "username" => explode("@", $customer->customer_email)[0].rand(0, 9999),
@@ -49,7 +53,7 @@ class CryptoYativoController
         ];
 
         $curl = Http::withToken($this->getToken())->post($this->baseUrl."customers/create-customer", $payload)->json();
-        Log::debug("customer added", ["result" => $curl]);
+        // Log::debug("customer added", ["result" => $curl]);
         if($curl['status'] == true) {
             $customer->yativo_customer_id = $curl['data']['_id'];
             $customer->save();
@@ -69,13 +73,13 @@ class CryptoYativoController
         }
 
         $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer();
-
+        // var
         if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
             return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
         }
 
         $payload = [
-            "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
+            "asset_id" => $this->getAssetId($request->currency), // USDC_SOL
             "customer_id" => $yativo_customer_id,
             "chain" => "solana"
         ];
@@ -97,7 +101,7 @@ class CryptoYativoController
         }
         $payload = [
             'account' => 'account_id_here',
-            'assets' => $request->asset_id,
+            'assets' => $this->getAssetId($request->currency),
             'receiving_address' => $request->receiving_address,
             'amount' => $request->amount,
             'category' => 'Transfer',
@@ -115,5 +119,33 @@ class CryptoYativoController
         }
 
         return $curl['result']['message'];
+    }
+
+    
+    public function getAssetId(string $ticker): ?string
+    {
+        try {
+            $response = Http::withToken($this->getToken())
+                ->acceptJson()
+                ->get($this->baseUrl . 'assets/get-all-assets');
+            
+            $data = $response->json();
+    
+            if (!isset($data['success'], $data['data']) || !$data['success']) {
+                throw new Exception('API request failed: ' . ($data['message'] ?? 'Unknown error'));
+            }
+    
+            foreach ($data['data'] as $asset) {
+                if (strcasecmp($asset['asset_short_name'] ?? '', $ticker) === 0) {
+                    return $asset['_id'] ?? null;
+                }
+            }
+    
+            return null;
+        } catch (Exception $e) {
+            // Handle exception appropriately (log, rethrow, etc.)
+            logger()->error('Asset ID retrieval failed: ' . $e->getMessage());
+            return null;
+        }
     }
 }
