@@ -132,7 +132,7 @@ class CryptoYativoController
             $data = $response->json();
     
             if (!isset($data['success'], $data['data']) || !$data['success']) {
-                throw new Exception('API request failed: ' . ($data['message'] ?? 'Unknown error'));
+                return get_error_response(['error' => $data['message'] ?? 'Unknown error']);
             }
     
             foreach ($data['data'] as $asset) {
