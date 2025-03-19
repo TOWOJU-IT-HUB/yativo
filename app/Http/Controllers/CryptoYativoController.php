@@ -126,7 +126,6 @@ class CryptoYativoController
     {
         try {
             $response = Http::withToken($this->getToken())
-                ->acceptJson()
                 ->get($this->baseUrl . 'assets/get-all-assets');
             
             $data = $response->json();
