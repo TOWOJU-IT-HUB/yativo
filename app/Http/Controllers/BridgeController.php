@@ -709,7 +709,7 @@ class BridgeController extends Controller
         Log::debug("wallet address for virtual account: ", ['addressie' => 002]);
 
         $payload = [
-            "asset_id" => "67d819bfd5925438d7846aa1", // USDC_SOL
+            "asset_id" => $yativo->getAssetId('USDC_SOL'), //"67d819bfd5925438d7846aa1", // USDC_SOL
             "customer_id" => $yativo_customer_id,
             "chain" => "solana"
         ];
