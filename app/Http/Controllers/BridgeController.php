@@ -410,7 +410,7 @@ class BridgeController extends Controller
         $data = $this->sendRequest($endpoint, "POST", $payload);
 
         if(request()->has('debug')) {
-            var_dump($data); exit;
+            var_dump(['result' => $data, 'payload' => $payload]); exit;
         }
 
         if(isset($data['message']) && isset($data['code'])) {
