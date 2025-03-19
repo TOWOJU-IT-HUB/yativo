@@ -67,30 +67,57 @@ class CryptoYativoController
     public function generateCustomerWallet()
     {
         $request = request();
+        
+        // Validate required parameters
+        if (empty($request->customer_id) || empty($request->currency)) {
+            return ['error' => 'Missing customer_id or currency'];
+        }
+
+        // Find customer
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        if(!$customer) {
-            return get_error_response("Customer not found", ['error' => 'Customer not found']);
+        if (!$customer) {
+            return ['error' => 'Customer not found'];
         }
 
+        // Get or create Yativo customer ID
         $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer();
-        // var
-        if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
-            return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
+        
+        // Handle customer creation errors
+        if (is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
+            return ['error' => $yativo_customer_id['error'] ?? 'Customer enrollment failed'];
         }
 
+        // Get asset ID
+        $asset_id = $this->getAssetId($request->currency);
+        if ($asset_id === false) {
+            return ['error' => "Unsupported currency: {$request->currency}"];
+        }
+
+        // Prepare payload
         $payload = [
-            "asset_id" => $this->getAssetId($request->currency), // USDC_SOL
+            "asset_id" => $asset_id,
             "customer_id" => $yativo_customer_id,
             "chain" => "solana"
         ];
 
-        $curl = Http::withToken($this->getToken())->post($this->baseUrl."assets/add-customer-asset", $payload)->json();
+        try {
+            // Make API request
+            $response = Http::withToken($this->getToken())
+                ->acceptJson()
+                ->post($this->baseUrl . 'assets/add-customer-asset', $payload);
 
-        if($curl['status'] == true) {
-            return $curl['data'];
+            $data = $response->json();
+            
+            // Handle API response
+            if ($data['status'] ?? false) {
+                return $data['data'] ?? ['success' => true];
+            }
+
+            return ['error' => $data['message'] ?? $data['result']['message'] ?? 'Unknown API error'];
+        } catch (\Exception $e) {
+            // Handle network/request errors
+            return get_e['error' => 'Service unavailable'];
         }
-
-        return ['error' => $curl['message'] ?? $curl['result']['message']];
     }
 
     public function sendCrypto(Request $request)
