@@ -716,7 +716,7 @@ class BridgeController extends Controller
 
         $curl = Http::withToken($this->getYativoToken())->post($this->yativoBaseUrl."assets/add-customer-asset", $payload)->json();
 
-        Log::debug("wallet address for virtual account: ", ['addressie' => 003]);
+        Log::debug("wallet address for virtual account: ", ['addressie' => 003, 'resp' => $curl, 'payload' => $payload]);
         if($curl['status'] == true) {
             return $curl['data']['address'];
         }
