@@ -116,7 +116,7 @@ class CryptoYativoController
             return ['error' => $data['message'] ?? $data['result']['message'] ?? 'Unknown API error'];
         } catch (\Exception $e) {
             // Handle network/request errors
-            return get_e['error' => 'Service unavailable'];
+            return ['error' => $e->getMessage()];
         }
     }
 
