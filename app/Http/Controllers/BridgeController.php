@@ -694,33 +694,72 @@ class BridgeController extends Controller
         return "data:image/{$format};base64,{$encodedData}";
     }
 
-    public function createWallet()
+    public function createWallet(Request $request)
     {
-        Log::debug("wallet address for virtual account: ", ['addressie' => 001]);
+        Log::info('Incoming request data:', $request->all());
 
-        // return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
-        $yativo = new CryptoYativoController();
-        $yativo_customer_id = $customer->yativo_customer_id ?? $yativo->addCustomer();
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'currency' => 'required|string',
+            'customer_id' => 'required_without:is_customer|string',
+            'is_customer' => 'boolean'
+        ]);
 
-        if(is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
-            return get_error_response("Customer not enroll for service", ['error' => "Csutomer not enroll for service"]);
+        if ($validator->fails()) {
+            return get_error_response($validator->errors()->toArray());
         }
 
-        Log::debug("wallet address for virtual account: ", ['addressie' => 002]);
+        // Check business approval for issuing wallet
+        $currency = $request->currency;
 
-        $payload = [
-            "asset_id" => $yativo->getAssetId('USDC_SOL'), //"67d819bfd5925438d7846aa1", // USDC_SOL
-            "customer_id" => $yativo_customer_id,
-            "chain" => "solana"
+        $userId = auth()->id();
+        $isCustomer = $request->has('customer_id');
+
+        // Generate wallet address
+        $yativo = new CryptoYativoController();
+        $curl = $yativo->generateCustomerWallet($request);
+
+        if (!isset($curl['data']['address'])) {
+            Log::error('Failed to generate wallet address', ['response' => $curl]);
+            return get_error_response(['error' => $curl['error'] ?? 'Failed to generate wallet address']);
+        }
+
+        // Create wallet record in the database
+        $data = $curl['data'];
+        $walletData = [
+            "user_id" => $userId,
+            "is_customer" => $isCustomer,
+            "customer_id" => $request->customer_id ?? null,
+            "wallet_address" => $data['address'],
+            "wallet_currency" => $data['asset_short_name'],
+            "wallet_network" => "solana",
+            "wallet_provider" => 'yativo',
+            "coin_name" => $currency,
+            "wallet_balance" => 0,
         ];
 
-        $curl = Http::withToken($this->getYativoToken())->post($this->yativoBaseUrl."assets/add-customer-asset", $payload)->json();
+        $record = CryptoWallets::create($walletData);
 
-        Log::debug("wallet address for virtual account: ", ['addressie' => 003, 'resp' => $curl, 'payload' => $payload]);
-        if($curl['status'] == true) {
-            return $curl['data']['address'];
-        }
-        return false;
+        // Queue webhook notification
+        dispatch(function () use ($userId, $record) {
+            $webhook = Webhook::whereUserId($userId)->first();
+            if ($webhook) {
+                WebhookCall::create()
+                    ->meta(['_uid' => $webhook->user_id])
+                    ->url($webhook->url)
+                    ->useSecret($webhook->secret)
+                    ->payload([
+                        "event.type" => "crypto.wallet.created",
+                        "payload" => $record,
+                    ])
+                    ->dispatch();
+            }
+        });
+
+        // Load relationships for the response
+        $record = $record->load($isCustomer ? 'customer' : 'user');
+
+        return get_success_response($record);
     }
 
     public function BridgeWebhook(Request $request)

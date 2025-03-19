@@ -64,55 +64,53 @@ class CryptoYativoController
         return ['error' => $curl['message'] ?? $curl['result']['message']];
     }
 
-    public function generateCustomerWallet()
+    public function generateCustomerWallet(Request $request)
     {
-        $request = request();
-        
         // Validate required parameters
         if (empty($request->customer_id) || empty($request->currency)) {
             return ['error' => 'Missing customer_id or currency'];
         }
-
+    
         // Find customer
         $customer = Customer::where('customer_id', $request->customer_id)->first();
         if (!$customer) {
             return ['error' => 'Customer not found'];
         }
-
+    
         // Get or create Yativo customer ID
-        $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer();
-        
+        $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer($request);
+    
         // Handle customer creation errors
         if (is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
             return ['error' => $yativo_customer_id['error'] ?? 'Customer enrollment failed'];
         }
-
+    
         // Get asset ID
         $asset_id = $this->getAssetId($request->currency);
-        if ($asset_id === false) {
+        if ($asset_id === null) {
             return ['error' => "Unsupported currency: {$request->currency}"];
         }
-
+    
         // Prepare payload
         $payload = [
             "asset_id" => $asset_id,
             "customer_id" => $yativo_customer_id,
             "chain" => "solana"
         ];
-
+    
         try {
             // Make API request
             $response = Http::withToken($this->getToken())
                 ->acceptJson()
                 ->post($this->baseUrl . 'assets/add-customer-asset', $payload);
-
+    
             $data = $response->json();
             
             // Handle API response
             if ($data['status'] ?? false) {
                 return $data['data'] ?? ['success' => true];
             }
-
+    
             return ['error' => $data['message'] ?? $data['result']['message'] ?? 'Unknown API error'];
         } catch (\Exception $e) {
             // Handle network/request errors
