@@ -64,8 +64,9 @@ class CryptoYativoController
         return ['error' => $curl['message'] ?? $curl['result']['message']];
     }
 
-    public function generateCustomerWallet(Request $request)
+    public function generateCustomerWallet()
     {
+        $request = request();
         // Validate required parameters
         if (empty($request->customer_id) || empty($request->currency)) {
             return ['error' => 'Missing customer_id or currency'];

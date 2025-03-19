@@ -25,8 +25,9 @@ class CryptoWalletsController extends Controller
         // $this->middleware('can_create_crypto')->only(['createWallet']);
     }
     
-    public function createWallet(Request $request)
+    public function createWallet()
     {
+        $request = request();
         Log::info('Incoming request data:', $request->all());
     
         // Validate the request
