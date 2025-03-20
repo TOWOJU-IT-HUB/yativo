@@ -7,6 +7,7 @@ use App\Models\Plan;
 use App\Models\User;
 use Creatydev\Plans\Models\PlanModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class PlansController extends Controller
 {

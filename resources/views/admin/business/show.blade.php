@@ -61,6 +61,7 @@
                 <div class="flex justify-between items-center">
                     <form action="{{ route('admin.plan.upgrade') }}" method="post" id="plansForm">
                         @csrf
+                        <input type="hidden" name="user_id" value="{{$user->id}}">
                         <select name="plan_id" id="plan_id" class="py-2 px-3 w-full" onchange="this.form.submit()">
                             <option value="1" @if($user->activeSubscription()?->plan_id == 1) selected @endif>Basic</option>
                             <option value="2" @if($user->activeSubscription()?->plan_id == 2) selected @endif>Scale</option>
