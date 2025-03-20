@@ -172,7 +172,7 @@ class PlansController extends Controller
             if($request->fails()){
                 return get_error_response(['error' => $validator->errors()], 422, "Validation Error");
             }
-            
+
             $user = User::findOrFail($request->user_id); // Get authenticated user directly
             $plan = Plan::findOrFail($request->plan_id); // Find plan or return 404
 
@@ -184,23 +184,12 @@ class PlansController extends Controller
 
             // Subscribe to new plan
             if ($user->newSubscription($plan->name)->create()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Plan subscription was successful'
-                ]);
+                return back()->with('success', 'Plan subscription was successful');
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Unable to change subscription plan',
-                'error' => 'subscription_change_failed'
-            ], 400);
+            return back()->with('error', 'subscription_change_failed');
         } catch (\Throwable $th) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error changing subscription plan',
-                'error' => $th->getMessage()
-            ], 400);
+            return back()->with('error', $th->getMessage());
         }
     }
 
