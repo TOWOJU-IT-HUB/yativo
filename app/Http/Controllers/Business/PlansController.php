@@ -170,7 +170,7 @@ class PlansController extends Controller
                 "plan_id" => "required"
             ]);
 
-            if($request->fails()){
+            if($validator->fails()){
                 return get_error_response(['error' => $validator->errors()], 422, "Validation Error");
             }
 
