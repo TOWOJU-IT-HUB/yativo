@@ -154,4 +154,54 @@ class PlansController extends Controller
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+
+
+    /**
+     * Customer to upgrade or downgrade subscription plan
+     * @param mixed $planId
+     * @return mixed|\Illuminate\Http\JsonResponse
+     */
+    public function changePlan(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                "user_id" => "required|exists:users,id",
+                "plan_id" => "required"
+            ]);
+
+            if($request->fails()){
+                return get_error_response(['error' => $validator->errors()], 422, "Validation Error");
+            }
+            
+            $user = User::findOrFail($request->user_id); // Get authenticated user directly
+            $plan = Plan::findOrFail($request->plan_id); // Find plan or return 404
+
+            // Check if user is currently subscribed to any plan
+            if ($user->subscribed()) {
+                // Cancel current subscription
+                $user->subscription()->cancel();
+            }
+
+            // Subscribe to new plan
+            if ($user->newSubscription($plan->name)->create()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Plan subscription was successful'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to change subscription plan',
+                'error' => 'subscription_change_failed'
+            ], 400);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error changing subscription plan',
+                'error' => $th->getMessage()
+            ], 400);
+        }
+    }
+
 }

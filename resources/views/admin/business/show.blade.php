@@ -48,14 +48,26 @@
 
         <div class="container mx-auto p-6">
             <div class="flex justify-between items-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Business Details</h1>
-                @if($user->kyc_status == null && $user->is_kyc_submitted == true)
-                <a href="{{ route('admin.business.approve', $user->id) }}">
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-xl">
-                        Approve Business
-                    </button>
-                </a>
-                @endif
+                <div class="flex justify-between items-center">
+                    <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Business Details</h1>
+                    @if($user->kyc_status == null && $user->is_kyc_submitted == true)
+                    <a href="{{ route('admin.business.approve', $user->id) }}">
+                        <button class="bg-blue-600 text-white px-4 py-2 rounded-md shadow-xl">
+                            Approve Business
+                        </button>
+                    </a>
+                    @endif
+                </div>
+                <div class="flex justify-between items-center">
+                    <form action="{{ route('admin.plans.upgrade') }}" method="post">
+                        @csrf
+                        <select name="plan_id" id="plan_id" class="py-2 px-3 w-full">
+                            <option value="1">Basic</option>
+                            <option value="2">Scale</option>
+                            <option value="3">Enterprise</option>
+                        </select>
+                    </form>
+                </div>
             </div>
 
             <!-- Tabs -->
