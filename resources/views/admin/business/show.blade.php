@@ -59,9 +59,13 @@
                     @endif
                 </div>
                 <div class="flex justify-between items-center">
-                    <form action="{{ route('admin.plan.upgrade') }}" method="post" id="plansForm>
+                    <pre>
+                        <?php var_dump($user->activeSubscription()) ?> 
+                    </pre>
+                    <p>Current Plan: </p>
+                    <form action="{{ route('admin.plan.upgrade') }}" method="post" id="plansForm">
                         @csrf
-                        <select name="plan_id" id="plan_id" class="py-2 px-3 w-full" onchange="$('#plansForm').submit()">
+                        <select name="plan_id" id="plan_id" class="py-2 px-3 w-full" onchange="this.form.submit()">
                             <option value="1">Basic</option>
                             <option value="2">Scale</option>
                             <option value="3">Enterprise</option>
