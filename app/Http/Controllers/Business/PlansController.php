@@ -176,19 +176,24 @@ class PlansController extends Controller
 
             $user = User::findOrFail($request->user_id); // Get authenticated user directly
             $plan = Plan::findOrFail($request->plan_id); // Find plan or return 404
-
+            $newPlan = PlanModel::findOrFail($request->plan_id);
             // Check if user is currently subscribed to any plan
-            if ($user->subscribed()) {
-                // Cancel current subscription
-                $user->subscription()->cancel();
-            }
+            
+            $currentSubscription = $user->activeSubscription();
 
-            // Subscribe to new plan
-            if ($user->newSubscription($plan->name)->create()) {
-                return back()->with('success', 'Plan subscription was successful');
-            }
+            if ($currentSubscription) {
+                $user->cancelCurrentSubscription();
 
-            return back()->with('error', 'subscription_change_failed');
+                if ($currentSubscription->plan_id == $newPlan->id) {
+                    return get_error_response(['error' => 'You are already subscribed to this plan']);
+                }
+
+                $user->upgradeCurrentPlanTo($newPlan, $newPlan->duration, false, true);
+            } else {
+                // subscribe to new plan
+                $user->subscribeTo($newPlan);
+            }
+            return back()->with('success', 'Plan subscription was successful');
         } catch (\Throwable $th) {
             return back()->with('error', $th->getMessage());
         }
