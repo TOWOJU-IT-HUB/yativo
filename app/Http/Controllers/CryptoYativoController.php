@@ -154,7 +154,7 @@ class CryptoYativoController
     }
 
     
-    public function getAssetId(string $ticker): ?string
+    public function getAssetId(string $ticker)
     {
         try {
             $response = Http::withToken($this->getToken())
