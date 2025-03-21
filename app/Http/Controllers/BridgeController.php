@@ -721,9 +721,9 @@ class BridgeController extends Controller
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
 
-        if (!isset($curl['data']['address'])) {
+        if (!isset($curl['data']) || !isset($curl['data']['address'])) {
             Log::error('Failed to generate wallet address', ['response' => $curl]);
-            return get_error_response(['error' => $curl['error'] ?? 'Failed to generate wallet address']);
+            return get_error_response(['error' => $curl['error'] ?? 'Unable to generate wallet address at the moment, please contact support']);
         }
 
         // Create wallet record in the database

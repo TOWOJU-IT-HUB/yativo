@@ -2,23 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use Modules\Customer\app\Models\Customer;
-use Illuminate\Database\Schema\Blueprint;
+use App\Models\Customer;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Log, Http;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Schema\Blueprint;
 
-class CryptoYativoController 
+class CryptoYativoController extends Controller
 {
+    private string $baseUrl;
+
     public function __construct()
     {
-        if (!Schema::hasColumn('customers', 'yativo_customer_id')) {
-            Schema::table('customers', function (Blueprint $table) {
-                $table->string('yativo_customer_id')->nullable();
-            });
-        }
+        $this->baseUrl = env("YATIVO_CRYPTO_API_URL");
     }
-
-    private $baseUrl = "https://crypto-api.yativo.com/api/";
 
     private function getToken()
     {
@@ -28,155 +27,130 @@ class CryptoYativoController
         ];
         $curl = Http::post($this->baseUrl."authentication/generate-key", $payload)->json();
 
-        if($curl['success'] == true) {
+        if (isset($curl['success']) && $curl['success'] === true) {
             return $curl['result']['token'];
         }
-        // var_dump($curl); exit;
-        return ['error' => $curl['message'] ?? $curl['result']];
+        
+        Log::error('Failed to get token', ['response' => $curl]);
+        return null;
     }
 
     public function addCustomer()
     {
         $request = request();
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        if(!$customer) {
-            return get_error_response("Customer not found", ['error' => 'Customer not found']);
+        if (!$customer) {
+            return ['error' => 'Customer not found'];
         }
 
-        if(!empty($customer->yativo_customer_id)) {
+        if (!empty($customer->yativo_customer_id)) {
             return $customer->yativo_customer_id;
         }
-        
+
+        $token = $this->getToken();
+        if (!$token) {
+            return ['error' => 'Failed to authenticate with Yativo API'];
+        }
+
         $payload = [
-            "username" => explode("@", $customer->customer_email)[0].rand(0, 9999),
+            "username" => explode("@", $customer->customer_email)[0] . rand(0, 9999),
             "email" => $customer->customer_email
         ];
 
-        $curl = Http::withToken($this->getToken())->post($this->baseUrl."customers/create-customer", $payload)->json();
-        // Log::debug("customer added", ["result" => $curl]);
-        if($curl['status'] == true) {
+        $curl = Http::withToken($token)->post($this->baseUrl . "customers/create-customer", $payload)->json();
+
+        if (isset($curl['status']) && $curl['status'] === true) {
             $customer->yativo_customer_id = $curl['data']['_id'];
             $customer->save();
-            Log::debug("customer added", ["result_2" => true]);
+            Log::debug("Customer added successfully", ["customer_id" => $curl['data']['_id']]);
             return $curl['data']['_id'];
         }
 
-        return ['error' => $curl['message'] ?? $curl['result']['message']];
+        Log::error("Failed to create customer", ["error" => $curl]);
+        return ['error' => $curl['message'] ?? 'Unknown error'];
     }
 
     public function generateCustomerWallet()
     {
         $request = request();
-        // Validate required parameters
-        if (empty($request->customer_id) || empty($request->currency)) {
-            return ['error' => 'Missing customer_id or currency'];
-        }
-    
-        // Find customer
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        if (!$customer) {
-            return ['error' => 'Customer not found'];
+        if (!$customer || empty($customer->yativo_customer_id)) {
+            return ['error' => 'Customer not found or not registered with Yativo'];
         }
-    
-        // Get or create Yativo customer ID
-        $yativo_customer_id = $customer->yativo_customer_id ?? $this->addCustomer($request);
-    
-        // Handle customer creation errors
-        if (is_array($yativo_customer_id) && isset($yativo_customer_id['error'])) {
-            return ['error' => $yativo_customer_id['error'] ?? 'Customer enrollment failed'];
-        }
-    
-        // Get asset ID
-        $asset_id = $this->getAssetId($request->currency);
-        if ($asset_id === null) {
-            return ['error' => "Unsupported currency: {$request->currency}"];
-        }
-    
-        // Prepare payload
-        $payload = [
-            "asset_id" => $asset_id,
-            "customer_id" => $yativo_customer_id,
-            "chain" => "solana"
-        ];
-    
-        try {
-            // Make API request
-            $response = Http::withToken($this->getToken())
-                ->acceptJson()
-                ->post($this->baseUrl . 'assets/add-customer-asset', $payload);
-    
-            $data = $response->json();
-            
-            // Handle API response
-            if ($data['status'] == false) {
-                return $data['data'];
-            }
-    
-            return ['error' => $data['message'] ?? $data['result']['message'] ?? 'Unknown API error'];
-        } catch (\Exception $e) {
-            // Handle network/request errors
-            return ['error' => $e->getMessage()];
-        }
-    }
 
-    public function sendCrypto(Request $request)
-    {
-        $customer = Customer::where('customer_id', $request->customer_id)->first();
-        if(!$customer) {
-            return get_error_response("Customer not found", ['error' => 'Customer not found']);
-        }
-        $assetId = $this->getAssetId($request->currency);
-        
-        if(is_array($assetId)) {
-            return $assetId;
+        $token = $this->getToken();
+        if (!$token) {
+            return ['error' => 'Failed to authenticate with Yativo API'];
         }
 
         $payload = [
-            'account' => 'account_id_here',
-            'assets' => $assetId,
-            'receiving_address' => $request->receiving_address,
-            'amount' => $request->amount,
-            'category' => 'Transfer',
-            'description' => 'Payment for services',
-            'type' => 'crypto',
-            'chain' => 'ETH',
-            'priority' => 'high',
-            'approve_gas_funding' => true,
+            "customer_id" => $customer->yativo_customer_id,
         ];
 
-        $curl = Http::withToken($this->getToken())->post($this->baseUrl."assets/add-customer-asset", $payload)->json();
+        $response = Http::withToken($token)->post($this->baseUrl . "wallets/generate-wallet", $payload)->json();
 
-        if($curl['success'] == true) {
-            return $curl['result']['token'];
+        if (isset($response['status']) && $response['status'] === true) {
+            return $response['data'];
         }
 
-        return $curl['result']['message'];
+        Log::error("Failed to generate wallet", ["error" => $response]);
+        return ['error' => $response['message'] ?? 'Unknown error'];
     }
 
-    
     public function getAssetId(string $ticker)
     {
-        try {
-            $response = Http::withToken($this->getToken())
-                ->get($this->baseUrl . 'assets/get-all-assets');
-            
-            $data = $response->json();
-    
-            if (!isset($data['status'], $data['data']) || $data['status'] != true) {
-                return get_error_response(['error' => $data['message'] ?? 'Unknown error']);
-            }
-    
-            foreach ($data['data'] as $asset) {
-                if (strtoupper($asset['asset_short_name']) == strtoupper($ticker)) {
-                    return $asset['_id'];
-                }
-            }
-    
-            return ['error' => $data];
-        } catch (Exception $e) {
-            // Handle exception appropriately (log, rethrow, etc.)
-            logger()->error('Asset ID retrieval failed: ' . $e->getMessage());
-            return ['error' => $e->getMessage()];
+        $token = $this->getToken();
+        if (!$token) {
+            return null;
         }
+
+        $response = Http::withToken($token)->get($this->baseUrl . 'assets/get-all-assets')->json();
+
+        if (!isset($response['status']) || !$response['status'] || !isset($response['data'])) {
+            return null;
+        }
+
+        foreach ($response['data'] as $asset) {
+            if (strtoupper($asset['asset_short_name']) === strtoupper($ticker)) {
+                return $asset['_id'];
+            }
+        }
+        
+        return null;
+    }
+
+    public function sendCrypto()
+    {
+        $request = request();
+        $customer = Customer::where('customer_id', $request->customer_id)->first();
+        if (!$customer || empty($customer->yativo_customer_id)) {
+            return ['error' => 'Customer not found or not registered with Yativo'];
+        }
+
+        $token = $this->getToken();
+        if (!$token) {
+            return ['error' => 'Failed to authenticate with Yativo API'];
+        }
+
+        $assetId = $this->getAssetId($request->asset);
+        if (!$assetId) {
+            return ['error' => 'Invalid asset provided'];
+        }
+
+        $payload = [
+            "customer_id" => $customer->yativo_customer_id,
+            "asset_id" => $assetId,
+            "amount" => $request->amount,
+            "recipient_address" => $request->recipient_address,
+        ];
+
+        $response = Http::withToken($token)->post($this->baseUrl . "transactions/send-crypto", $payload)->json();
+
+        if (isset($response['status']) && $response['status'] === true) {
+            return $response['data'];
+        }
+
+        Log::error("Failed to send crypto", ["error" => $response]);
+        return ['error' => $response['message'] ?? 'Unknown error'];
     }
 }
