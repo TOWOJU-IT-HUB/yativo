@@ -125,9 +125,15 @@ class CryptoYativoController
         if(!$customer) {
             return get_error_response("Customer not found", ['error' => 'Customer not found']);
         }
+        $assetId = $this->getAssetId($request->currency);
+        
+        if(is_array($assetId)) {
+            return $assetId;
+        }
+
         $payload = [
             'account' => 'account_id_here',
-            'assets' => $this->getAssetId($request->currency),
+            'assets' => $assetId,
             'receiving_address' => $request->receiving_address,
             'amount' => $request->amount,
             'category' => 'Transfer',
@@ -166,7 +172,7 @@ class CryptoYativoController
                 }
             }
     
-            return ['error' => 'Unable to get asset ID'];
+            return ['error' => $data];
         } catch (Exception $e) {
             // Handle exception appropriately (log, rethrow, etc.)
             logger()->error('Asset ID retrieval failed: ' . $e->getMessage());
