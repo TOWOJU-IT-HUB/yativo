@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\Schema\Blueprint;
+use Modules\Customer\app\Models\Customer;
 
 class CryptoYativoController extends Controller
 {
