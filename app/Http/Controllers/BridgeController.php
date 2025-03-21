@@ -694,8 +694,9 @@ class BridgeController extends Controller
         return "data:image/{$format};base64,{$encodedData}";
     }
 
-    public function createWallet(Request $request)
+    public function createWallet()
     {
+        $request = request();
         Log::info('Incoming request data:', $request->all());
 
         // Validate the request
