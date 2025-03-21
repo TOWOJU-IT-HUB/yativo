@@ -12,7 +12,7 @@ use Illuminate\Database\Schema\Blueprint;
 
 class CryptoYativoController extends Controller
 {
-    private string $baseUrl;
+    private $baseUrl;
 
     public function __construct()
     {
