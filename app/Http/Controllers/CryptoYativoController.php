@@ -108,8 +108,8 @@ class CryptoYativoController
             $data = $response->json();
             
             // Handle API response
-            if ($data['status'] ?? false) {
-                return $data['data'] ?? ['success' => true];
+            if ($data['status'] == false) {
+                return $data['data'];
             }
     
             return ['error' => $data['message'] ?? $data['result']['message'] ?? 'Unknown API error'];
@@ -156,21 +156,21 @@ class CryptoYativoController
             
             $data = $response->json();
     
-            if (!isset($data['success'], $data['data']) || !$data['success']) {
+            if (!isset($data['status'], $data['data']) || $data['status'] != true) {
                 return get_error_response(['error' => $data['message'] ?? 'Unknown error']);
             }
     
             foreach ($data['data'] as $asset) {
-                if (strcasecmp($asset['asset_short_name'] ?? '', $ticker) === 0) {
-                    return $asset['_id'] ?? null;
+                if (strtoupper($asset['asset_short_name']) == strtoupper($ticker)) {
+                    return $asset['_id'];
                 }
             }
     
-            return null;
+            return ['error' => 'Unable to get asset ID'];
         } catch (Exception $e) {
             // Handle exception appropriately (log, rethrow, etc.)
             logger()->error('Asset ID retrieval failed: ' . $e->getMessage());
-            return null;
+            return ['error' => $e->getMessage()];
         }
     }
 }

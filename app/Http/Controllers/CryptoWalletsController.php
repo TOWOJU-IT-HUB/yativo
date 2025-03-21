@@ -49,7 +49,7 @@ class CryptoWalletsController extends Controller
         // Generate wallet address
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
-    
+        return $curl;
         if (!isset($curl['data']['address'])) {
             return get_error_response(['error' => $curl]);
         }
