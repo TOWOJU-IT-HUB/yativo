@@ -33,6 +33,31 @@ class PayoutCalculator
         }
 
         $payoutMethod = PayoutMethods::findOrFail($gatewayId);
+        $user = auth()->user();
+        $subscription = $user->activeSubscription();
+        $user_plan = (int) $subscription->plan_id;
+        
+        $float_charge = $payoutMethod->float_charge;
+        $fixed_charge = $payoutMethod->fixed_charge;
+
+        // Determine user plan pricing
+        if ($user_plan === 3) {
+            $customPricing = CustomPricing::where('user_id', $user->id)
+                ->where('gateway_id', $payoutMethod->id)
+                ->first();
+    
+            if (!$customPricing) {
+                $user_plan = 2; // Fallback to Plan 2
+            } else {
+                $fixed_charge = $customPricing->fixed_charge;
+                $float_charge = $customPricing->float_charge;
+            }
+        }
+    
+        if ($user_plan === 1 || $user_plan === 2) {
+            $fixed_charge = $user_plan === 1 ? $payoutMethod->fixed_charge : $payoutMethod->pro_fixed_charge;
+            $float_charge = $user_plan === 1 ? $payoutMethod->float_charge : $payoutMethod->pro_float_charge;
+        }
 
         // Get exchange rates
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
@@ -42,8 +67,8 @@ class PayoutCalculator
             $amount,
             $walletCurrency,
             $targetCurrency,
-            $payoutMethod->float_charge,
-            $payoutMethod->fixed_charge,
+            $float_charge,
+            $fixed_charge,
             $payoutMethod
         );
 
