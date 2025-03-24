@@ -6,6 +6,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Models\CustomPricing;
 use App\Models\payoutMethods as PayoutMethods;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
@@ -36,7 +37,7 @@ class PayoutCalculator
         $user = auth()->user();
         $subscription = $user->activeSubscription();
         $user_plan = (int) $subscription->plan_id;
-        
+
         $float_charge = $payoutMethod->float_charge;
         $fixed_charge = $payoutMethod->fixed_charge;
 
