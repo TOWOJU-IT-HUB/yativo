@@ -396,7 +396,8 @@ class BitsoController extends Controller
 
     protected static function handleFunding(array $payload): void
     {
-        if(isset($payload['method']) && $payload['method'] == 'sol_spl' && $payload["status"] == "complete") {
+        Log::debug("debug bitso crypto depost", ['payload' => $payload]);
+        if(isset($payload['method']) && $payload['method'] == 'pol_erc20' && $payload["status"] == "complete") {
             self::processCryptoDeposit($payload);
         }
         $amount = (float) $payload['amount'];
