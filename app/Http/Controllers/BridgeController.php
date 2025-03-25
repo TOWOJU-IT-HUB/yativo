@@ -388,7 +388,7 @@ class BridgeController extends Controller
         }
 
         $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
-        $destinationAddress = $this->createWallet();
+        $destinationAddress = "6qjnjFzrtvayr4vbseWFGzVwJroWcJn5oWVD2vYkoNz9"; //$this->createWallet();
 
         Log::debug("wallet address for virtual account: ", ['addressie' => $destinationAddress]);
 
