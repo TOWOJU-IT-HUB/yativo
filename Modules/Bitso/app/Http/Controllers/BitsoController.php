@@ -204,7 +204,7 @@ class BitsoController extends Controller
 
             // Check if the event is 'funding' and the status is 'complete'
             if ($webhookData['event'] === 'funding' && isset($payload['asset']) && $payload['asset'] == "usdt"){
-                $complete_action = $this->processCryptoDeposit($payload);
+                return self::processCryptoDeposit($payload);
             }
     
             // Check if the event is 'funding' and the status is 'complete'
