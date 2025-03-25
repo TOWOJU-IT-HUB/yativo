@@ -412,7 +412,7 @@ class BitsoController extends Controller
     {
         Log::debug("debug bitso crypto depost", ['payload' => $payload]);
         if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
-            return self::processCryptoDeposit($payload);
+            self::processCryptoDeposit($payload);
         }
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
