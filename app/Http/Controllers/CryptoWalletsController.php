@@ -50,12 +50,12 @@ class CryptoWalletsController extends Controller
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
         // return $curl;
-        if (!isset($curl['data']['address'])) {
+        if (isset($curl['error']) || !isset($curl['address'])) {
             return get_error_response(['error' => $curl]);
         }
     
         // Create wallet record in the database
-        $data = $curl['data'];
+        $data = $curl;
         $walletData = [
             "user_id" => $userId,
             "is_customer" => $isCustomer,
