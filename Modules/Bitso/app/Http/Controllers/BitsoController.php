@@ -233,7 +233,7 @@ class BitsoController extends Controller
     private function handleClabeDeposit(array $payload)
     {
         Log::debug("debug bitso crypto depost: handleClabeDeposit: -", ['payload' => $payload]);
-        if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
+        if(isset($payload['currency']) && $payload['currency'] == 'usdt' && $payload["status"] == "complete") {
             self::processCryptoDeposit($payload);
         }
 
