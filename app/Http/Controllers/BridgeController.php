@@ -403,7 +403,7 @@ class BridgeController extends Controller
             ],
             "destination" => [
                 "currency" => "usdc",
-                "payment_rail" => "ethereum",
+                "payment_rail" => "solana",
                 "address" => $destinationAddress
             ]
         ];
