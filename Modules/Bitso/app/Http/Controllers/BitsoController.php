@@ -373,7 +373,7 @@ class BitsoController extends Controller
 
         if($payload['details']['receiving_address'] == "0xB86f958060D265AC87E34D872C725F86A169f830"){
             // credit onramp USD 
-            $onramp = User::whereEmail()->first();
+            $onramp = User::whereEmail("adityam@onramp.money")->first();
             if($onramp) {
                 $onramp->getWallet('usd')->deposit($payload['amount'] * 100);
                 Log::debug("completed crypto payin");
