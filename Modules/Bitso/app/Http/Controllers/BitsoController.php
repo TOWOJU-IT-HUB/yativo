@@ -356,7 +356,7 @@ class BitsoController extends Controller
         $currency = strtoupper($payload['asset'] ?? $payload['currency']);
         $exists = BitsoWebhookLog::where('fid', $payload['fid'])->exists();
         if($exists) {
-            return true;
+            exit;
         }
 
         BitsoWebhookLog::create([
