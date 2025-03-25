@@ -65,7 +65,7 @@ class Customer extends Model
         "bridge_customer_id",
         "brla_subaccount_id",
         "customer_kyc_email",
-        // "yativo_customer_id",
+        "yativo_customer_id",
         "can_create_vc", // can_create_virtual_card
         "can_create_va", // can_create_virtual_account
     ];

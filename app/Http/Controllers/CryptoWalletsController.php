@@ -61,7 +61,7 @@ class CryptoWalletsController extends Controller
             "is_customer" => $isCustomer,
             "customer_id" => $request->customer_id ?? null,
             "wallet_address" => $data['address'],
-            "wallet_currency" => $data['ticker_name'],
+            "wallet_currency" => trim($data['ticker_name']),
             "wallet_network" => $data['chain'],
             "wallet_provider" => 'yativo',
             "coin_name" => $data['asset_name'],

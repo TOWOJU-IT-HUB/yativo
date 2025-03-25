@@ -402,7 +402,7 @@ class BridgeController extends Controller
                 "currency" => "usd"
             ],
             "destination" => [
-                "currency" => "USDC",
+                "currency" => "usdc",
                 "payment_rail" => "ethereum",
                 "address" => $destinationAddress
             ]
@@ -697,71 +697,16 @@ class BridgeController extends Controller
 
     public function createWallet()
     {
-        $request = request();
-        Log::info('Incoming request data:', $request->all());
-
-        // Validate the request
-        $validator = Validator::make($request->all(), [
-            'currency' => 'required|string',
-            'customer_id' => 'required_without:is_customer|string',
-            'is_customer' => 'boolean'
-        ]);
-
-        if ($validator->fails()) {
-            return get_error_response($validator->errors()->toArray());
-        }
-
-        // Check business approval for issuing wallet
-        $currency = $request->currency;
-
-        $userId = auth()->id();
-        $isCustomer = $request->has('customer_id');
-
         // Generate wallet address
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
 
-        if (!isset($curl['data']) || !isset($curl['data']['address'])) {
+        if (!isset($curl['address'])) {
             Log::error('Failed to generate wallet address', ['response' => $curl]);
-            return get_error_response(['error' => $curl['error'] ?? 'Unable to generate wallet address at the moment, please contact support']);
+            return ['error' => $curl['error'] ?? 'Unable to generate wallet address at the moment, please contact support'];
         }
 
-        // Create wallet record in the database
-        $data = $curl['data'];
-        $walletData = [
-            "user_id" => $userId,
-            "is_customer" => $isCustomer,
-            "customer_id" => $request->customer_id ?? null,
-            "wallet_address" => $data['address'],
-            "wallet_currency" => $data['asset_short_name'],
-            "wallet_network" => "solana",
-            "wallet_provider" => 'yativo',
-            "coin_name" => $currency,
-            "wallet_balance" => 0,
-        ];
-
-        $record = CryptoWallets::create($walletData);
-
-        // Queue webhook notification
-        dispatch(function () use ($userId, $record) {
-            $webhook = Webhook::whereUserId($userId)->first();
-            if ($webhook) {
-                WebhookCall::create()
-                    ->meta(['_uid' => $webhook->user_id])
-                    ->url($webhook->url)
-                    ->useSecret($webhook->secret)
-                    ->payload([
-                        "event.type" => "crypto.wallet.created",
-                        "payload" => $record,
-                    ])
-                    ->dispatch();
-            }
-        });
-
-        // Load relationships for the response
-        $record = $record->load($isCustomer ? 'customer' : 'user');
-
-        return get_success_response($record);
+        return $curl['address'];
     }
 
     public function BridgeWebhook(Request $request)
