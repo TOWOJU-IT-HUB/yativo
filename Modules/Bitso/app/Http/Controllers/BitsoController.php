@@ -230,19 +230,19 @@ class BitsoController extends Controller
         }
     }
     
-    private function handleClabeDeposit($payload)
+    private function handleClabeDeposit(array $payload)
     {
-        Log::debug("debug bitso crypto depost", ['payload' => $payload]);
+        Log::debug("debug bitso crypto depost: handleClabeDeposit: -", ['payload' => $payload]);
         if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
             self::processCryptoDeposit($payload);
         }
-        
+
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
 
         $acc = VirtualAccount::where('account_number', $payload['details']['receive_clabe'])->first();
         if(!$acc) {
-            die(200);
+           return false;
         }
 
 
