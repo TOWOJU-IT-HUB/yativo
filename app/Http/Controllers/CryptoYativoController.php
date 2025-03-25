@@ -99,7 +99,7 @@ class CryptoYativoController extends Controller
                 return $response['data'];
             }
 
-            Log::error("Failed to generate wallet", ["error" => $response]);
+            Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token]);
             return ['error' => $response['message'] ?? 'Unknown error'];
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
