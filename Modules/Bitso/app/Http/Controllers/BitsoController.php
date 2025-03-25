@@ -233,9 +233,17 @@ class BitsoController extends Controller
     private function handleClabeDeposit(array $payload)
     {
         Log::debug("debug bitso crypto depost: handleClabeDeposit: -", ['payload' => $payload]);
-        if(isset($payload['currency']) && $payload['currency'] == 'usdt' && $payload["status"] == "complete") {
-            self::processCryptoDeposit($payload);
+        try {
+            if(isset($payload['currency']) && $payload['currency'] == 'usdt' && $payload["status"] == "complete") {
+                self::processCryptoDeposit($payload);
+            }
+        } catch (\Exception $e) {
+            Log::error("processCryptoDeposit failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
+        
 
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
@@ -404,7 +412,7 @@ class BitsoController extends Controller
     {
         Log::debug("debug bitso crypto depost", ['payload' => $payload]);
         if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
-            self::processCryptoDeposit($payload);
+            return self::processCryptoDeposit($payload);
         }
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
