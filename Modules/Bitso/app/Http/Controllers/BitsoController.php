@@ -361,6 +361,15 @@ class BitsoController extends Controller
             exit;
         }
 
+        if($payload['details']['receiving_address'] == "0xB86f958060D265AC87E34D872C725F86A169f830"){
+            // credit onramp USD 
+            $onramp = User::whereEmail("adityam@onramp.money")->first();
+            if($onramp) {
+                $onramp->getWallet('usd')->deposit($payload['amount'] * 100);
+                Log::debug("completed crypto payin");
+            }
+        }
+
         BitsoWebhookLog::create([
             'fid' => $payload['fid'],
             'status' => "success",
@@ -370,15 +379,6 @@ class BitsoController extends Controller
             'amount' => $amount,
             'details' => json_encode($payload['details'] ?? []),
         ]);
-
-        if($payload['details']['receiving_address'] == "0xB86f958060D265AC87E34D872C725F86A169f830"){
-            // credit onramp USD 
-            $onramp = User::whereEmail("adityam@onramp.money")->first();
-            if($onramp) {
-                $onramp->getWallet('usd')->deposit($payload['amount'] * 100);
-                Log::debug("completed crypto payin");
-            }
-        }
     
         Deposit::create([
             'transaction_id' => $payload['fid'],
