@@ -352,7 +352,7 @@ class BitsoController extends Controller
 
     public static function processCryptoDeposit($payload)
     {
-        Log::debug("processing crypto payin");
+        Log::debug("processing crypto_payin: ", ['payload' => $payload]);
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['asset'] ?? $payload['currency']);
         $exists = BitsoWebhookLog::where('fid', $payload['fid'])->exists();
