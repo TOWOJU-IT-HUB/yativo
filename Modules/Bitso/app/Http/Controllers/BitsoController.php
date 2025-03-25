@@ -201,20 +201,20 @@ class BitsoController extends Controller
                 Log::error("Bitso: Invalid webhook payload received.", ['payload' => $input]);
                 return response()->json(['error' => 'Invalid webhook payload'], 400);
             }
-            
+
             // Check if the event is 'funding' and the status is 'complete'
             if ($webhookData['event'] === 'funding' && isset($payload['method']) && $payload['method'] == "pol_erc20"){
-                $complete_action = $this->processCryptoDeposit($webhookData);
+                $complete_action = $this->processCryptoDeposit($payload);
             }
     
             // Check if the event is 'funding' and the status is 'complete'
             if (strtolower($webhookData['event']) === 'funding' && isset($payload['details']['receive_clabe'])){
-                $complete_action = $this->handleClabeDeposit($webhookData);
+                $complete_action = $this->handleClabeDeposit($payload);
             }
             
             // Check if the event is 'funding' and the status is 'complete'
             if ($webhookData['event'] === 'funding'){
-                $complete_action = $this->handleClabeDeposit($webhookData);
+                $complete_action = $this->handleClabeDeposit($payload);
             }
 
             // Check if the event is 'funding' and the status is 'complete'
