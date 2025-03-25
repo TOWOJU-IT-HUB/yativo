@@ -336,8 +336,69 @@ class BitsoController extends Controller
         }
     }
 
+    public static function processCryptoDeposit($payload)
+    {
+        $amount = (float) $payload['amount'];
+        $currency = strtoupper($payload['asset'] ?? $payload['currency']);
+        $exists = BitsoWebhookLog::where('fid', $payload['fid'])->exists();
+        if($exists) {
+            return true;
+        }
+
+        BitsoWebhookLog::create([
+            'fid' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $currency,
+            'method' => $payload['method'],
+            'method_name' => $payload['method_name'],
+            'amount' => $amount,
+            'details' => json_encode($payload['details'] ?? []),
+        ]);
+
+        if($payload['details']['receiving_address'] == "0xB86f958060D265AC87E34D872C725F86A169f830"){
+            // credit onramp USD 
+            $onramp = User::whereEmail()->first();
+            if($onramp) {
+                $onramp->getWallet('usd')->deposit($payload['amount']);
+            }
+        }
+    
+        Deposit::create([
+            'transaction_id' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $currency,
+            'amount' => $amount,
+            'method' => $payload['method_name'],
+            'network' => $payload['network'],
+            'sender_name' => null, // No sender name in payload
+            'sender_clabe' => null, // Not present in payload
+            'receiver_clabe' => $payload['details']['receiving_address'] ?? null,
+            'sender_bank' => null, // Not present in payload
+            'concept' => null, // Not present in payload
+        ]);
+    
+        TransactionRecord::create([
+            'user_id' => User::where('email', $payload['details']['receiving_address'] ?? '')->first()->id ?? null,
+            'amount' => $amount,
+            'currency' => $currency,
+            'type' => 'deposit',
+            'status' => 'completed',
+            'reference' => $payload['fid'],
+            'description' => 'Deposit via ' . $payload['method_name'],
+        ]);
+    
+        Track::create([
+            'quote_id' => $payload['fid'],
+            'tracking_status' => 'Deposit completed successfully',
+            'raw_data' => json_encode($payload),
+        ]);
+    }
+
     protected static function handleFunding(array $payload): void
     {
+        if(isset($payload['method']) && $payload['method'] == 'sol_spl' && $payload["status"] == "complete") {
+            self::processCryptoDeposit($payload);
+        }
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
 
