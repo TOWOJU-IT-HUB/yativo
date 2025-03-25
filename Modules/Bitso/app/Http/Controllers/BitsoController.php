@@ -203,7 +203,7 @@ class BitsoController extends Controller
             }
 
             // Check if the event is 'funding' and the status is 'complete'
-            if ($webhookData['event'] === 'funding' && isset($payload['method']) && $payload['method'] == "pol_erc20"){
+            if ($webhookData['event'] === 'funding' && isset($payload['asset']) && $payload['asset'] == "usdt"){
                 $complete_action = $this->processCryptoDeposit($payload);
             }
     
@@ -225,13 +225,18 @@ class BitsoController extends Controller
 
             return response()->json(['success' => 'Deposit processed successfully'], 200);
         } catch (\Exception $e) {
-            Log::error("Bitso: Error processing deposit webhook.", ['error' => $e->getMessage()]);
+            Log::error("Bitso: Error processing deposit webhook.", ['error' => $e->getMessage(), 'track' => $e->getTrace()]);
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
     
     private function handleClabeDeposit($payload)
     {
+        Log::debug("debug bitso crypto depost", ['payload' => $payload]);
+        if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
+            self::processCryptoDeposit($payload);
+        }
+        
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
 
@@ -398,7 +403,7 @@ class BitsoController extends Controller
     protected static function handleFunding(array $payload): void
     {
         Log::debug("debug bitso crypto depost", ['payload' => $payload]);
-        if(isset($payload['method']) && $payload['method'] == 'pol_erc20' && $payload["status"] == "complete") {
+        if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
             self::processCryptoDeposit($payload);
         }
         $amount = (float) $payload['amount'];
