@@ -363,7 +363,7 @@ class BitsoController extends Controller
 
         BitsoWebhookLog::create([
             'fid' => $payload['fid'],
-            'status' => $payload['status'],
+            'status' => "success",
             'currency' => $currency,
             'method' => $payload['method'],
             'method_name' => $payload['method_name'],
