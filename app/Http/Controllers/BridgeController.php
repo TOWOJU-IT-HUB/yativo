@@ -32,7 +32,7 @@ class BridgeController extends Controller
     public function __construct()
     {
         $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
-        // Log::info("Customer Info: ", (array) $this->customer);
+        // Log::info("Customer Info: ", (array) $this->customer); 
         $this->customerId = $this->customer->customer_id ?? null;
     }
 
