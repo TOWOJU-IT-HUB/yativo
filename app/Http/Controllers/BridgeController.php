@@ -731,6 +731,7 @@ class BridgeController extends Controller
         $eventData = $event['event_object'];
 
         switch ($eventType) {
+            case 'virtual_account.activity.updated':
             case 'virtual_account.activity.created':
                 $this->processVirtualAccountWebhook($eventData);
                 break;
