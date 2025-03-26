@@ -857,10 +857,10 @@ class BridgeController extends Controller
             "secondary_currency" => strtoupper($payload['currency']),
             "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
             "transaction_payin_details" => [
-                'sender_name' => $payload['source']['sender_name'],
-                'trace_number' => $payload['source']['trace_number'],
-                'bank_routing_number' => $payload['source']['sender_bank_routing_number'],
-                'description' => $payload['source']['description'],
+                'sender_name' => $payload['source']['sender_name'] ?? null,
+                'trace_number' => $payload['source']['trace_number'] ?? null,
+                'bank_routing_number' => $payload['source']['sender_bank_routing_number'] ?? null,
+                'description' => $payload['source']['description'] ?? null,
                 "transaction_fees" => $total_fee
             ],
             "transaction_payout_details" => null,
