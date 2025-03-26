@@ -32,7 +32,6 @@
         "tightenco/ziggy": "^2.3",
         "towoju5/advcash": "^0.1.0",
         "towoju5/bitnob": "^1.2",
-        "towoju5/laravel-azure-mailer": "^1.1",
         "towoju5/laravel-referral": "^1.1",
         "towoju5/localpayments": "^1.2",
         "towoju5/plans": "^1.1",
