@@ -879,7 +879,7 @@ class BridgeController extends Controller
                     $wallet->deposit(floatval($deposit_amount * 100), [
                         'deposit_id' => $deposit->id,
                         'gateway_deposit_id' => $payload['id'],
-                        'sender' => $payload['source']['description']
+                        'sender' => $payload['source']['description'] ?? null
                     ]);
                 }
             }
