@@ -36,7 +36,6 @@ class BridgeController extends Controller
         $this->customerId = $this->customer->customer_id ?? null;
     }
 
-
     private function getYativoToken()
     {
         $payload = [
@@ -529,7 +528,6 @@ class BridgeController extends Controller
         return $curl;
     }
 
-
     public function getPayout($payoutId)
     {
         $endpoint = "v0/transfers/{$payoutId}";
@@ -644,7 +642,6 @@ class BridgeController extends Controller
 
         return $model->save() ? $model : ['error' => 'Failed to save payment method.'];
     }
-
 
     public function sendRequest($endpoint, $method = "GET", $payload = [])
     {

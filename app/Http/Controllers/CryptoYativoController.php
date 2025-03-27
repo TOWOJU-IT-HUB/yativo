@@ -80,9 +80,18 @@ class CryptoYativoController extends Controller
         try {
             $request = request();   //where('user_id', auth()->id())->
             $customer = Customer::where('customer_id', $request->customer_id)->first();
-            if (!$customer || empty($customer->yativo_customer_id)) {
+            if (!$customer) {
                 return ['error' => 'Customer not found or not registered with Yativo'];
             }
+
+            if(empty($customer->yativo_customer_id)) {
+                $cId = $this->addCustomer();
+                if(isset($cId['error'])) {
+                    return $cId;
+                }
+                $customer->yativo_customer_id = $cId;
+            }
+
 
             $token = $this->getToken();
             if (!$token) {
