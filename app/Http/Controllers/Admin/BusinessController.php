@@ -59,22 +59,74 @@ class BusinessController extends Controller
 
     public function show($id)
     {
-        $user = null;
+        $business = Business::whereId($id)->with('user')->first();
+
+        if (!$business || !isset($business->user)) {
+            return back()->with('error', 'User data not found');
+        }
+
+
         $business = Business::whereId($id)->with('user')->first();
         if(!isset($business->user)) {
             return back()->with('error', 'User data not found');
         }
         $user = $business->user;
-        $customers = Customer::latest()->limit(20)->where('user_id', $user->id)->get();
-        $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $user->id)->get();
+        $uid = $user->id;
+        $customers = Customer::latest()->limit(20)->where('user_id', $uid)->get();
+        $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $uid)->get();
         $virtualCards = CustomerVirtualCards::latest()->limit(20)->where('business_id', $business->id)->get();
-        $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $user->id)->get();
-        $deposits = Deposit::latest()->limit(20)->where('user_id', $user->id)->get();
-        $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $user->id)->get();
-        $wallets =  $this->getUserWallets($user->id);
+        $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $uid)->get();
+        $deposits = Deposit::latest()->limit(20)->where('user_id', $uid)->get();
+        $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $uid)->get();
+        $wallets =  $this->getUserWallets($uid);
 
-        return view('admin.business.show', compact('business', 'wallets', 'user', 'customers', 'virtualAccounts', 'virtualCards', 'transactions', 'deposits', 'withdrawals'));
+        $start_date = now()->startOfMonth(); // First day of the current month
+        $end_date = now()->endOfMonth(); // Last day of the current month
+        
+        // Fetch related data
+        $customers = Customer::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])
+            ->where(function ($query) {
+                $query->where('customer_kyc_status', 'pending')->orWhere('customer_kyc_status', 'verified');
+            })->get();
+
+        $virtualAccounts = VirtualAccount::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        $virtualCards = CustomerVirtualCards::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        $transactions = TransactionRecord::where('user_id', $uid)->latest()->limit(20)->get();
+        $deposits = Deposit::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        $withdrawals = Withdraw::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+
+        // Get wallets
+        $wallets = $this->getUserWallets($uid);
+
+        // Analytics data
+        $analytics = [
+            "count" => [
+                "deposit" => $deposits->count(),
+                "withdrawals" => $withdrawals->count(),
+                "virtual_account" => $virtualAccounts->count(),
+                "virtual_cards" => $virtualCards->count(),
+                "customers" => $customers->count(),
+            ],
+            "sum" => [
+                "total_deposit" => $deposits->sum('amount'),
+                "total_withdrawals" => $withdrawals->sum('amount'),
+            ],
+            "payload" => []
+        ];
+
+        return view('admin.business.show', compact(
+            "analytics", 
+            "user",
+            "customers",
+            "virtualAccounts",
+            "virtualCards",
+            "transactions",
+            "deposits",
+            "withdrawals",
+            "wallets",
+        ));
     }
+
 
     /**
      * Update business prefences

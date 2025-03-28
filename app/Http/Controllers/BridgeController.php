@@ -332,6 +332,11 @@ class BridgeController extends Controller
             'bio_data' => $customer
         ];
         $is_va_approved = false;
+        $customer->update([
+            'bridge_customer_id' => $data['id'],
+            'customer_status' => 'active',
+            'customer_kyc_status' => 'approved'
+        ]);
         $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
         if($data['endorsements']) {
             foreach ($data['endorsements'] as $v) {
