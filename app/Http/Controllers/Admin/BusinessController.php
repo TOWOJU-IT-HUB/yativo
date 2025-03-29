@@ -117,6 +117,7 @@ class BusinessController extends Controller
         return view('admin.business.show', compact(
             "analytics", 
             "user",
+            "business",
             "customers",
             "virtualAccounts",
             "virtualCards",
