@@ -81,6 +81,7 @@
                 <div id="tab-deposits" class="tab" onclick="toggleTab('deposits')">Deposits</div>
                 <div id="tab-withdrawals" class="tab" onclick="toggleTab('withdrawals')">Withdrawals</div>
                 <div id="tab-balance" class="tab" onclick="toggleTab('balance')">Wallet Balance</div>
+                <div id="tab-fees_breakdown" class="tab" onclick="toggleTab('fees_breakdown')">Fees Breakdown</div>
             </div>
 
             <!-- Tab Content: Overview -->
@@ -690,6 +691,17 @@
                     </div>                                                                              
                 </div>
             </div>
+
+
+            <!-- Tab Content: Withdrawals -->
+            <div id="fees_breakdown" class="tab-content">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Fees Breakdown</h2>
+                   @foreach ($analytics['fee_due'] as $k => $fee_due)
+                       {{ str_replace("_", " ", ucfirst($k)) }} : ${{ $fee_due }}
+                   @endforeach
+                </div>
+            </div>  
         </div>
     </div>
 @endsection

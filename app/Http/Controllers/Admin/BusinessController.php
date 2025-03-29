@@ -87,20 +87,18 @@ class BusinessController extends Controller
         $customersThisMonth = Customer::where('user_id', $uid)->whereBetween('kyc_verified_date', [$start_date, $end_date])
             ->where('customer_kyc_status', 'approved')->get();
 
-        $virtualAccounts = VirtualAccount::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        $virtualAccountsThisMonth = VirtualAccountDeposit::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
         // $virtualCards = CustomerVirtualCards::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
-        $transactions = TransactionRecord::where('user_id', $uid)->latest()->limit(20)->get();
-        $deposits = Deposit::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
-        $withdrawals = Withdraw::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        $transactionsThisMonth = TransactionRecord::where('user_id', $uid)->latest()->limit(20)->get();
+        $depositsThisMonth = Deposit::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        $withdrawalsThisMonth = Withdraw::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
 
-        // Get wallets
-        $wallets = $this->getUserWallets($uid);
 
         // Analytics data
         $analytics = [
             "count" => [
-                "deposit" => $deposits->count(),
-                "withdrawals" => $withdrawals->count(),
+                "deposit" => $depositsThisMonth->count(),
+                "withdrawals" => $withdrawalsThisMonth->count(),
                 "virtual_account" => $virtualAccounts->count(),
                 "virtual_cards" => $virtualCards->count(),
                 "customers" => $customers->count(),
@@ -109,7 +107,10 @@ class BusinessController extends Controller
                 "total_deposit" => $deposits->sum('amount'),
                 "total_withdrawals" => $withdrawals->sum('amount'),
             ],
-            "payload" => []
+            "fee_due" => [
+                "customers_This_Month" => $customersThisMonth->count() * 3, // $3 is the fee per customer KYC
+                "virtualAccounts_This_Month" => $virtualAccountsThisMonth->count() * 2 // $2 is the fee charged for each account that receives money per month
+            ]
         ];
 
         return view('admin.business.show', compact(
