@@ -90,7 +90,7 @@ class BusinessController extends Controller
             })->get();
 
         $virtualAccounts = VirtualAccount::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
-        $virtualCards = CustomerVirtualCards::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
+        // $virtualCards = CustomerVirtualCards::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
         $transactions = TransactionRecord::where('user_id', $uid)->latest()->limit(20)->get();
         $deposits = Deposit::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
         $withdrawals = Withdraw::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
