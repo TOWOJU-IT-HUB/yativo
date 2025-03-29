@@ -16,6 +16,7 @@ use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
 use Validator;
 use Yajra\DataTables\DataTables;
+use App\Models\VirtualAccountDeposit;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 
