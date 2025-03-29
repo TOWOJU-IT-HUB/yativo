@@ -61,7 +61,7 @@ class BusinessController extends Controller
 
     public function show($id)
     {
-        if (Schema::hasColumn('customers', 'kyc_verified_date')) {
+        if (!Schema::hasColumn('customers', 'kyc_verified_date')) {
             Schema::table('customers', function (Blueprint $table) {
                 $table->timestamp('kyc_verified_date')->nullable();
             });
