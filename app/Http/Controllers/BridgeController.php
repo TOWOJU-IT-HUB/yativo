@@ -31,11 +31,6 @@ class BridgeController extends Controller
 
     public function __construct()
     {
-        if (Schema::hasColumn('customers', 'kyc_verified_date')) {
-            Schema::table('customers', function (Blueprint $table) {
-                $table->timestamp('kyc_verified_date')->nullable();
-            });
-        }
         $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
         // Log::info("Customer Info: ", (array) $this->customer); 
         $this->customerId = $this->customer->customer_id ?? null;
@@ -305,7 +300,7 @@ class BridgeController extends Controller
                         'kyc_verified_date' => now()
                     ]);
                 }
-                
+
                 // Update customer status if active
                 if ($entry['status'] === 'active') {
                     $customer->update([

@@ -16,6 +16,8 @@ use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
 use Validator;
 use Yajra\DataTables\DataTables;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class BusinessController extends Controller
 {
@@ -59,6 +61,11 @@ class BusinessController extends Controller
 
     public function show($id)
     {
+        if (Schema::hasColumn('customers', 'kyc_verified_date')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->timestamp('kyc_verified_date')->nullable();
+            });
+        }
         $business = Business::whereId($id)->with('user')->first();
 
         if (!$business || !isset($business->user)) {
