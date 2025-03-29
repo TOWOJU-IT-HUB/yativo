@@ -31,6 +31,11 @@ class BridgeController extends Controller
 
     public function __construct()
     {
+        if (Schema::hasColumn('customers', 'kyc_verified_date')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->timestamp('kyc_verified_date')->nullable();
+            });
+        }
         $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
         // Log::info("Customer Info: ", (array) $this->customer); 
         $this->customerId = $this->customer->customer_id ?? null;
@@ -295,11 +300,17 @@ class BridgeController extends Controller
             if ($customer->customer_kyc_email === $entry['email']) {
                 $customer->update(['bridge_customer_id' => $entry['id']]);
     
+                if($customer->kyc_verified_date == null) {
+                    $customer->update([
+                        'kyc_verified_date' => now()
+                    ]);
+                }
+                
                 // Update customer status if active
                 if ($entry['status'] === 'active') {
                     $customer->update([
                         'customer_status' => 'active',
-                        'customer_kyc_status' => 'approved'
+                        'customer_kyc_status' => 'approved',
                     ]);
                 }
     
@@ -332,10 +343,15 @@ class BridgeController extends Controller
             'bio_data' => $customer
         ];
         $is_va_approved = false;
+        if($customer->kyc_verified_date == null) {
+            $customer->update([
+                'kyc_verified_date' => now()
+            ]);
+        }
         $customer->update([
             'bridge_customer_id' => $data['id'],
             'customer_status' => 'active',
-            'customer_kyc_status' => 'approved'
+            'customer_kyc_status' => 'approved',
         ]);
         $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
         if($data['endorsements']) {

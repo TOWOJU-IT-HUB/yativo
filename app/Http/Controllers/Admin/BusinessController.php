@@ -84,10 +84,8 @@ class BusinessController extends Controller
         $end_date = now()->endOfMonth(); // Last day of the current month
         
         // Fetch related data
-        $customers = Customer::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])
-            ->where(function ($query) {
-                $query->where('customer_kyc_status', 'pending')->orWhere('customer_kyc_status', 'verified');
-            })->get();
+        $customersThisMonth = Customer::where('user_id', $uid)->whereBetween('kyc_verified_date', [$start_date, $end_date])
+            ->where('customer_kyc_status', 'approved')->get();
 
         $virtualAccounts = VirtualAccount::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
         // $virtualCards = CustomerVirtualCards::where('user_id', $uid)->whereBetween('created_at', [$start_date, $end_date])->get();
