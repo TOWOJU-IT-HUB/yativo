@@ -62,11 +62,15 @@ class BusinessController extends Controller
 
     public function show($id)
     {
-        if (!Schema::hasColumn('customers', 'kyc_verified_date')) {
-            Schema::table('customers', function (Blueprint $table) {
-                $table->timestamp('kyc_verified_date')->nullable();
-            });
+        
+        $customers = Customer::get();
+        foreach ($customers as $customer) {
+            $customer->update([
+                'kyc_verified_date' => now()
+            ]);
         }
+
+
         $business = Business::whereId($id)->with('user')->first();
 
         if (!$business || !isset($business->user)) {
@@ -81,6 +85,7 @@ class BusinessController extends Controller
         $user = $business->user;
         $uid = $user->id;
         $customers = Customer::latest()->limit(20)->where('user_id', $uid)->get();
+
         $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $uid)->get();
         $virtualCards = CustomerVirtualCards::latest()->limit(20)->where('business_id', $business->id)->get();
         $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $uid)->get();
