@@ -176,6 +176,7 @@
                                 <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Phone</th>
                                 <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Status</th>
                                 <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">KYC Status</th>
+                                <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Date Added</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -186,6 +187,7 @@
                                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_phone ?></td>
                                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_status ?></td>
                                 <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->customer_kyc_status ?></td>
+                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300"><?= $customer->created_at ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -698,7 +700,7 @@
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Fees Breakdown</h2>
                    @foreach ($analytics['fee_due'] as $k => $fee_due)
-                       {{ str_replace("_", " ", ucfirst($k)) }} : ${{ $fee_due }}
+                       {{ str_replace("_", " ", ucfirst($k)) }} : ${{ $fee_due }} <br/>
                    @endforeach
                 </div>
             </div>  

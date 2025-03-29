@@ -62,21 +62,11 @@ class BusinessController extends Controller
 
     public function show($id)
     {
-        
-        $customers = Customer::get();
-        foreach ($customers as $customer) {
-            $customer->update([
-                'kyc_verified_date' => now()
-            ]);
-        }
-
-
         $business = Business::whereId($id)->with('user')->first();
 
         if (!$business || !isset($business->user)) {
             return back()->with('error', 'User data not found');
         }
-
 
         $business = Business::whereId($id)->with('user')->first();
         if(!isset($business->user)) {
