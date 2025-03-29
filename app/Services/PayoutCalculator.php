@@ -35,6 +35,11 @@ class PayoutCalculator
 
         $payoutMethod = PayoutMethods::findOrFail($gatewayId);
         $user = auth()->user();
+        if (!$user->hasActiveSubscription()) {
+            $newPlan = PlanModel::findOrFail(1);
+            $user->upgradeCurrentPlanTo($newPlan, $newPlan->duration, false, true);
+        }
+        
         $subscription = $user->activeSubscription();
         $user_plan = (int) $subscription->plan_id;
 
