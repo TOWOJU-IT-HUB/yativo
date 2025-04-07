@@ -196,7 +196,7 @@
                     </p>
 
                     <!-- Verification Data Section with Box Shadow -->
-                    <div class="mt-6 p-4 bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+                    <div class="mt-6 p-4  dark:bg-gray-800 shadow-lg rounded-lg">
                         <h3 class="text-lg font-semibold mb-4">Verification Information</h3>
                         <?= generateTableFromArray($business->business_verification_response) ?>
                         <!-- Verification Email -->
@@ -209,7 +209,7 @@
             <div id="customers" class="tab-content">
                 <div >
                     <h2 class="text-xl font-semibold">Customers</h2>
-                    <table id="customersTable" class="display min-w-full bg-white dark:bg-boxdark">
+                    <table id="customersTable" class="display min-w-full  dark:bg-boxdark">
                         <thead class="bg-gray-200 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Customer Name</th>
@@ -625,9 +625,6 @@
                                             Currency
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Payout ID
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                             Created At
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -695,7 +692,7 @@
                         Wallet Balances for {{ $user->name }}
                     </h2>
 
-                    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+                    <div class="overflow-x-auto  shadow-md rounded-lg">
                         <table id="walletBalancesTable" class="display w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-800 text-white uppercase text-sm leading-normal">
