@@ -78,8 +78,6 @@ class MantecaController extends Controller
         return $response->json();
     }
 
-
-
     public function makeWithdrawal(Request $request)
     {
         $data = $request->validate([

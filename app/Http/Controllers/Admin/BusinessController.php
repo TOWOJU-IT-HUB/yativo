@@ -74,13 +74,13 @@ class BusinessController extends Controller
         }
         $user = $business->user;
         $uid = $user->id;
-        $customers = Customer::latest()->limit(20)->where('user_id', $uid)->get();
+        $customers = Customer::latest()->where('user_id', $uid)->get();
 
-        $virtualAccounts = VirtualAccount::latest()->limit(20)->where('user_id', $uid)->get();
-        $virtualCards = CustomerVirtualCards::latest()->limit(20)->where('business_id', $business->id)->get();
-        $transactions = TransactionRecord::latest()->limit(20)->where('user_id', $uid)->get();
-        $deposits = Deposit::latest()->limit(20)->where('user_id', $uid)->get();
-        $withdrawals = Withdraw::latest()->limit(20)->where('user_id', $uid)->get();
+        $virtualAccounts = VirtualAccount::latest()->where('user_id', $uid)->get();
+        $virtualCards = CustomerVirtualCards::latest()->where('business_id', $business->id)->get();
+        $transactions = TransactionRecord::latest()->where('user_id', $uid)->get();
+        $deposits = Deposit::latest()->where('user_id', $uid)->get();
+        $withdrawals = Withdraw::latest()->where('user_id', $uid)->get();
         $wallets =  $this->getUserWallets($uid);
 
         $start_date = now()->startOfMonth(); // First day of the current month

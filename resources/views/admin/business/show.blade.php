@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-
 @push('css')
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
     <style>
         .tabs {
             border-bottom: 2px solid #E5E7EB;
@@ -38,6 +38,47 @@
         .dark-mode .card {
             background-color: #1F2937;
             color: #E5E7EB;
+        }
+
+        /* DataTables dark mode styling */
+        .dark-mode table.dataTable {
+            background-color: #1F2937;
+            color: #E5E7EB;
+        }
+
+        .dark-mode table.dataTable th,
+        .dark-mode table.dataTable td {
+            border-color: #4B5563;
+        }
+
+        .dark-mode table.dataTable thead th {
+            background-color: #374151;
+        }
+
+        .dark-mode table.dataTable tbody tr:hover {
+            background-color: #374151;
+        }
+
+        .dark-mode .dataTables_wrapper .dataTables_length,
+        .dark-mode .dataTables_wrapper .dataTables_filter,
+        .dark-mode .dataTables_wrapper .dataTables_info,
+        .dark-mode .dataTables_wrapper .dataTables_processing {
+            color: #E5E7EB;
+        }
+
+        .dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+            background-color: #4B5563;
+            color: #E5E7EB;
+            border: 1px solid #4B5563;
+        }
+
+        .dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background-color: #374151;
+        }
+
+        .dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background-color: #3B82F6;
+            border: 1px solid #3B82F6;
         }
     </style>
 @endpush
@@ -168,7 +209,7 @@
             <div id="customers" class="tab-content">
                 <div >
                     <h2 class="text-xl font-semibold">Customers</h2>
-                    <table class="min-w-full bg-white dark:bg-boxdark">
+                    <table id="customersTable" class="display min-w-full bg-white dark:bg-boxdark">
                         <thead class="bg-gray-200 dark:bg-gray-700">
                             <tr>
                                 <th class="px-6 py-2 text-left text-gray-500 dark:text-gray-300">Customer Name</th>
@@ -201,7 +242,7 @@
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Virtual Accounts</h2>
                     @if ($virtualAccounts && count($virtualAccounts) > 0)
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <table id="virtualAccountsTable" class="display min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -219,9 +260,6 @@
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                             Account Number
                                         </th>
-                                        {{-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                            Customer ID
-                                        </th> --}}
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                             Created At
                                         </th>
@@ -255,9 +293,6 @@
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                 {{ $account['account_number'] ?? 'N/A' }}
                                             </td>
-                                            {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                                {{ $account['customer_id'] ?? 'N/A' }}
-                                            </td> --}}
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                 {{ \Carbon\Carbon::parse($account['created_at'])->format('Y-m-d H:i:s') }}
                                             </td>
@@ -280,7 +315,7 @@
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Virtual Cards</h2>
                     @if ($virtualCards && count($virtualCards) > 0)
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <table id="virtualCardsTable" class="display min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -368,7 +403,7 @@
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Transactions</h2>
                     @if ($transactions && count($transactions) > 0)
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <table id="transactionsTable" class="display min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -431,7 +466,7 @@
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Deposits</h2>
                     @if ($deposits && count($deposits) > 0)
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <table id="depositsTable" class="display min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -574,7 +609,7 @@
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Withdrawals</h2>
                     @if ($withdrawals && count($withdrawals) > 0)
                         <div class="bg-gray-50 dark:bg-slate-800 rounded-lg shadow lg:overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <table id="withdrawalsTable" class="display min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                 <thead class="bg-gray-100 dark:bg-gray-900">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -621,9 +656,6 @@
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                 {{ strtoupper($withdrawal['currency'] ?? 'N/A') }}
                                             </td>
-                                            {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                                {{ $withdrawal['payout_id'] ?? 'N/A' }}
-                                            </td> --}}
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                                 {{ \Carbon\Carbon::parse($withdrawal['created_at'])->format('Y-m-d H:i:s') ?? 'N/A' }}
                                             </td>
@@ -655,7 +687,7 @@
                 </div>
             </div>            
 
-            <!-- Tab Content: Overview -->
+            <!-- Tab Content: Wallet Balances -->
             <div id="balance" class="tab-content">
                 <h2 class="mb-4">Wallet Balances</h2>
                 <div class="container mx-auto p-6">
@@ -664,7 +696,7 @@
                     </h2>
 
                     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-                        <table class="w-full text-left border-collapse">
+                        <table id="walletBalancesTable" class="display w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-800 text-white uppercase text-sm leading-normal">
                                     <th class="py-3 px-6">#</th>
@@ -694,8 +726,7 @@
                 </div>
             </div>
 
-
-            <!-- Tab Content: Withdrawals -->
+            <!-- Tab Content: Fees Breakdown -->
             <div id="fees_breakdown" class="tab-content">
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Fees Breakdown</h2>
@@ -710,6 +741,7 @@
 
 
 @push('script')
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script>
         function toggleTab(tab) {
             // Hide all tab contents
@@ -724,5 +756,71 @@
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark-mode');
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize DataTables for all tables
+            $('#customersTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+
+            $('#virtualAccountsTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+
+            $('#virtualCardsTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+
+            $('#transactionsTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+
+            $('#depositsTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+
+            $('#withdrawalsTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+
+            $('#walletBalancesTable').DataTable({
+                responsive: true,
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                lengthChange: true
+            });
+        });
     </script>
 @endpush
