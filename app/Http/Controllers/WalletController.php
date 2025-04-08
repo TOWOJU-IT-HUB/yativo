@@ -138,6 +138,7 @@ class WalletController extends Controller
             $wallet = [
                 'name' => $currency->wallet,
                 'slug' => strtolower($currency->wallet),
+                'currency' => strtolower($currency->wallet),
                 'decimal_places' => $currency->decimal_places ?? 2,
                 'meta' => [
                     'fullname' => $currency->currency_name,

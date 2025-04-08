@@ -78,20 +78,22 @@ class CryptoYativoController extends Controller
     public function generateCustomerWallet()
     {
         try {
-            $request = request();   //where('user_id', auth()->id())->
-            $customer = Customer::where('customer_id', $request->customer_id)->first();
-            if (!$customer) {
-                return ['error' => 'Customer not found or not registered with Yativo'];
-            }
-
-            if(empty($customer->yativo_customer_id)) {
-                $cId = $this->addCustomer();
-                if(isset($cId['error'])) {
-                    return $cId;
+            $request = request(); 
+            $user = $request->user();
+            if($request->has('customer_id')){
+                $customer = Customer::where('customer_id', $request->customer_id)->first();
+                if (!$customer) {
+                    return ['error' => 'Customer not found or not registered with Yativo'];
                 }
-                $customer->yativo_customer_id = $cId;
-            }
 
+                if(empty($customer->yativo_customer_id)) {
+                    $cId = $this->addCustomer();
+                    if(isset($cId['error'])) {
+                        return $cId;
+                    }
+                    $customer->yativo_customer_id = $cId;
+                }
+            }
 
             $token = $this->getToken();
             if (!$token) {
