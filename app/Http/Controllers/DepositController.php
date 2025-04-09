@@ -71,22 +71,6 @@ class DepositController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Schema::hasColumn('wallets', 'currency')) {
-            Schema::table('wallets', function (Blueprint $table) {
-                // Add currency column as nullable first so we can populate it
-                $table->string('currency')->nullable()->after('balance');
-            });
-
-            // Copy the value from 'slug' to 'currency'
-            DB::table('wallets')->update([
-                'currency' => DB::raw('slug')
-            ]);
-
-            // Make sure the column is not nullable anymore, and maybe add a default if needed
-            Schema::table('wallets', function (Blueprint $table) {
-                $table->string('currency')->nullable(false)->default('USD')->change();
-            });
-        }
         try {
             $validate = Validator::make(
                 $request->all(),
@@ -114,7 +98,7 @@ class DepositController extends Controller
                     return get_error_response(['error' => "Credit wallet must be in currency {$request->currency}"], 400);
                 }
             } else {
-                $walletExists = $user->wallets()->where('currency', $request->currency)->exists();
+                $walletExists = $user->wallets()->where('slug', strtolower($request->currency))->exists();
                 if (!$walletExists) {
                     return get_error_response(['error' => "No wallet found for currency {$request->currency}"], 400);
                 }

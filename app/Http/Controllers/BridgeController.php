@@ -940,10 +940,10 @@ class BridgeController extends Controller
     {
         $signatureHeader = $request->header('X-Webhook-Signature');
         
+        $matches = [];
         if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
             return false; // $this->render400('Malformed signature header');
         }
-        $matches = [];
         [$timestamp, $signature] = $matches;
 
         if (!$timestamp || !$signature) {

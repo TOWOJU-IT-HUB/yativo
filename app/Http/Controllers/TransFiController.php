@@ -55,8 +55,8 @@ class TransFiController extends Controller
                 ],
                 "partnerId" => $deposit_id,
                 "withdrawDetails" => [
-                    "cryptoTicker" => env('TRANSFI_WALLET_TICKER', "USDT"),
-                    "walletAddress" => env('TRANSFI_WALLET_ADDRESS', "0x59a8f26552CaF6ea7F669872bf39443d8d0eFB96"),
+                    "cryptoTicker" => env('TRANSFI_WALLET_TICKER'),
+                    "walletAddress" => env('TRANSFI_WALLET_ADDRESS'),
                 ]
             ];
 

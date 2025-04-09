@@ -85,7 +85,7 @@ class OnrampService
             'redirectUrl' => route('onramp.payIn.callback'),
             'appId' => $this->apiId,
             'paymentMethod' => $result->payment_mode, // 1 -> Instant transfer (e.g. UPI) 2 -> Bank transfer (e.g. IMPS/FAST)
-            'walletAddress' => env('wallet_address', '0x495f519017eF0368e82Af52b4B64461542a5430B'),
+            'walletAddress' => env('wallet_address'),
             'network' => 'bep20',
             'coinCode' => 'USDT' ?? 'USDC',
             'fiatType' => $data['fiat_type'] ?? $countryId[$result->currency],
