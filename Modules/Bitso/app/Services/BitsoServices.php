@@ -14,7 +14,7 @@ class BitsoServices
 {
     public $baseUrl, $apiKey, $apiSecret, $requestPath, $client;
 
-    public function __construct($requestPath = "/api/v3/withdrawals", $apiKey = "AUFEXQubph", $apiSecret = "115cdcaab9cc969acc2b0d70eb813635", $baseUrl = "https://bitso.com")
+    public function __construct($requestPath = "/api/v3/withdrawals", $apiKey = "", $apiSecret = "", $baseUrl = "https://bitso.com")
     {
         $this->apiKey = env('BITSO_API_KEY', $apiKey);
         $this->apiSecret = env('BITSO_SECRET_KEY', $apiSecret);
@@ -44,13 +44,13 @@ class BitsoServices
         $authHeader = "Bitso {$this->apiKey}:$nonce:$signature";
         $url = $this->requestPath;
 
-        Log::info(json_encode([
-            "payload" => $payload,
-            "signature" => $signature,
-            "authHeader" => $authHeader,
-            "url" => $url,
-            "nonce" => $nonce
-        ]));
+        // Log::info(json_encode([
+        //     "payload" => $payload,
+        //     "signature" => $signature,
+        //     "authHeader" => $authHeader,
+        //     "url" => $url,
+        //     "nonce" => $nonce
+        // ]));
 
         try {
             $options = [
@@ -67,7 +67,7 @@ class BitsoServices
             $responseBody = json_decode($response->getBody()->getContents(), true);
             $httpCode = $response->getStatusCode();
 
-            Log::info('Bitso response body: ', $responseBody);
+            // Log::info('Bitso response body: ', $responseBody);
 
             if ($httpCode !== 200) {
                 if (isset($responseBody['error'])) {
@@ -146,40 +146,8 @@ class BitsoServices
         return $this->sendRequest($payload, 'POST');
     }
 
-    public function payout($amount, $clabe, $currency)
+    public function payout($data)
     {
-        $beneficiary = Beneficiary::whereId(request()->beneficiary_id)->first();
-        $pay_data = $beneficiary->payment_data;
-        $customer = $beneficiary->customer_name;
-
-        if (strtolower($currency) == 'mxn') {
-            $data = [
-                "method" => "praxis",
-                "amount" => $amount,
-                "currency" => "mxn",
-                "beneficiary" => $customer,
-                "clabe" => $clabe,
-                "protocol" => "clabe",
-            ];
-        } elseif (strtolower($currency) == 'cop') {
-            $data = [
-                'currency' => 'cop',
-                'protocol' => 'ach_co',
-                'amount' => $amount,
-                'bankAccount' => $pay_data->account_number, //'059-000073-51',
-                'bankCode' => $pay_data->bank_code, // '007',
-                'AccountType' => '2',
-                'third_party_withdrawal' => true,
-                'beneficiary_name' => $pay_data->beneficiary_name, // 'Daniela Aldana',
-                'beneficiary_lastname' => $pay_data->beneficiary_lastname, //'Valencia',
-                'document_id' => $pay_data->document_id, // '1053851282',
-                'document_type' => $pay_data->document_type, //'CC',
-                'email' => $pay_data->beneficiary_email, //'towojuads@gmail.com',
-            ];
-        } else {
-            return ['error' => "We currently can not process this currency"];
-        }
-
         return $this->initiateWithdrawal($data);
     }
 
@@ -210,10 +178,18 @@ class BitsoServices
         }
     }
 
-    public function getDepositStatus($fid, $payload)
+    public function getDepositStatus($fid, $payload = "")
     {
         $this->requestPath = "/api/v3/fundings/{$fid}";
         $request = $this->sendRequest($payload, 'GET');
+        return $request;
+    }
+
+
+    public function getPayoutStatus($payoutId, $payload = "")
+    {
+        $this->requestPath = "/api/v3/withdrawals?origin_ids={$payoutId}";
+        $request = $this->sendRequest("", 'GET');
         return $request;
     }
 }

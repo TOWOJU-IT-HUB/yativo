@@ -14,7 +14,7 @@ class _BitsoServices
 
     public $baseUrl, $apiKey, $apiSecret, $requestPath;
 
-    public function __construct($apiKey = "WOQxxxxxx", $apiSecret = "65b52bcxxxxxxxxxxxxxxxxxxx", $baseUrl = "https://bitso.com", $requestPath = "/api/v3/withdrawals")
+    public function __construct($apiKey = "", $apiSecret = "", $baseUrl = "https://bitso.com", $requestPath = "/api/v3/withdrawals")
     {
         $this->apiKey = env('BITSO_API_KEY', $apiKey);
         $this->apiSecret = env('BITSO_SECRET_KEY', $apiSecret);

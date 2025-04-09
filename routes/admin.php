@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PayinMethodsController;
 use App\Http\Controllers\Admin\PayoutController;
 use App\Http\Controllers\Admin\PayoutMethodsController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Business\PlansController;
 use App\Http\Controllers\WebAuthn\WebAuthnLoginController;
 use App\Http\Controllers\WebAuthn\WebAuthnRegisterController;
 use App\Http\Middleware\VerifyCsrfToken;
@@ -78,6 +79,12 @@ Route::prefix('backoffice')->group(function () {
             Route::get('/{admin}/edit', [AdminController::class, 'edit'])->name('edit');
             Route::put('/{admin}', [AdminController::class, 'update'])->name('update');
             Route::delete('/{admin}', [AdminController::class, 'destroy'])->name('destroy');
+
+            // Deposit Routes
+            Route::group(['prefix' => 'plans'], function () {
+                Route::get('/', [PlansController::class, 'plans'])->name('plan.index');
+                Route::post('upgrade-customer', [PlansController::class, 'changePlan'])->name('plan.upgrade');
+            });
 
             // Deposit Routes
             Route::group([], function () {

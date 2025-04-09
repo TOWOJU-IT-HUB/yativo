@@ -12,10 +12,10 @@ class Configuration
         'secret' => null,
         'env' => null,
         'isDevelopment' => false,
-        'BASE_URL' => 'https://api.stage.vitawallet.io/api/businesses'
+        'BASE_URL' => 'https://api.vitawallet.io/api/businesses'
     ];
 
-    public static $STAGE = 'stage';
+    public static $STAGE = 'live';
 
     private function __construct()
     {
@@ -41,8 +41,7 @@ class Configuration
             !empty($credentials['X_Login']) &&
             !empty($credentials['X_Trans_Key']) &&
             !empty($credentials['secret']) &&
-            !empty($credentials['env']) &&
-            $credentials['env'] === self::$STAGE
+            !empty($credentials['env'])
         );
     }
 
@@ -74,6 +73,16 @@ class Configuration
     public static function getTransactionsUrl($resource = '')
     {
         return self::getUrl() . "/transactions/{$resource}";
+    }
+
+    public static function getTransactionsUrI($resource = '')
+    {
+        return self::getUrl() . "/transactions?order={$resource}";
+    }
+
+    public static function getPaymentOrderUrl($id = '')
+    {
+        return self::getUrl() . "/payment_orders/{$id}";
     }
 
     public static function createTransaction()

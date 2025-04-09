@@ -18,6 +18,8 @@ use Modules\Customer\App\Services\DojahServices;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Towoju5\Bitnob\Bitnob;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 /* The `DojahVerificationController` class in PHP handles customer verification, KYC webhook
     processing, KYC status requests, and occupation code retrieval with error handling and webhook
@@ -47,7 +49,7 @@ class DojahVerificationController extends Controller
         $rules = [
             'customer_id' => 'required|exists:customers,customer_id',
             'type' => 'required|in:individual,business',
-            'email' => 'required|email',
+            // 'email' => 'required|email',
             'address' => 'required|array',
             'documents' => ['required', 'array', 'min:1'],
             'documents.*.purposes' => ['required', 'array'],
@@ -87,8 +89,23 @@ class DojahVerificationController extends Controller
         if ($validator->fails()) {
             return get_error_response(['errors' => $validator->errors()], 422);
         }
-    
+
+        if (!Schema::hasColumn('customers', 'customer_kyc_email')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('customer_kyc_email')->nullable();
+            });
+        }
+
+        $customer = Customer::where("customer_id", $request->customer_id)->first();
         $validatedData = $request->all();
+
+        $kyc_email = "yativo.customer+{$customer->customer_id}@gmail.com";
+        $customer->update([
+            "customer_kyc_email" => $kyc_email
+        ]);
+
+        $validatedData['email'] = $kyc_email;
+        $validatedData["endorsements"] = ["base", "sepa"];
         $validatedData['signed_agreement_id'] = $this->generateSignedAgreementId();
         $validatedData['residential_address'] = $request->address;
         $validatedData['expected_monthly_payments_usd'] = $request->expected_monthly_payments;
@@ -244,12 +261,49 @@ class DojahVerificationController extends Controller
      * retrieve data from those requests. You can access request parameters, headers, and other information
      * using this object.
      */
-    public function kycStatus(Request $request)
+    public function kycStatus($customerId)
     {
         try {
-            //code...
+            $customer = Customer::where('customer_id', $customerId)->first();
+            if (!$customer) {
+                return get_error_response(['error' => 'Customer ID is invalid']);
+            }
+        
+            if (empty($customer->bridge_customer_id)) {
+                $error = "Please check the customer KYC status firstly to confirm customer is not already approved";
+                return view("kyc.index", compact('error'));
+            }
+
+            if (Schema::hasColumn('customers', 'customer_kyc_link')) {
+                Schema::table('customers', function (Blueprint $table) {
+                    $table->text('customer_kyc_link')->nullable()->change();
+                });
+            }
+    
+            if(empty($customer->customer_kyc_link)) {
+                $bridgeCustomerId = $customer->bridge_customer_id;
+                $kyc_endpoint = "v0/customers/{$bridgeCustomerId}/kyc_link";
+                $bridge = new BridgeController();
+                $kyc_data = $bridge->sendRequest($kyc_endpoint);
+            } else {
+                $kyc_data = [];
+                $kyc_data['url'] = $customer->customer_kyc_link;
+            }
+        
+            if (is_array($kyc_data) && isset($kyc_data['url'])) {
+                $kyc_link = $kyc_data['url'];
+                $customer->customer_kyc_link = $kyc_link;
+                $customer->save();
+
+                return redirect()->away($customer->customer_kyc_link);
+                // return view("kyc.index", compact('kyc_link'));
+            } else {
+                $error = "Failed to retrieve KYC link. Please try again.";
+                return view("kyc.index", compact('error'));
+            }
         } catch (\Throwable $th) {
-            //throw $th;
+            $error = $th->getMessage();
+            return view("kyc.index", compact('error'));
         }
     }
 

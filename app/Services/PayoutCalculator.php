@@ -6,6 +6,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Models\CustomPricing;
 use App\Models\payoutMethods as PayoutMethods;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
@@ -19,7 +20,7 @@ class PayoutCalculator
         float $exchangeRateFloat = 0
     ): array {
         $request = request();
-    
+
         if ($request->has('method_id') && !empty($request->method_id)) {
             // Direct gateway mode - use request currencies
             $gatewayId = $paymentMethodId;
@@ -31,27 +32,58 @@ class PayoutCalculator
             $gatewayId = $beneficiary->gateway_id;
             $targetCurrency = $beneficiary->currency;
         }
-    
+
         $payoutMethod = PayoutMethods::findOrFail($gatewayId);
+        $user = auth()->user();
+        if (!$user->hasActiveSubscription()) {
+            $newPlan = PlanModel::findOrFail(1);
+            $user->upgradeCurrentPlanTo($newPlan, $newPlan->duration, false, true);
+        }
+        
+        $subscription = $user->activeSubscription();
+        $user_plan = (int) $subscription->plan_id;
+
+        $float_charge = $payoutMethod->float_charge;
+        $fixed_charge = $payoutMethod->fixed_charge;
+
+        // Determine user plan pricing
+        if ($user_plan === 3) {
+            $customPricing = CustomPricing::where('user_id', $user->id)
+                ->where('gateway_id', $payoutMethod->id)
+                ->first();
     
+            if (!$customPricing) {
+                $user_plan = 2; // Fallback to Plan 2
+            } else {
+                $fixed_charge = $customPricing->fixed_charge;
+                $float_charge = $customPricing->float_charge;
+            }
+        }
+    
+        if ($user_plan === 1 || $user_plan === 2) {
+            $fixed_charge = $user_plan === 1 ? $payoutMethod->fixed_charge : $payoutMethod->pro_fixed_charge;
+            $float_charge = $user_plan === 1 ? $payoutMethod->float_charge : $payoutMethod->pro_float_charge;
+        }
+
         // Get exchange rates
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
-        
+
         // Calculate fees
         $fees = $this->calculateFees(
             $amount,
             $walletCurrency,
             $targetCurrency,
-            $payoutMethod->float_charge,
-            $payoutMethod->fixed_charge
+            $float_charge,
+            $fixed_charge,
+            $payoutMethod
         );
-    
+
         // Calculate adjusted exchange rate
         $adjustedRate = $this->applyExchangeRateFloat(
             $rates['wallet_to_target'],
-            $exchangeRateFloat
+            $payoutMethod->exchange_rate_float // Use the exchange_rate_float from the payout method
         );
-    
+
         // Calculate final amounts
         return $this->compileResults(
             $amount,
@@ -59,20 +91,30 @@ class PayoutCalculator
             $rates['wallet_to_target'],
             $adjustedRate,
             $targetCurrency,
-            $payoutMethod
+            $payoutMethod,
+            $walletCurrency
         );
     }
 
     // Exchange rate handling
     private function getExchangeRates(string $walletCurrency, string $targetCurrency): array
     {
+        if($walletCurrency === $targetCurrency) {
+            return [
+                'wallet_to_usd' => 1,
+                'usd_to_target' => 1,
+                'wallet_to_target' => 1 
+            ];
+        }
         return [
             'wallet_to_usd' => $walletCurrency === 'USD' 
                 ? 1.0 
                 : $this->getLiveExchangeRate('USD', $walletCurrency),
                 
             'usd_to_target' => $this->getLiveExchangeRate('USD', $targetCurrency),
-            'wallet_to_target' => $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
+            'wallet_to_target' => $walletCurrency === 'USD' && $targetCurrency === 'USD' 
+                ? 1.0 
+                : $this->getLiveExchangeRate($walletCurrency, $targetCurrency)
         ];
     }
 
@@ -83,17 +125,26 @@ class PayoutCalculator
         string $targetCurrency,
         float $floatPercent,
         float $fixedFeeUSD,
+        PayoutMethods $payoutMethod
     ): array {
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
-
         $amountUSD = $amount / $rates['wallet_to_usd'];
+
+        // Calculate float and fixed fees
         $floatFee = $amountUSD * ($floatPercent / 100) * $rates['usd_to_target'];
         $fixedFee = $fixedFeeUSD * $rates['usd_to_target'];
+
+        // Calculate total fee
+        $totalFee = $floatFee + $fixedFee;
+
+        // Ensure fee is within min/max boundaries
+        $totalFee = max($totalFee, $payoutMethod->minimum_charge);
+        $totalFee = min($totalFee, $payoutMethod->maximum_charge);
 
         return [
             'float_fee' => $floatFee,
             'fixed_fee' => $fixedFee,
-            'total_fee' => $floatFee + $fixedFee
+            'total_fee' => $totalFee
         ];
     }
 
@@ -121,6 +172,10 @@ class PayoutCalculator
                 foreach ($apis as $url => $params) {
                     try {
                         $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
+                        if (isset($response['Response']) && $response['Response'] === 'Error') {
+                            Log::error("API Error: " . $response['Message']);
+                            continue;
+                        }
                         $rate = match(str_contains($url, 'cryptocompare')) {
                             true => $response[$to] ?? null,
                             false => $response['data']['rates'][$to] ?? null
@@ -144,23 +199,72 @@ class PayoutCalculator
         float $exchangeRate,
         float $adjustedRate,
         string $targetCurrency,
-        PayoutMethods $payoutMethod
+        PayoutMethods $payoutMethod,
+        string $walletCurrency
     ): array {
+        if(strtolower($payoutMethod->currency) === strtolower(request()->debit_wallet)) {
+            $adjustedRate = 1;
+        }
         $amountInTarget = $amount * $adjustedRate;
         $totalAmount = $amountInTarget + $fees['total_fee'];
+
+        // Calculate fees in payout method currency
+        $feesInPayoutCurrency = [
+            'float_fee' => round($fees['float_fee'] / $exchangeRate, 6),
+            'fixed_fee' => round($fees['fixed_fee'] / $exchangeRate, 6),
+            'total_fee' => round($fees['total_fee'] / $exchangeRate, 6)
+        ];
+
+        // Calculate debit amount and customer receive amount in both currencies
+        $debitAmountInWalletCurrency = round($totalAmount * $exchangeRate, 6);
+        $debitAmountInPayoutCurrency = round($totalAmount, 6);
+
+        $customerReceiveAmountInWalletCurrency = round($amount, 6);
+        $customerReceiveAmountInPayoutCurrency = round($amount / $exchangeRate, 6);
+
+        $total_fee_due =  $feesInPayoutCurrency['float_fee'] + $feesInPayoutCurrency['fixed_fee'];
         
+        if($total_fee_due < ($payoutMethod->minimum_charge)) {
+            $total_fee_due = $payoutMethod->minimum_charge;
+        } else if($total_fee_due > $payoutMethod->maximum_charge) {
+            $total_fee_due = $payoutMethod->maximum_charge;
+        }
+
+
         return [
-            'total_fee' => round($fees['total_fee'], 6),
-            'total_amount' => round($totalAmount, 6),
+            'total_fee' => [
+                'payout_currency' => $total_fee_due,
+                'wallet_currency' => round($fees['total_fee'], 6)
+            ],
+            'total_amount' => [
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency + $total_fee_due,
+                'payout_currency' => $debitAmountInWalletCurrency / $adjustedRate
+            ],
+            "amount_due" => $customerReceiveAmountInWalletCurrency + $total_fee_due,
             'exchange_rate' => $exchangeRate,
             'adjusted_rate' => $adjustedRate,
             'target_currency' => $targetCurrency,
             'base_currencies' => explode(',', $payoutMethod->base_currency),
-            'debit_amount' => round($totalAmount / $exchangeRate, 6),
+            'debit_amount' => [
+                'wallet_currency' => $debitAmountInWalletCurrency / $adjustedRate,
+                'payout_currency' => $debitAmountInPayoutCurrency
+            ],
+            'customer_receive_amount' => [
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency,
+                'payout_currency' => $customerReceiveAmountInWalletCurrency * $adjustedRate,
+            ],
             'fee_breakdown' => [
-                'float' => round($fees['float_fee'], 6),
-                'fixed' => round($fees['fixed_fee'], 6)
-            ]
+                'float' => [
+                    'wallet_currency' => round($fees['float_fee'], 6),
+                    'payout_currency' => $feesInPayoutCurrency['float_fee']
+                ],
+                'fixed' => [
+                    'wallet_currency' => round($fees['fixed_fee'], 6),
+                    'payout_currency' => $feesInPayoutCurrency['fixed_fee']
+                ],
+                'total' => $total_fee_due,
+            ],
+            "PayoutMethod" => $payoutMethod
         ];
     }
 }

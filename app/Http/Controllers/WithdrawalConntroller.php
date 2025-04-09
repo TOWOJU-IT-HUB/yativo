@@ -20,6 +20,7 @@ use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use App\Services\PayoutCalculator;
+use Log, Http;
 
 /**
  * WithdrawalConntroller handles withdrawal requests.
@@ -123,36 +124,36 @@ class WithdrawalConntroller extends Controller
     {
         try {
             // Add debit_wallet column if missing
-            if (!Schema::hasColumn('withdraws', 'debit_amount')) {
+            if (!Schema::hasColumn('withdraws', 'customer_receive_amount')) {
                 Schema::table('withdraws', function (Blueprint $table) {
-                    $table->string('debit_amount')->nullable();
+                    $table->string('customer_receive_amount')->nullable();
                 });
             }
-    
+
             $validate = Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:0.01',
                 'payment_method_id' => 'required|integer',
                 'customer_id' => 'sometimes|exists:customers,customer_id',
                 'debit_wallet' => 'required|string'
             ]);
-    
+
             if ($validate->fails()) {
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
-    
+
             $validated = $validate->validated();
             $beneficiary = BeneficiaryPaymentMethod::find($validated['payment_method_id']);
-    
+
             // Validate beneficiary and payment method
             if (!$beneficiary || !$beneficiary->gateway_id) {
                 return get_error_response(['error' => "Invalid payment method configuration"]);
             }
-    
+
             $payoutMethod = PayoutMethods::find($beneficiary->gateway_id);
             if (!$payoutMethod) {
                 return get_error_response(['error' => "Unsupported withdrawal method"]);
             }
-    
+
             // Validate allowed debit currencies
             $allowedCurrencies = explode(',', $payoutMethod->base_currency);
             if (!in_array($validated['debit_wallet'], $allowedCurrencies)) {
@@ -160,7 +161,7 @@ class WithdrawalConntroller extends Controller
                     'error' => "Supported debit currencies: " . implode(', ', $allowedCurrencies)
                 ], 400);
             }
-    
+
             // Calculate payout details
             $calculator = new PayoutCalculator();
             $result = $calculator->calculate(
@@ -169,28 +170,32 @@ class WithdrawalConntroller extends Controller
                 $validated['payment_method_id'],
                 $payoutMethod->exchange_rate_float
             );
-    
+
             // Validate exchange rate
             if ($result['adjusted_rate'] <= 0) {
                 return get_error_response(['error' => 'Invalid exchange rate configuration'], 400);
             }
-    
+
+            $xchangeRate = $this->getExchangeRate($payoutMethod->currency, $request->debit_wallet);
+            $comparedMinAmount = floatval($payoutMethod->minimum_withdrawal * $xchangeRate) + $result['total_fee']['payout_currency'];
+            $comparedMaxAmount = floatval($payoutMethod->maximum_withdrawal * $xchangeRate) + $result['total_fee']['payout_currency'];
             // Validate withdrawal limits in DEBIT CURRENCY
-            if ($validated['amount'] < $payoutMethod->minimum_withdrawal) {
+            // convert the $payoutMethod->minimum_withdrawal to debit_wallet currency and compare the amount
+            if ($validated['amount'] < $comparedMinAmount) {
                 return get_error_response([
-                    'error' => "Minimum withdrawal: " . number_format($payoutMethod->minimum_withdrawal, 2) 
-                            . " " . $payoutMethod->currency
+                    'error' => "Minimum withdrawal: " . number_format($comparedMinAmount, 2). " $request->debit_wallet"
                 ]);
             }
     
-            if ($validated['amount'] > $payoutMethod->maximum_withdrawal) {
+            // convert the $payoutMethod->maximum_withdrawal to debit_wallet currency and compare the amount
+            if ($validated['amount'] > $comparedMaxAmount) {
                 return get_error_response([
-                    'error' => "Maximum withdrawal: " . number_format($payoutMethod->maximum_withdrawal, 2)
-                            . " " . $payoutMethod->currency
+                    'error' => "Minimum withdrawal: " . number_format($comparedMaxAmount, 2). " $request->debit_wallet"
                 ]);
             }
-    
+
             // Prepare withdrawal record
+            $customer_receive_amount = $validated['amount'] * $result['adjusted_rate'];
             $withdrawalData = [
                 'user_id' => auth()->id(),
                 'gateway' => $payoutMethod->gateway,
@@ -199,54 +204,82 @@ class WithdrawalConntroller extends Controller
                 'beneficiary_id' => $validated['payment_method_id'],
                 'debit_wallet' => $validated['debit_wallet'],
                 'amount' => $validated['amount'],
-                "debit_amount" => $result['debit_amount'],
-                "send_amount" => "",
-                "customer_receive_amount" => "",
-                'raw_data' => [
-                    "rates" => [
-                        'base_rate' => $result['exchange_rate'],
-                        'adjusted_rate' => $result['adjusted_rate']
-                    ],
-                    "fees" => [
-                        'total_fee' => $result['total_fee'],
-                        'fee_breakdown' => $result['fee_breakdown']
-                    ],
-                    "amounts" => [
-                        "debit_amount" => $result['debit_amount'],
-                        'requested' => $validated['amount'],
-                        'converted' => $result['total_amount'],
-                        'debit_currency' => $validated['debit_wallet']
-                    ],
-                    "limits" => [
-                        'min' => $payoutMethod->minimum_withdrawal,
-                        'max' => $payoutMethod->maximum_withdrawal
-                    ]
-                ]
+                "debit_amount" => $result['amount_due'],
+                "send_amount" => $validated['amount'],
+                "customer_receive_amount" => $customer_receive_amount,
+                'raw_data' => $result,
+                'status' => 'pending'
             ];
-    
+
+            // Construct the message payload
+            $message_payload = "<b>You have a new payout request of {$customer_receive_amount}</b>\n\n";
+            foreach ($withdrawalData as $key => $value) {
+                if(!is_array($value)) {
+                    $message_payload .= "<em>{$key}</em>: <b>{$value}</b>\n";
+                }
+            }
+
+            // Retrieve environment variables
+            $botToken = env("TELEGRAM_TOKEN");
+            $chatId = env('TELEGRAM_CHAT_ID');
+
+            // Log the notification call
+            Log::debug("Telegram notification called");
+
+            // Construct the Telegram API URL
+            $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+
+            // Send the HTTP request using Laravel's HTTP client
+            try {
+                $response = Http::post($url, [
+                    'text' => $message_payload,
+                    'chat_id' => $chatId,
+                    'protect_content' => true,
+                    'parse_mode' => 'html'
+                ]);
+                
+                if ($response->successful()) {
+                    Log::debug("Telegram notification sent successfully");
+                } else {
+                    Log::error("Telegram notification failed: " . $response->body());
+                }
+            } catch (\Exception $e) {
+                Log::error("Telegram notification error: " . $e->getMessage());
+            }
+            
+            if(request()->has('debug')) {
+                dd($withdrawalData); exit;
+            }
+
             $withdrawal = Withdraw::create($withdrawalData);
-    
+
+            if(!$withdrawal) {
+                return get_error_response([], 400, 'Unable to process Withdrawal');
+            }
+           
+            $result['exchange_rate'] = $result['adjusted_rate'];
+            unset($result['debit_amount']);
+            unset($result['PayoutMethod']);
+            unset($result['total_fee']);
+            unset($result['adjusted_rate']);
+            unset($result['base_currencies']);
+            unset($result['fee_breakdown']);
             // Format response data
             $responseData = [
                 'withdrawal_id' => $withdrawal->id,
+                'payout_id' => $withdrawal->payout_id,
                 'status' => $withdrawal->status,
-                'debit_amount' => $result['debit_amount'],
+                'debit_amount' => $result['amount_due'],
                 'target_amount' => $result['total_amount'],
                 'currency' => $payoutMethod->currency,
-                'fees' => [
-                    'total' => $result['total_fee'],
-                    // 'breakdown' => $result['fee_breakdown']
-                ],
-                // 'exchange_rate' => [
-                //     'base' => $result['exchange_rate'],
-                //     'adjusted' => $result['adjusted_rate']
-                // ],
+                'fees' => $result,
                 'processed_at' => $withdrawal->created_at
             ];
-    
+
             return get_success_response($responseData, 201, "Withdrawal request initiated successfully");
-    
+
         } catch (\Throwable $th) {
+            // var_dump($th); exit;
             return get_error_response([
                 'error' => $th->getMessage(),
                 'trace' => config('app.debug') ? $th->getTrace() : []
@@ -287,5 +320,43 @@ class WithdrawalConntroller extends Controller
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
+    }
+
+    private function getExchangeRate($from_currency, $to_debit_wallet)
+    {
+    
+        $from = strtoupper($from_currency);
+        $to = strtoupper($to_debit_wallet);
+        if ($from === $to) return 1.0;
+
+        return cache()->remember("exchange_rate_{$from}_{$to}", now()->addMinutes(30), 
+            function () use ($from, $to) {
+                $client = new Client();
+                $apis = [
+                    "https://min-api.cryptocompare.com/data/price" => ['fsym' => $from, 'tsyms' => $to],
+                    "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from]
+                ];
+
+                foreach ($apis as $url => $params) {
+                    try {
+                        $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
+                        if (isset($response['Response']) && $response['Response'] === 'Error') {
+                            Log::error("API Error: " . $response['Message']);
+                            continue;
+                        }
+                        $rate = match(str_contains($url, 'cryptocompare')) {
+                            true => $response[$to] ?? null,
+                            false => $response['data']['rates'][$to] ?? null
+                        };
+
+                        if ($rate) return (float) $rate;
+                    } catch (\Exception $e) {
+                        Log::error("Exchange rate error: {$e->getMessage()}");
+                    }
+                }
+
+                throw new \RuntimeException("Failed to fetch exchange rate for {$from}->{$to}");
+            }
+        );
     }
 }

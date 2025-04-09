@@ -38,4 +38,11 @@ class VirtualAccount extends Model
         "request_object" => "array",
         "extra_data" => "array"
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    
 }

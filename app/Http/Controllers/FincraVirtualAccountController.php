@@ -17,10 +17,9 @@ class FincraVirtualAccountController extends Controller
 
     public function __construct()
     {
-        $this->baseUrl = env('FINCRA_BASE_URL', 'https://sandboxapi.fincra.com/');
-        $this->api_key = env('FINCRA_API_KEY', '8G5hwaiw7oy9q8tCBJ6X1ltp5C20QDwJ');
+        $this->baseUrl = env('FINCRA_BASE_URL');
+        $this->api_key = env('FINCRA_API_KEY');
     }
-
 
     // Create a new virtual account
     public function createVirtualAccount(Request $request)

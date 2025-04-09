@@ -12,6 +12,18 @@
     </div>
 @endif
 
+@if(Session::has('success'))
+    <div class="alert alert-success">
+        {{ Session::get('success') }}
+    </div>
+@endif
+
+@if(Session::has('error'))
+    <div class="alert alert-danger">
+        {{ Session::get('error') }}
+    </div>
+@endif
+
 
 <style>
     /* General Alert Styling */
@@ -69,6 +81,24 @@
     .yativo_alert-close:focus {
         outline: none;
         box-shadow: 0 0 0 2px #f44336;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
     }
 </style>
 

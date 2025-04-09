@@ -22,7 +22,11 @@ class TransactionRecord extends Model
     ];
 
     protected $hidden = [
-        // 'transaction_payin_details',
+        "transaction_payin_details",
+        "transaction_payout_details",
+        "transaction_swap_details",
+        "raw_data",
+        "gateway_id",
         'updated_at',
         'deleted_at',
     ];

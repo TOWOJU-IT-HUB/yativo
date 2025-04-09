@@ -49,7 +49,7 @@ class PayinMethods extends Model
         "maximum_charge",
         "cutoff_hrs_start",
         "cutoff_hrs_end",
-        // "exchange_rate_float",
+        "exchange_rate_float",
         "gateway",
         "created_at",
         "updated_at",

@@ -14,18 +14,43 @@ use Illuminate\Support\Facades\Log;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
 use Spatie\WebhookServer\WebhookCall;
+use App\Models\WebhookLog;
+use App\Models\User;
+use App\Models\Deposit;
+use App\Models\VirtualAccountDeposit;
+use App\Models\TransactionRecord;
+use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Validator;
 
 class BridgeController extends Controller
 {
     public $customer, $customerId;
+    private $yativoBaseUrl = "https://crypto-api.yativo.com/api/";
 
     public function __construct()
     {
-        // $customer = Customer::whereCustomerId(request()->customer_id)->first();
         $this->customer = DB::table('customers')->where('customer_id', request()->customer_id)->where('user_id', auth()->id())->first();
-        // Log::info("Customer Info: ", (array) $this->customer);
-        $this->customerId = $this->customer->customer_id ?? "7316bfb1-0601-4056-8fca-77a6322960f2";
+        // Log::info("Customer Info: ", (array) $this->customer); 
+        $this->customerId = $this->customer->customer_id ?? null;
     }
+
+    private function getYativoToken()
+    {
+        $payload = [
+            "email" => env("YATIVO_CRYPTO_API_EMAIL"),
+            "api_key" => env("YATIVO_CRYPTO_API_KEY")
+        ];
+        $curl = Http::post($this->yativoBaseUrl."authentication/generate-key", $payload)->json();
+
+        if($curl['success'] == true) {
+            return $curl['result']['token'];
+        }
+        // var_dump($curl); exit;
+        return ['error' => $curl['message'] ?? $curl['result']];
+    }
+
 
     /**
      * GEt KYC link to add a customer
@@ -34,6 +59,11 @@ class BridgeController extends Controller
     public function addCustomerV1(array|object $payload = [])
     {
         $customer = Customer::where('customer_id', request()->input('customer_id'))->first();
+
+        // if(request()->has('debug')) {
+        //     dd($payload); exit;
+        // }
+
         $bridgeData = $this->sendRequest("/v0/customers", 'POST', array_filter($payload));
 
         if (isset($bridgeData['id']) && $customer) {
@@ -115,7 +145,7 @@ class BridgeController extends Controller
         if(is_array($data) && isset($data['count'])) {
             // customer bridge ID is empty so check if it exists
             foreach ($data['data'] as $k => $v) {
-                if($customer->customer_email == $v['email']) {
+                if($customer->customer_kyc_email == $v['email']) {
                     $update = $customer->update([
                         'bridge_customer_id' => $v['id']
                     ]);  
@@ -189,7 +219,7 @@ class BridgeController extends Controller
         $endpoint = 'v0/kyc_links';
         $payload = [
             'full_name' => $customer['customer_name'],
-            'email' => $customer['customer_email'],
+            'email' => $customer['customer_kyc_email'],
             'type' => $customer['customer_type'] ?? 'individual',
             'endorsements' => ['sepa'],
             'redirect_uri' => request()->redirect_url ?? $customer['redirect_uri'] ?? env('WEB_URL', request()->redirect_url),
@@ -207,7 +237,7 @@ class BridgeController extends Controller
 
         $customer = Customer::updateOrCreate(
             [
-                'customer_email' => $customer['customer_email'],
+                'customer_kyc_email' => $customer['customer_kyc_email'],
                 'user_id' => active_user(),
             ],
             [
@@ -254,6 +284,7 @@ class BridgeController extends Controller
         $endpoint = "v0/customers/{$customer->bridge_customer_id}?limit=100";
         $data = $this->sendRequest($endpoint);
     
+        // dd($data); exit;
         // Validate API response
         if (!is_array($data) || empty($data['data'])) {
             return get_error_response(['error' => 'Error on our end, Please contact support']);
@@ -261,14 +292,20 @@ class BridgeController extends Controller
     
         // Find a match in API response
         foreach ($data['data'] as $entry) {
-            if ($customer->customer_email === $entry['email']) {
+            if ($customer->customer_kyc_email === $entry['email']) {
                 $customer->update(['bridge_customer_id' => $entry['id']]);
     
+                if($customer->kyc_verified_date == null) {
+                    $customer->update([
+                        'kyc_verified_date' => now()
+                    ]);
+                }
+
                 // Update customer status if active
                 if ($entry['status'] === 'active') {
                     $customer->update([
                         'customer_status' => 'active',
-                        'customer_kyc_status' => 'approved'
+                        'customer_kyc_status' => 'approved',
                     ]);
                 }
     
@@ -286,12 +323,12 @@ class BridgeController extends Controller
     {
         $endpoint = "v0/customers/{$bridgeCustomerId}";
         $data = $this->sendRequest($endpoint);
-    
+
+        // dd($data); exit;
         if (!is_array($data) || !isset($data['status'])) {
             return get_error_response(['error' => 'Failed to retrieve customer details', 'data' => $data]);
         }
-    
-        return get_success_response([
+        $resp = [
             "first_name" => $data['first_name'] ?? '',
             "last_name" => $data['last_name'] ?? '',
             "status" => $data['status'],
@@ -299,7 +336,31 @@ class BridgeController extends Controller
             "kyc_requirements_due" => $data['requirements_due'] ?? [],
             "kyc_future_requirements_due" => $data['future_requirements_due'] ?? [],
             'bio_data' => $customer
+        ];
+        $is_va_approved = false;
+        if($customer->kyc_verified_date == null) {
+            $customer->update([
+                'kyc_verified_date' => now()
+            ]);
+        }
+        $customer->update([
+            'bridge_customer_id' => $data['id'],
+            'customer_status' => 'active',
+            'customer_kyc_status' => 'approved',
         ]);
+        $resp["kyc_link"] = route('checkout.kyc', $customer->customer_id);
+        if($data['endorsements']) {
+            foreach ($data['endorsements'] as $v) {
+                if($v["name"] == "base" && $v['status'] == "approved") {
+                    $is_va_approved = true;
+                    $customer->can_create_va = true;
+                    $customer->save();
+                    unset($resp["kyc_link"]);
+                } 
+            }
+        }
+        $resp['is_va_approved'] = $is_va_approved;
+        return get_success_response($resp);
     }
 
     public function createCustomerBridgeWallet($customerId)
@@ -332,7 +393,7 @@ class BridgeController extends Controller
         $request = request();
         
         $customer = Customer::where('customer_id', $customerId)->first();
-
+        // var_dump($customer); exit;
         if(!$customer) {
             return ['error' => "Customer with ID: {$customerId} not found!."];
         }
@@ -340,30 +401,42 @@ class BridgeController extends Controller
         if(!$customer->bridge_customer_id) {
             return ['error' => 'Customer not enrolled for service or KYC not complete'];
         }
-        $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/virtual_accounts";
-        $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; //$this->createWallet($this->customer->bridge_customer_id);
+
+        $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
+        $destinationAddress = $this->createWallet();
+
+        Log::debug("wallet address for virtual account: ", ['addressie' => $destinationAddress]);
 
         if($destinationAddress == false) {
             return ["error"=> "Unable to generate virtual account"];
         }
 
         $payload = [
-            "developer_fee_percent" => env('BRIDGE_DEVELOPER_FEE_PERCENT', "0.6"),
+            "developer_fee_percent" => "0",
             "source" => [
                 "currency" => "usd"
             ],
             "destination" => [
-                "currency" => env('BRIDGE_DESTINATION_CURRENCY', "usdb"),
-                "payment_rail" => "solana", //env('BRIDGE_PAYMENT_RAIL', "polygon"),
+                "currency" => "usdc",
+                "payment_rail" => "solana",
                 "address" => $destinationAddress
             ]
         ];
 
         $data = $this->sendRequest($endpoint, "POST", $payload);
 
-        if (isset($data['error']) || $data['status'] < 200) {
+        if(request()->has('debug')) {
+            var_dump(['result' => $data, 'payload' => $payload]); exit;
+        }
+
+        if(isset($data['message']) && isset($data['code'])) {
+            return ['error' => $data['message']];
+        }
+
+        if (isset($data['error']) || (isset($data['status']) && $data['status'] < 200)) {
             return ["error" => $data['error'] ?? $data];
         }
+
         if (isset($data['source_deposit_instructions']['bank_account_number'])) {
             return VirtualAccount::create([
                 "account_id" => $data['id'],
@@ -470,7 +543,6 @@ class BridgeController extends Controller
 
         return $curl;
     }
-
 
     public function getPayout($payoutId)
     {
@@ -587,7 +659,6 @@ class BridgeController extends Controller
         return $model->save() ? $model : ['error' => 'Failed to save payment method.'];
     }
 
-
     public function sendRequest($endpoint, $method = "GET", $payload = [])
     {
         $method = strtolower($method);
@@ -637,97 +708,212 @@ class BridgeController extends Controller
         return "data:image/{$format};base64,{$encodedData}";
     }
 
-    public function createWallet($customerId)
+    public function createWallet()
     {
-        return "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; // fixed wallet belonging to 
-        // $endpoint = "v0/customers/{$customerId}/wallets";
-        // $curl = $this->sendRequest($endpoint, "POST", $payload = [
-        //     'chain' => 'solana'
-        // ]);
+        // Generate wallet address
+        $yativo = new CryptoYativoController();
+        $curl = $yativo->generateCustomerWallet();
 
-        // if(isset($curl['address'])) {
-        //     return $curl['address'];
-        // }
+        if (!isset($curl['address'])) {
+            Log::error('Failed to generate wallet address', ['response' => $curl]);
+            return ['error' => $curl['error'] ?? 'Unable to generate wallet address at the moment, please contact support'];
+        }
 
-        // return false;
+        return $curl['address'];
     }
 
     public function BridgeWebhook(Request $request)
-    {
-        if($this->processEvent($request) !== true) {
-            return http_respnose_code(200);
-        }
-        // Get the request body
-        $incoming = $request->all();
-        if(isset($request->event_object)) {
-            $data = (array)$request->event_object;
-            if($request->event_type == "customer.created" OR $request->event_type == "customer.updated.status_transitioned") {
-                $customer = Customer::where('customer_email', $data['email'])->first();
-                $userId = $customer->user_id;
-                if($customer && $data['status'] == "approved" or $data['status'] == "active"  or $data['status'] == "completed") {
-                    $customer->customer_status = 'active';
-                    $customer->customer_kyc_status = 'approved';
-                    $customer->save();
-                    // Queue webhook notification
-                    dispatch(function () use ($userId, $customer) {
-                        $webhook = Webhook::whereUserId($userId)->first();
-                        if ($webhook) {
-                            WebhookCall::create()
-                                ->meta(['_uid' => $webhook->user_id])
-                                ->url($webhook->url)
-                                ->useSecret($webhook->secret)
-                                ->payload([
-                                    "event.type" => "customer.created",
-                                    "payload" => $customer,
-                                ])
-                                ->dispatchSync();
-                        }
-                    })->afterResponse();
-                }
+    {        
+        $payload = $request->all();
+        Log::info("Incoming data: ", ['bridge_webhook' => $payload]);
+        if(isset($payload['data'])) {
+            foreach ($payload['data'] as $event) {
+                $this->_processWebhook($event);
             }
+        } else if(isset($payload['bridge_webhook'])) { 
+            $this->_processWebhook($payload['bridge_webhook']);
+        } else {
+            $this->_processWebhook($payload);
+        }
 
-            if($request->event_type == "virtual_account.activity.created" OR $request->event_type == "virtual_account.activity.updated") {
-                return $this->processVirtualAccountWebhook($data);
-            }
-        }
-          
-        return get_success_response($incoming);
+        return response()->json(['status' => 'success']);
     }
 
-    private function processVirtualAccountWebhook($incomingData)
+    private function _processWebhook($event){
+        $eventType = $event['event_type'];
+        $eventData = $event['event_object'];
+
+        switch ($eventType) {
+            case 'virtual_account.activity.updated':
+            case 'virtual_account.activity.created':
+                $this->processVirtualAccountWebhook($eventData);
+                break;
+
+            case 'kyc_link.updated.status_transitioned':
+                $this->handleKycStatusUpdate($eventData);
+                break;
+
+            case 'customer.updated.status_transitioned':
+                $this->handleKycStatusUpdate($eventData);
+                break;
+
+            default:
+                Log::info("Unhandled webhook event: $eventType");
+                break;
+        }
+    }
+
+    private function processVirtualAccountWebhook($eventData)
     {
-        $customer = Customer::where("bridge_customer_id", $incomingData['customer_id'])->first();
-        $vc = VirtualAccount::where("customer_id", $customer->id)->first();
-
-        $userId = $vc->user_id;
-
-        $txn = add_usd_virtual_card_deposit($incomingData);
+        $accountId = $eventData['virtual_account_id'];
+        $customer = Customer::where('bridge_customer_id', $eventData['customer_id'])->first();
+        if ($customer) {
+            $customer = [];
+        }
+    
+        $vc = VirtualAccount::where("account_id", $accountId)->first();
         
-        $webhookData = [
-            "event.type" => "virtual_account.deposit",
-            "payload" => [
-                "amount" => $incomingData['amount'],
-                "currency" => $incomingData['currency'],
-                "status" => "completed",
-                "credited_amount" => $incomingData['subtotal_amount'],
-                "transaction_type" => "virtual_account_topup",
-                "transaction_id" => "TXN123456789",
-                "customer" => $customer,
-                "raw_data" => $incomingData['source']
-            ]
-        ];
+        if (!$vc) {
+            Log::error("Virtual account not found for ID: $accountId");
+            return;
+        }
+    
+        $payload = $eventData;
 
-        dispatch(function () use ($userId, $webhookData) {
-            $webhook = Webhook::whereUserId($userId)->first();
-            if ($webhook) {
-                WebhookCall::create()
-                    ->meta(['_uid' => $webhook->user_id])
-                    ->url($webhook->url)
-                    ->useSecret($webhook->secret)
-                    ->payload($webhookData)
-                    ->dispatchSync();
+        if($payload['type'] != "payment_processed") {
+            return false;
+        }
+
+        $user = User::whereId($vc->user_id)->first();
+        if (!$user) {
+            Log::error("User not found for virtual account ID: $accountId");
+            return;
+        }
+    
+        if (strtolower($payload['type']) === "payment_processed") {
+            $vc_status = SendMoneyController::SUCCESS;
+        }                                                        
+            
+        $vc_status = strtolower($payload['type']) === "payment_processed" ? SendMoneyController::SUCCESS : "pending";
+        
+        if (Schema::hasColumn('deposits', 'deposit_currency')) {
+            Schema::table('deposits', function (Blueprint $table) {
+                $table->string('deposit_currency')->nullable()->change();
+                $table->string('currency')->nullable()->change();
+                $table->string('receive_amount')->nullable()->change();
+            });
+        }
+
+        $deposit_amount = 0;
+
+        // Log::info($payload); exit;
+        $sent_amount = $payload['receipt']['initial_amount'] ?? $payload['amount'];
+        $payment_rail = $payload['source']['payment_rail'];
+        $percentage = floatval(0.60 / 100);
+        $float_fee = floatval($sent_amount * $percentage);
+
+        if($payment_rail == "ach_push") {
+            // fee for ach is 0.60% + $0.60
+            $fixed_fee = 0.60;
+            $total_fee = floatval($float_fee + $fixed_fee);
+            $deposit_amount = floatval($sent_amount - $total_fee);
+        } else {
+            $fixed_fee = 25;
+            $total_fee = floatval($float_fee + $fixed_fee);
+            $deposit_amount = floatval($sent_amount - $total_fee);
+        } 
+
+        
+        // Update or create the deposit record
+        $deposit = Deposit::updateOrCreate(
+            [
+                'gateway_deposit_id' => $payload["id"]
+            ],
+            [
+                'user_id' => $user->id,
+                'amount' => $deposit_amount,
+                'currency' => "usd", //strtoupper($payload['currency']),
+                'deposit_currency' => "USD", //strtoupper($payload['currency']),
+                'gateway' => 99999999,
+                'status' => $vc_status,
+                'receive_amount' => floatval($deposit_amount),
+                'meta' => $payload,
+            ]
+        );
+                
+        // Update or create VirtualAccountDeposit
+        VirtualAccountDeposit::updateOrCreate(
+            [
+                "user_id" => $deposit->user_id,
+                "deposit_id" => $deposit->id,
+            ],
+            [
+                "currency" => strtoupper($payload['currency']),
+                "amount" => $deposit->amount,
+                "account_number" => $vc->account_number,
+                "status" => $vc_status,
+            ]
+        );
+        
+        // Create Transaction Record
+        TransactionRecord::create([
+            "user_id" => $user->id,
+            "transaction_beneficiary_id" => $user->id,
+            "transaction_id" => $payload['deposit_id'],
+            "transaction_amount" => $deposit_amount,
+            "gateway_id" => 99999999,
+            "transaction_status" => $vc_status,
+            "transaction_type" => 'virtual_account',
+            "transaction_memo" => "payin",
+            "transaction_currency" => strtoupper($payload['currency']),
+            "base_currency" => strtoupper($payload['currency']),
+            "secondary_currency" => strtoupper($payload['currency']),
+            "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
+            "transaction_payin_details" => [
+                'sender_name' => $payload['source']['sender_name'] ?? null,
+                'trace_number' => $payload['source']['trace_number'] ?? null,
+                'bank_routing_number' => $payload['source']['sender_bank_routing_number'] ?? null,
+                'description' => $payload['source']['description'] ?? null,
+                "transaction_fees" => $total_fee
+            ],
+            "transaction_payout_details" => null,
+        ]);
+        
+        
+        if (strtolower($payload['type']) === "payment_processed") {
+            $wallet = $user->getWallet('usd');
+            if ($wallet) {
+                // Check if transaction already exists for this deposit
+                $existingTransaction = $wallet->transactions()
+                    ->where('meta->deposit_id', $deposit->id)
+                    ->first();
+    
+                if (!$existingTransaction) {
+                    $wallet->deposit(floatval($deposit_amount * 100), [
+                        'deposit_id' => $deposit->id,
+                        'gateway_deposit_id' => $payload['id'],
+                        'sender' => $payload['source']['description'] ?? null
+                    ]);
+                }
             }
-        })->afterResponse();
+        }
+        Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
+    }
+
+    private function handleKycStatusUpdate($data)
+    {
+        Log::info("Customer KYC details: ", ['details' => $data]);
+        $customer = Customer::where('bridge_customer_id', $data['id'])->orWhere('customer_kyc_email', $data['email'])->first();
+        // Update customer status if active
+        if ($customer && $data['status'] === 'active') {
+            $customer->update([
+                'bridge_customer_id' => $data['id'],
+                'customer_status' => 'active',
+                'customer_kyc_status' => 'approved'
+            ]);
+        }
+
+        return $this->fetchAndReturnCustomerData($data['id'], $customer);
     }
 
     private function processPayinWebhook($data)
@@ -754,11 +940,11 @@ class BridgeController extends Controller
     {
         $signatureHeader = $request->header('X-Webhook-Signature');
         
-        // if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
-        //     return false; // $this->render400('Malformed signature header');
-        // }
         $matches = [];
-        [, $timestamp, $signature] = $matches;
+        if (!$signatureHeader || !preg_match('/^t=(\d+),v0=(.*)$/', $signatureHeader, $matches)) {
+            return false; // $this->render400('Malformed signature header');
+        }
+        [$timestamp, $signature] = $matches;
 
         if (!$timestamp || !$signature) {
             return false; // $this->render400('Malformed signature header');

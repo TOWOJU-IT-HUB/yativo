@@ -19,19 +19,21 @@ class CryptoWalletsController extends Controller
 
     public function __construct()
     {
-        $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
-        $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
-        $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
-        $this->middleware('can_create_crypto')->only(['createWallet']);
+        // $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
+        // $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
+        // $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
+        // $this->middleware('can_create_crypto')->only(['createWallet']);
     }
-    public function createWallet(Request $request)
+    
+    public function createWallet()
     {
+        $request = request();
         Log::info('Incoming request data:', $request->all());
     
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'currency' => 'required|in:USDT.BEP20,USDC.BEP20',
-            'customer_id' => 'required_if:is_customer,true',
+            'currency' => 'required',
+            'customer_id' => 'required',
         ]);
     
         if ($validator->fails()) {
@@ -42,26 +44,27 @@ class CryptoWalletsController extends Controller
         $currency = $request->currency;
     
         $userId = auth()->id();
-        $isCustomer = filter_var($request->is_customer, FILTER_VALIDATE_BOOLEAN);
+        $isCustomer = $request->customer_id ? true : false;
     
         // Generate wallet address
-        $callbackUrl = route('crypto.wallet.address.callback', ['userId' => $userId, 'currency' => $currency]);
-        $curl = $this->coinpayment->GetCallbackAddress(currency: $currency, ipn_url: $callbackUrl);
-    
-        if (!isset($curl['address'])) {
-            return get_error_response(['error' => "We're currently unable to process your request at the moment."]);
+        $yativo = new CryptoYativoController();
+        $curl = $yativo->generateCustomerWallet();
+        // return $curl;
+        if (isset($curl['error']) || !isset($curl['address'])) {
+            return get_error_response(['error' => $curl]);
         }
     
         // Create wallet record in the database
+        $data = $curl;
         $walletData = [
             "user_id" => $userId,
             "is_customer" => $isCustomer,
-            "customer_id" => $isCustomer ? $request->customer_id : null,
-            "wallet_address" => $curl['address'],
-            "wallet_currency" => $currency,
-            "wallet_network" => explode('.', $currency)[1] ?? $currency,
-            "wallet_provider" => 'coinpayment',
-            "coin_name" => $currency,
+            "customer_id" => $request->customer_id ?? null,
+            "wallet_address" => $data['address'],
+            "wallet_currency" => trim($data['ticker_name']),
+            "wallet_network" => $data['chain'],
+            "wallet_provider" => 'yativo',
+            "coin_name" => $data['asset_name'],
             "wallet_balance" => 0,
         ];
     
@@ -76,7 +79,7 @@ class CryptoWalletsController extends Controller
                     ->url($webhook->url)
                     ->useSecret($webhook->secret)
                     ->payload([
-                        "event.type" => "wallet_generated",
+                        "event.type" => "crypto.wallet.created",
                         "payload" => $record,
                     ])
                     ->dispatchSync();

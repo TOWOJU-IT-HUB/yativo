@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\payoutMethods;
 use App\Models\Withdraw;
+use App\Models\User;
+use App\Models\TransactionRecord;
 use App\Services\PayoutService;
 use Illuminate\Http\Request;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Customer\app\Models\Customer;
+use Log;
 
 class PayoutController extends Controller
 {
@@ -40,7 +43,7 @@ class PayoutController extends Controller
     public function approvePayout(Request $request, $id)
     {
         $payout = Withdraw::findOrFail($id);
-        if ($payout && $payout->status == 'pending') {
+        if ($payout && ($payout->status == 'pending' || $payout->status == 'processing')) {
 
             $is_beneficiary = BeneficiaryPaymentMethod::where(['id' => $payout->beneficiary_id])->first();
 
@@ -60,55 +63,73 @@ class PayoutController extends Controller
             $checkout = $payout->makePayment($id, $payoutMethod);
             Log::info('Checkout final response', ['response' => $checkout]);
 
-            return response()->json($checkout); exit;
+            // var_dump($checkout); exit;
+            // return response()->json($checkout); exit;
 
             if(is_array($checkout) && isset($checkout['error'])) {
                 return redirect()->back()->with('error', $checkout['error']);
             }
 
-            return $checkout;
+            // return $checkout;
 
             return back()->with('success', 'Payout approved successfully');
         }
     }
 
-    /**
+   /**
      * Process manual payout update/approval
      */
     public function manual(Request $request, $id) 
     {
         try {
+            $request->validate([
+                'status' => 'required|string'
+            ]);
+            
             $payout = Withdraw::findOrFail($id);
             $payout->status = $request->status;
+
+            // Update transaction record also found
+
+            // since the transaction has not been processed no transaction record is available
+            // $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payout'])->first();
+            // if ($txn) {
+            //     $txn->transaction_status = $request->status;
+            //     $txn->save();
+            // } else {
+            //     // Log the error if the transaction record does not exist
+            //     Log::error("Transaction record not found for payout ID: $id");
+            // }
+
+            // Save the payout status update
             $payout->save();
 
-            // update transaction record also
-            $txn = TransactionRecord::where(['transaction_id' => $id, 'transaction_memo' => 'payin'])->first();
-            if($txn) {
-                $txn->transaction_status = $request->status;
-                $txn->save();
-            }
-
-            if($payout->save() && $txn->save()) {
-
-                // if transaction is rejected refund customer
-                if(strtolower($request->status) !== "complete") {
-                    $user = User::whereId($payout->user_id)->first();
-                    if($user) {
-                        $wallet = $user->getWallet($payout->debit_wallet);
-                        $wallet->deposit($payout->debit_amount, [
+            // If transaction is rejected, refund customer
+            if (in_array(strtolower($request->status), ["failed", "expired"])) {
+                $user = User::find($payout->user_id);
+                if ($user) {
+                    $wallet = $user->getWallet($payout->debit_wallet);
+                    if ($wallet) {
+                        $wallet->deposit($payout->debit_amount * 100, [
                             "description" => "refund",
                             "full_desc" => "Refund for payout {$payout->id}",
                             "payload" => $payout
                         ]);
+                    } else {
+                        // Log the error if the wallet does not exist
+                        Log::error("Wallet not found for user ID: {$user->id} and currency: {$payout->debit_wallet}");
                     }
+                } else {
+                    // Log the error if the user does not exist
+                    Log::error("User not found for ID: {$payout->user_id}");
                 }
-
-
-                return back()->with('success', 'Transaction updated successfully');
             }
-        } catch(\Throwable $th) {
-            return back()->with('error', $th->getMessage());
+
+            return back()->with('success', 'Transaction updated successfully');
+        } catch (\Throwable $th) {
+            // Log the error for debugging
+            Log::error("Error processing manual payout update: " . $th->getMessage());
+            return back()->with('error', 'An error occurred while updating the transaction.');
         }
-    } 
+    }
 }

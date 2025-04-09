@@ -24,26 +24,26 @@ class CronDepositController extends Controller
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $brla = new BrlaDigitalService();
     
-        Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
+        // Log::info("All Pending brla payin are: ", ['payins' => $deposits]);
     
         foreach ($deposits as $deposit) {
             $curl = $brla->getPayInHistory(['referenceLabel' => $deposit->gateway_deposit_id]);
     
             // Debug API response
-            Log::info("Raw API Response", ['response' => json_encode($curl)]);
+            // Log::info("Raw API Response", ['response' => json_encode($curl)]);
     
             if (!is_array($curl) || empty($curl['depositsLogs'])) {
-                Log::warning("Brla Payin Response is empty or invalid", ['response' => json_encode($curl)]);
+                // Log::warning("Brla Payin Response is empty or invalid", ['response' => json_encode($curl)]);
                 continue;
             }
     
-            Log::info("Processing depositsLogs", ['count' => count($curl['depositsLogs'])]);
+            // Log::info("Processing depositsLogs", ['count' => count($curl['depositsLogs'])]);
     
             foreach ($curl['depositsLogs'] as $record) {
-                Log::info("I am here", ['record' => json_encode($record)]);
+                // Log::info("I am here", ['record' => json_encode($record)]);
     
                 if (!isset($record['referenceLabel'], $record['status'])) {
-                    Log::error("Skipping record due to missing keys", ['record' => json_encode($record)]);
+                    // Log::error("Skipping record due to missing keys", ['record' => json_encode($record)]);
                     continue;
                 }
     
@@ -51,21 +51,21 @@ class CronDepositController extends Controller
     
                 $txn = TransactionRecord::where('transaction_id', $deposit->id)->where('transaction_memo', 'payin')->first();
                 if (!$txn) {
-                    Log::error("Transaction record not found", ['transaction_id' => $deposit->id]);
+                    // Log::error("Transaction record not found", ['transaction_id' => $deposit->id]);
                     continue;
                 }
     
                 try {
                     if ($transactionStatus === 'paid') {
                         $txn->update(['transaction_status' => 'In Progress']);
-                        Log::info("Processing deposit completion", ['status' => $transactionStatus]);
+                        // Log::info("Processing deposit completion", ['status' => $transactionStatus]);
                         $depositService = new DepositService();
-                        Log::info('Deposit service class instatiated');
-                        Log::info("TRansaction ID is: ", ['txn_id' => $txn->id]);
+                        // Log::info('Deposit service class instatiated');
+                        // Log::info("TRansaction ID is: ", ['txn_id' => $txn->id]);
                         $depositService->process_deposit($txn->transaction_id);
-                        Log::info("Processing deposit completed", ['status' => $transactionStatus]);
+                        // Log::info("Processing deposit completed", ['status' => $transactionStatus]);
                     } else {
-                        Log::info("Updating deposit status", ['status' => $transactionStatus]);
+                        // Log::info("Updating deposit status", ['status' => $transactionStatus]);
                         $txn->update(["transaction_status" => $transactionStatus]);
                         $deposit->update(['status' => $transactionStatus]);
                     }
@@ -75,7 +75,6 @@ class CronDepositController extends Controller
             }
         }
     }
-    
 
     public function vitawallet()
     {
@@ -84,34 +83,45 @@ class CronDepositController extends Controller
         $vitawallet = new VitaWalletController();
 
         foreach ($deposits as $deposit) {
-            $curl = $vitawallet->getTransaction($deposit->gateway_deposit_id);
-            Log::info('Vitawallet_001', ['deposit_object' => $deposit, 'deposit_id' => $deposit->gateway_deposit_id, 'response' => $curl]);
-            if (is_array($curl) && isset($curl['transaction'])) {
-                $record = $curl['transaction'];
-                if (isset($record['status'])) {
-                    Log::info('Vitawallet_002', ['response' => $record]);
-                    $transactionStatus = strtolower($record['status']);
-                    
-                    $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-                    if (!$txn) continue;
-                    
-                    if ($transactionStatus === 'completed') {
-                        $depositService = new DepositService();
-                        $depositService->process_deposit($txn->transaction_id);
-                    } else {
-                        $txn->update(["transaction_status" => $transactionStatus]);
-                        $deposit->update(['status' => $transactionStatus]);
-                    }
+            $response = $vitawallet->getTransaction($deposit->gateway_deposit_id);
+
+            // Ensure response is properly decoded as an array
+            if (is_object($response)) {
+                $response = json_decode(json_encode($response), true);
+            }
+
+            if (!is_array($response) || !isset($response['transactions'][0]['attributes'])) {
+                // \Log::warning("Invalid VitaWallet response", ['deposit_id' => $deposit->id, 'response' => $response]);
+                continue;
+            }
+
+            $payload = $response['transactions'][0]['attributes'];
+
+            // Ensure 'order' exists in the payload
+            if (!isset($payload['order'])) {
+                // \Log::warning("VitaWallet transaction missing 'order'", ['deposit_id' => $deposit->id, 'payload' => $payload]);
+                continue;
+            }
+
+            if (isset($payload['status']) && ($payload['status'] === true || $payload['status'] === "completed")) {
+                $order = TransactionRecord::where([
+                    "transaction_memo" => "payin",
+                    "transaction_id" => $deposit->id
+                ])->first();
+
+                if ($order) {
+                    $deposit_services = new DepositService();
+                    $deposit_services->process_deposit($order->transaction_id);
                 }
             }
         }
     }
-
+    
     public function transfi()
     {
         $ids = $this->getGatewayPayinMethods('transfi');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
-        $transfi = new VitaWalletController();
+        $transfi = new TransFiController();
 
         foreach ($deposits as $deposit) {
             $curl = $transfi->getOrderDetails($deposit->gateway_deposit_id);
@@ -218,7 +228,7 @@ class CronDepositController extends Controller
         $bitsoService = new BitsoServices();
 
         foreach ($deposits as $deposit) {
-            $response = $bitsoService->getDepositStatus($deposit->gateway_deposit_id);
+            $response = $bitsoService->getDepositStatus($deposit->gateway_deposit_id, []);
     
             if (is_array($response) && isset($response['status'])) {
                 $status = strtolower($response['status']);
@@ -259,14 +269,14 @@ class CronDepositController extends Controller
     
             foreach ($deposits as $deposit) {
                 try {
-                    Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
+                    // Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
                     $order = $this->getfloid(strtolower($deposit->deposit_currency), $deposit->gateway_deposit_id);
     
                     // Log the full API response
-                    Log::info("Floid API Response", [
-                        'gateway_deposit_id' => $deposit->gateway_deposit_id,
-                        'response' => $order
-                    ]);
+                    // Log::info("Floid API Response", [
+                    //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                    //     'response' => $order
+                    // ]);
 
                     if(is_array($order) && isset($order[0])) {
                         $order = $order[0];
@@ -274,26 +284,26 @@ class CronDepositController extends Controller
     
                     // Check if response has a valid status
                     if (!isset($order['status'])) {
-                        Log::error("Floid API Response Missing Status", [
-                            'gateway_deposit_id' => $deposit->gateway_deposit_id,
-                            'response' => $order
-                        ]);
+                        // Log::error("Floid API Response Missing Status", [
+                        //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                        //     'response' => $order
+                        // ]);
                         continue;
                     }
     
                     $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
                     if (!$txn) {
-                        Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
+                        // Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
                         continue;
                     }
     
                     $transactionStatus = strtolower($order['status']);
     
                     // Log transaction status
-                    Log::info("Processing Floid Deposit", [
-                        'deposit_id' => $deposit->id,
-                        'transaction_status' => $transactionStatus
-                    ]);
+                    // Log::info("Processing Floid Deposit", [
+                    //     'deposit_id' => $deposit->id,
+                    //     'transaction_status' => $transactionStatus
+                    // ]);
     
                     DB::beginTransaction();
     
@@ -308,14 +318,14 @@ class CronDepositController extends Controller
                     DB::commit();
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    Log::error("Error processing Floid deposit", [
-                        'deposit_id' => $deposit->id,
-                        'error' => $e->getMessage()
-                    ]);
+                    // Log::error("Error processing Floid deposit", [
+                    //     'deposit_id' => $deposit->id,
+                    //     'error' => $e->getMessage()
+                    // ]);
                 }
             }
         } catch (\Exception $e) {
-            Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
+            // Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
         }
     }
     
@@ -351,21 +361,21 @@ class CronDepositController extends Controller
             if(!is_array($result)) {
                 return json_decode($result, true);
             }
-            Log::info([
-                "url" => $url,
-                'payload' => $payload,
-                'token' => $authToken,
-                'currency' => $cur,
-                'response' => $response
-            ]);
+            // Log::info([
+            //     "url" => $url,
+            //     'payload' => $payload,
+            //     'token' => $authToken,
+            //     'currency' => $cur,
+            //     'response' => $response
+            // ]);
             
-            Log::info("Response from Floid for {$id} status: ", $result);
+            // Log::info("Response from Floid for {$id} status: ", $result);
             return $result;
         } catch (\Exception $e) {
-            Log::error("Error calling Floid API", [
-                'gateway_deposit_id' => $id,
-                'error' => $e->getMessage()
-            ]);
+            // Log::error("Error calling Floid API", [
+            //     'gateway_deposit_id' => $id,
+            //     'error' => $e->getMessage()
+            // ]);
             return null;
         }
     }

@@ -9,6 +9,7 @@ use App\Models\Deposit;
 use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
+use App\Models\Withdraw;
 use App\Models\UserMeta;
 use App\Notifications\WalletNotification;
 use Illuminate\Http\RedirectResponse;
@@ -113,26 +114,79 @@ class BitsoController extends Controller
      * @return array
      */
 
-    public function withdraw($amount, $beneficiaryId, $currency)
-    {
+    public function withdraw($amount, $beneficiaryId, $currency, $payoutId)
+     {
         $clabe = null;
         // Get beneficiary info
-        $beneficiary = BeneficiaryPaymentMethod::whereId($beneficiaryId)->first();
-        if (!$beneficiary) {
-            return ['error' => 'Beneficiary not found'];
+        $model = new BeneficiaryPaymentMethod();
+        $ben = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+        $payload = Withdraw::whereId($payoutId)->first();
+        $amount = floor($payload->customer_receive_amount);
+         if (!$ben) {
+             session()->flash('error', 'Beneficiary not found');
+             return ['error' => 'Beneficiary not found'];
+         }
+     
+         $pay_data = $ben->payment_data;
+     
+        if (strtolower($currency) == 'mxn') {
+            if (isset($ben->payment_data)) {
+                $clabe = $ben->payment_data['clabe'] ?? null;
+            }
+    
+            if (empty($clabe)) {
+                session()->flash('error', 'Error retrieving clabe number');
+                return ['error' => 'Error retrieving clabe number'];
+             }
+     
+            $data = [
+                "method" => "praxis",
+                "amount" => $amount,
+                "currency" => "mxn",
+                "beneficiary" => $pay_data['beneficiary'] ?? "N/A",
+                "clabe" => $clabe,
+                "protocol" => "clabe",
+                "origin_id" => $payoutId
+            ];
+        } elseif (strtolower($currency) == 'cop') {
+            // ✅ Trim and validate document_id to be between 6 and 10 digits
+            $document_id = preg_replace('/\D/', '', trim($pay_data['document_id'])); // Remove non-numeric characters
+            if (strlen($document_id) < 6 || strlen($document_id) > 10) {
+                return ['error' => 'Invalid document_id format. Must be 6-10 digits.'];
+            }
+    
+        $data = [
+            'currency' => 'cop',
+            'protocol' => 'ach_co',
+            'amount' => $amount,
+            'bankAccount' => $pay_data['bankAccount'],
+            'bankCode' => $pay_data['bankCode'],
+            'AccountType' => (int) $pay_data['AccountType'],
+            'beneficiary_name' => $pay_data['beneficiary_name'],
+            'beneficiary_lastname' => $pay_data['beneficiary_lastname'],
+            'document_id' => $document_id,
+            'document_type' => strtoupper($pay_data['document_type']),
+            'email' => "noreply@yativo.com", 
+            "third_party_withdrawal" => true,
+            "origin_id" => $payoutId
+        ];
+        } else {
+            return ['error' => "We currently cannot process this currency"];
         }
 
-        if (isset($beneficiary->payment_data)) {
-            $clabe = $beneficiary->payment_data->clabe;
+        $result = $this->bitso->payout($data);
+        if(is_array($result) && isset($result['success']) && $result['success'] == false) {
+            $result = ['error' => $result['error']['message']];
         }
 
-        if (null == $clabe || empty($clabe)) {
-            return ['error' => 'Error retreieveing clabe number'];
+        if(isset($result['success']) && $result['success'] == true) {
+            mark_payout_completed($payload->id, $payload->payout_id);
         }
 
-        $result = $this->bitso->payout($amount, $clabe, $currency);
+        var_dump($result); exit;
         return $result;
-    }
+     }
+     
 
     public function deposit_webhook(Request $request)
     {
@@ -140,44 +194,63 @@ class BitsoController extends Controller
             $input = $request->getContent();
             $webhookData = json_decode($input, true);
     
+            $payload = $webhookData['payload'];
             Log::info("Incoming Bitso webhook data", ['incoming' => $webhookData]);
 
             if (!isset($webhookData['event'], $webhookData['payload'])) {
                 Log::error("Bitso: Invalid webhook payload received.", ['payload' => $input]);
                 return response()->json(['error' => 'Invalid webhook payload'], 400);
             }
+
+            // Check if the event is 'funding' and the status is 'complete'
+            if ($webhookData['event'] === 'funding' && isset($payload['asset']) && $payload['asset'] == "usdt"){
+                return self::processCryptoDeposit($payload);
+            }
     
             // Check if the event is 'funding' and the status is 'complete'
             if (strtolower($webhookData['event']) === 'funding' && isset($payload['details']['receive_clabe'])){
-                $complete_action = $this->handleClabeDeposit($webhookData);
+                $complete_action = $this->handleClabeDeposit($payload);
+            }
+            
+            // Check if the event is 'funding' and the status is 'complete'
+            if ($webhookData['event'] === 'funding'){
+                $complete_action = $this->handleClabeDeposit($payload);
             }
 
             // Check if the event is 'funding' and the status is 'complete'
-            if ($webhookData['event'] === 'funding'){
-                $complete_action = $this->handleClabeDeposit($webhookData);
-            }
-
-            // Check if the event is 'funding' and the status is 'complete'
-            if ($webhookData['event'] === 'funding'){
-                $complete_action = $this->handleClabeDeposit($webhookData);
+            if ($webhookData['event'] === 'withdrawal'){
+                $complete_action = $this->handleWithdrawal($webhookData['payload']);
             }
 
 
             return response()->json(['success' => 'Deposit processed successfully'], 200);
         } catch (\Exception $e) {
-            Log::error("Bitso: Error processing deposit webhook.", ['error' => $e->getMessage()]);
+            Log::error("Bitso: Error processing deposit webhook.", ['error' => $e->getMessage(), 'track' => $e->getTrace()]);
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
     
-    private function handleClabeDeposit($payload)
+    private function handleClabeDeposit(array $payload)
     {
+        Log::debug("debug bitso crypto depost: handleClabeDeposit: -", ['payload' => $payload]);
+        try {
+            if(isset($payload['currency']) && $payload['currency'] == 'usdt' && $payload["status"] == "complete") {
+                self::processCryptoDeposit($payload);
+            }
+        } catch (\Exception $e) {
+            Log::error("processCryptoDeposit failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+        
+
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
 
         $acc = VirtualAccount::where('account_number', $payload['details']['receive_clabe'])->first();
         if(!$acc) {
-            die(200);
+           return false;
         }
 
 
@@ -216,8 +289,15 @@ class BitsoController extends Controller
             'concept' => $payload['details']['concepto'] ?? null,
         ];
         $deposit->save();
-
-
+    
+        VirtualAccountDeposit::updateOrCreate([
+            "deposit_id" => $deposit->id,
+            "currency" => $deposit->currency,
+            "amount" => $deposit->amount,
+            "account_number" => $payload['details']['receive_clabe'],
+            "status" => "complete",
+        ]);
+    
         TransactionRecord::create([
             "user_id" => $user->id,
             "transaction_beneficiary_id" => $user->id,
@@ -270,8 +350,76 @@ class BitsoController extends Controller
         }
     }
 
-    protected static function handleFunding(array $payload): void
+    public static function processCryptoDeposit($payload)
     {
+        Log::debug("processing crypto_payin: ", ['payload' => $payload]);
+        $amount = (float) $payload['amount'];
+        $currency = strtoupper($payload['asset'] ?? $payload['currency']);
+        $exists = BitsoWebhookLog::where('fid', $payload['fid'])->exists();
+        if($exists) {
+            Log::debug("Transaction exists");
+            exit;
+        }
+
+        BitsoWebhookLog::create([
+            'fid' => $payload['fid'],
+            'status' => "success",
+            'currency' => $currency,
+            'method' => $payload['method'],
+            'method_name' => $payload['method_name'],
+            'amount' => $amount,
+            'details' => json_encode($payload['details'] ?? []),
+        ]);
+
+        if($payload['details']['receiving_address'] == "0xB86f958060D265AC87E34D872C725F86A169f830"){
+            // credit onramp USD 
+            $onramp = User::whereEmail("adityam@onramp.money")->first();
+            if($onramp) {
+                $onramp->getWallet('usd')->deposit($payload['amount'] * 100);
+                Log::debug("completed crypto payin");
+            }
+        }
+    
+        Deposit::create([
+            'transaction_id' => $payload['fid'],
+            'status' => $payload['status'],
+            'currency' => $currency,
+            'amount' => $amount,
+            'method' => $payload['method_name'],
+            'network' => $payload['network'],
+            'sender_name' => null, // No sender name in payload
+            'sender_clabe' => null, // Not present in payload
+            'receiver_clabe' => $payload['details']['receiving_address'] ?? null,
+            'sender_bank' => null, // Not present in payload
+            'concept' => null, // Not present in payload
+        ]);
+    
+        TransactionRecord::create([
+            'user_id' => User::where('email', $payload['details']['receiving_address'] ?? '')->first()->id ?? null,
+            'amount' => $amount,
+            'currency' => $currency,
+            'type' => 'deposit',
+            'status' => 'completed',
+            'reference' => $payload['fid'],
+            'description' => 'Deposit via ' . $payload['method_name'],
+        ]);
+    
+        Track::create([
+            'quote_id' => $payload['fid'],
+            'tracking_status' => 'Deposit completed successfully',
+            'raw_data' => json_encode($payload),
+        ]);
+        http_response_code(200);
+        exit;
+    }
+
+    protected static function handleFunding(array $payload)
+    {
+        Log::debug("debug bitso crypto depost", ['payload' => $payload]);
+        if(isset($payload['asset']) && $payload['asset'] == 'usdt' && $payload["status"] == "complete") {
+            return self::processCryptoDeposit($payload);
+        }
+
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
 
@@ -318,24 +466,73 @@ class BitsoController extends Controller
 
     protected static function handleWithdrawal(array $payload): void
     {
-        BitsoWebhookLog::create([
-            'fid' => $payload['wid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'method' => $payload['method'],
-            'amount' => $payload['amount'],
-            'details' => ($payload['details'] ?? []),
-        ]);
+        if(strtolower($payload['status']) === "pending") {
+            die("Status is still pending");
+        }
 
-        Withdrawal::create([
-            'transaction_id' => $payload['wid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'amount' => $payload['amount'],
-            'method' => $payload['method'],
-            'destination' => $payload['details']['destination'] ?? null,
-        ]);
+        try {
+            // Log the webhook payload
+            BitsoWebhookLog::create([
+                'fid' => $payload['wid'],
+                'status' => $payload['status'],
+                'currency' => $payload['currency'],
+                'method_name' => $payload['method'],
+                'amount' => $payload['amount'],
+                'details' => ($payload['details'] ?? []),
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error logging webhook payload: " . $e->getMessage());
+        }
+    
+        try {
+            if (!isset($payload['details']['origin_id'])) {
+                Log::error("Transaction ID not found in payload.");
+                return; // Exit gracefully if no transaction ID found
+            }
+    
+            $txn_id = $payload['details']['origin_id'];
+            $payout = Withdraw::whereId($txn_id)->first();
+    
+            if ($payout) {
+                try {
+                    $payout->status = strtolower($payload['status']);
+                    $payout->save();
+    
+                    // Update transaction record also
+                    $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
+                    if ($txn) {
+                        $txn->transaction_status = $payout->status;
+                        $txn->save();
+                    }
+    
+                    // Save both payout and transaction records
+                    if ($payout->save() && $txn->save()) {
+                        // If transaction is failed, refund customer
+                        if (strtolower($payout->status) === "failed") {
+                            $user = User::whereId($payout->user_id)->first();
+                            if ($user) {
+                                try {
+                                    $wallet = $user->getWallet($payout->debit_wallet);
+                                    $wallet->deposit($payout->debit_amount, [
+                                        "description" => "refund",
+                                        "full_desc" => "Refund for payout {$payout->id}",
+                                        "payload" => $payout
+                                    ]);
+                                } catch (\Exception $e) {
+                                    Log::error("Error processing refund for payout {$payout->id}: " . $e->getMessage());
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error processing payout transaction for {$txn_id}: " . $e->getMessage());
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("Error handling withdrawal for {$txn_id}: " . $e->getMessage());
+        }
     }
+    
 
     protected static function handleTrade(array $payload): void
     {

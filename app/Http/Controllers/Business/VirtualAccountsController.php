@@ -171,7 +171,7 @@ class VirtualAccountsController extends Controller
             return get_success_response($record, 201, "{$request->currency} Virtual account generated successfully");
         } catch (\Throwable $th) {
             if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
+                return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }

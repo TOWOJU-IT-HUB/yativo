@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use App\Models\User;
+use App\Http\Controllers\CronController;
 use App\Http\Controllers\CronDepositController;
   
 class DepositCronCommand extends Command
@@ -29,7 +30,7 @@ class DepositCronCommand extends Command
     public function handle()
     {
         $deposit = new CronDepositController();
-        info("Cron Job running at ". now());
+        // info("Cron Job running at ". now());
 
         $deposit->brla();
         $deposit->getFloidStatus();
@@ -37,5 +38,9 @@ class DepositCronCommand extends Command
         $deposit->transfi();
         $deposit->onramp();
         $deposit->bitso();
+
+
+        $payout = new CronController();
+        $payout->bitso();
     }
 }

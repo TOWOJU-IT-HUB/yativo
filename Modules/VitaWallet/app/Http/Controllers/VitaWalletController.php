@@ -9,6 +9,7 @@ use App\Models\TransactionRecord;
 use App\Services\Configuration;
 use App\Services\DepositService;
 use App\Services\VitaBusinessAPI;
+use App\Services\VitaWalletAPI;
 use Config;
 use Http;
 use Illuminate\Http\RedirectResponse;
@@ -21,11 +22,13 @@ use Modules\VitaWallet\app\Services\VitaWalletService;
 class VitaWalletController extends Controller
 {
     protected $vitaWalletService, $url;
+    protected $vitaBusinessAPI;
 
     public function __construct()
     {
         // $this->url = "https://api.stage.vitawallet.io/api/businesses/";
         $this->vitaWalletService = new VitaBusinessAPI();
+        $this->vitaBusinessAPI = new VitaWalletAPI();
     }
 
     public function wallets()
@@ -117,7 +120,9 @@ class VitaWalletController extends Controller
             update_deposit_gateway_id($quoteId, $result['data']['attributes']['public_code']);
             return $result['data']['attributes']['url'];
         }
-        
+        if(request()->has('debug')) {
+            dd($deposit);
+        }
         return $result;
     }
 
@@ -176,45 +181,101 @@ class VitaWalletController extends Controller
                 "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
                 "Content-Type" => $headers['headers']["Content-Type"],
                 "Authorization" => $headers['headers']["Authorization"],
-            ])->get(Configuration::getTransactionsUrl($txn_id));
+            ])->get(Configuration::getTransactionsUrI($txn_id));
 
-            Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            // Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
             $result = $response->json();
             return $result;
         }
     }
 
+    public function getPayout($txn_id)
+    {
+        if($txn_id && !empty($txn_id)) {
+            $configuration = Configuration::getInstance();
+            // Prepare headers
+            $headers = $configuration->prepareHeaders();
+
+            // Prepare HTTP request
+            $response = Http::withHeaders([
+                "X-Date" => $headers['headers']["X-Date"],
+                "X-Login" => $headers['headers']["X-Login"],
+                "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+                "Content-Type" => $headers['headers']["Content-Type"],
+                "Authorization" => $headers['headers']["Authorization"],
+            ])->get(Configuration::getTransactionsUrl($txn_id));
+
+            // Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            $result = $response->json();
+            return $result;
+        }
+    }
+    
     /**
      * Summary of create_withdrawal
      * @param mixed $requestBody
      * @return array
      */
-    public function create_withdrawal($requestBody)
+    public function create_withdrawal($payload)
     {
         $configuration = Configuration::getInstance();
 
+        // Initialize Configuration and set credentials
+        $configuration = Configuration::getInstance();
         // Prepare headers
-        $headers = $configuration->prepareHeaders($requestBody);
+        $headers = $configuration->prepareHeaders($payload);
+        $xheaders = [
+            "X-Date: " . $headers['headers']["X-Date"],
+            "X-Login: " . $headers['headers']["X-Login"],
+            "X-Trans-Key: " . $headers['headers']["X-Trans-Key"],
+            "Content-Type: " . $headers['headers']["Content-Type"],
+            "Authorization: " . $headers['headers']["Authorization"],
+        ];
 
-        // Prepare HTTP request
-        $response = Http::withHeaders([
-            "X-Date" => $headers['headers']["X-Date"],
-            "X-Login" => $headers['headers']["X-Login"],
-            "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
-            "Content-Type" => $headers['headers']["Content-Type"],
-            "Authorization" => $headers['headers']["Authorization"],
-        ])->post(Configuration::createTransaction(), $requestBody);
+        // Prepare cURL request
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, Configuration::payin());
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $xheaders);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-        $result = $response->json();
+        
+        // Execute request
+        $response = curl_exec($ch);
+        if ($response === false) {
+            $result = ["error" => 'cURL Error: ' . curl_error($ch)];
+        } else {
+            if (!is_array($response)) {
+                $result = json_decode($response, true);
+            }
+        }
 
-        Log::error('Response: ' . json_encode($result));
-
-        return ['response' => $result];
+        curl_close($ch);
+        return $result;
     }
 
 
     public function callback(Request $request)
     {
+        // deposit webhook processing
+        $payload = $request->all();
+        $depositId = $payload['order'];
+        // find the deposit
+        $vita = new VitaWalletController();
+        $response = $vita->getTransaction($depositId);
+        if(!isset($response['transactions'][0]['attributes'])) {
+            return http_response_code(200);
+        }
+
+        $payload = $response['transactions'][0]['attributes'];
+
+
+        $deposit = Deposit::where('gateway_deposit_id', $payload['order'])->first();
+        if($deposit) {
+            // deposit was found
+            return $this->deposit_callback($deposit);
+        }
         // Log all incoming request information
         Log::info('Vitawallet Callback Request', [
             'method' => $request->method(),
@@ -226,10 +287,11 @@ class VitaWalletController extends Controller
         ]);
     }
 
-    public function deposit_callback(Request $request, $deposit_id)
+    public function deposit_callback($deposit_id)
     {
+        $request = request();
         $order = TransactionRecord::where("transaction_id", $deposit_id)->first();
-        if (isset($request->status) && $request->status === true && isset($request->order)) {
+        if (isset($request->status) && ($request->status === true || $request->status === "completed" )) {
             $where = [
                 "transaction_memo" => "payin",
                 "transaction_id" => $deposit_id
@@ -241,17 +303,6 @@ class VitaWalletController extends Controller
                 $this->updateTracking($deposit_id, $request->status, $request->toArray());
             }
         }
-
-        // Log all incoming request information
-        Log::info("Vitawallet Callback for deposit ID: {$deposit_id}", [
-            'method' => $request->method(),
-            'url' => $request->fullUrl(),
-            'payload' => $request->all(),
-            'headers' => $request->header(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
         return http_response_code(200);
     }
 

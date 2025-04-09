@@ -74,7 +74,7 @@ class AuthController extends Controller
         ]);
 
         if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->get('remember'))) {
-            $user = auth()->user();
+            $user = auth('admin')->user();
             $user->update([
                 "last_login" => now()
             ]);

@@ -183,8 +183,8 @@ class BinancePayController extends Controller
         $timestamp = round(microtime(true) * 1000);
         $json_request = json_encode($request);
         $payload = $timestamp . "\n" . $nonce . "\n" . $json_request . "\n";
-        $binance_pay_key = "hrgonasego2ljjgphbecde6s3mfdbsnmoev2ngmw0vidbgwj4dmh8mylbkoeikv0";
-        $binance_pay_secret = "tjmjcrludtsfulcx2z1s6ztwy7twhwctoobrbqok4q78krly0q3e1fbgbdt43vgh";
+        $binance_pay_key = env('binance_pay_key');
+        $binance_pay_secret = env('binance_pay_secret');
         $signature = strtoupper(hash_hmac('SHA512', $payload, $binance_pay_secret));
         $headers = [];
         $headers[] = "Content-Type: application/json";

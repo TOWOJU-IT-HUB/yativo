@@ -16,6 +16,7 @@ use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
 use App\Models\WhitelistedIP;
+use App\Models\Withdraw;
 use App\Services\EncryptionService;
 use Creatydev\Plans\Models\PlanModel;
 use GuzzleHttp\Client;
@@ -32,6 +33,7 @@ use Bavix\Wallet\Exceptions\InsufficientFunds;
 use Illuminate\Support\Facades\Cache;
 use Modules\SendMoney\app\Models\SendQuote;
 use Illuminate\Support\Facades\File;
+use Log;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('user_can')) {
@@ -150,67 +152,95 @@ if (!function_exists('get_current_balance')) {
 if (!function_exists('get_transaction_rate')) {
     function get_transaction_rate($send_currency, $receive_currency, $Id, $type)
     {
-        Log::info(json_encode([$send_currency, $receive_currency, $Id, $type]));
-
         $result = 0;
         $rate = 0;
         $gatewayId = $Id;
 
         if ($type == "payout") {
-            $gateway = PayoutMethods::whereId($gatewayId)->first();
-            $rate = $gateway->exchange_rate_float ?? 0;
-        } else {
+            $gateway = payoutMethods::whereId($gatewayId)->first();
+        } else if($type == "payin") {
             $gateway = PayinMethods::whereId($gatewayId)->first();
-            $rate = $gateway->exchange_rate_float ?? 0;
+        } else {
+            return ['error' => 'invalid transaction type'];
         }
 
+        $rate = $gateway->exchange_rate_float ?? 0;
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
+        
+        if($type == "payin") {
+            return $baseRate;
+        }
+
+
+        Log::info("Exchange Rate Details", [
+            "Exchange_rate" => $baseRate,
+            "from_currency" => $send_currency,
+            "to_currency" => $receive_currency,
+            "Gateway ID" => $Id,
+            "Type" => $type,
+        ]);
 
         if ($rate > 0 && $baseRate > 0) {
-            $rate_floated_amount = ($rate / 100) * $baseRate;
-            $result = ($type == "payout") ? ($baseRate * (1 - $rate / 100)) : ($baseRate * (1 + $rate / 100));
+            $result = ($type == "payout") 
+                ? ($baseRate * (1 - ($rate / 100)))  // Reduce by percentage
+                : ($baseRate); // Increase by percentage
         } elseif ($baseRate > 0) {
             $result = $baseRate;
         } else {
-            Log::error("No exchange rate found for gateway ID: {$gatewayId}, type: {$type}");
+            Log::error("No valid exchange rate found: baseRate={$baseRate}, rate={$rate}, gateway ID={$gatewayId}, type={$type}");
+            return 0; // Return 0 to prevent invalid calculations
         }
+
+        session([
+            "rates" => [
+                "base_rate" => $baseRate,
+                "final_rate" => $result,
+                "exchange_rate_float" => $gateway->exchange_rate_float
+            ] 
+        ]);
 
         return floatval($result);
     }
-
 }
 
 if (!function_exists('exchange_rates')) {
-    function exchange_rates($from, $to) : int
+    function exchange_rates($from, $to) : float
     {
-        if ($from === $to) return 1; // Return 1 for same currencies
+        if ($from === $to) return 1.0; // Return 1 for same currencies
 
         $cacheKey = "exchange_rate_{$from}_{$to}";
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
+        Log::info("I'm here getting the exchange rate");
+        // return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($from, $to) {
             $client = new Client();
-
+            Log::info("I'm here getting the exchange rate - cache mode");
             $apis = [
                 "https://min-api.cryptocompare.com/data/price" => ['query' => ['fsym' => $from, 'tsyms' => $to]],
                 "https://api.coinbase.com/v2/exchange-rates" => ['query' => ['currency' => $from]]
             ];
 
+            $exchangeRate = 0;
             foreach ($apis as $url => $params) {
                 try {
                     $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
-                    $rate = $url === "https://min-api.cryptocompare.com/data/price" 
+                    $rate = ($url === "https://min-api.cryptocompare.com/data/price") 
                         ? ($response[$to] ?? null) 
                         : ($response['data']['rates'][$to] ?? null);
 
-                    if ($rate) return (float) $rate; // Return rate immediately if found
+                    if ($rate !== null) {
+                        $exchangeRate = (float) $rate;
+                        Log::info("Newly fetched rate is: {$exchangeRate}"); // Store the rate
+                        break; // Stop loop if a valid rate is found
+                    }
                 } catch (\Exception $e) {
                     Log::error("Error fetching exchange rate from $url: " . $e->getMessage());
                 }
             }
 
-            return 0; // Return 0 if both APIs fail
-        });
+            return $exchangeRate; // Return the fetched rate or 0 if both APIs failed
+        // });
     }
 }
+
 
 
 
@@ -965,7 +995,7 @@ if (!function_exists('debit_user_wallet')) {
                 'description' => $description,
             ]);
 
-            return ['success' => true, 'message' => 'Transaction completed successfully'];
+            return ['success' => true, 'message' => 'Transaction completed successfully', 'amount_charged' => $amount, 'currency' => $currency];
         } catch (InsufficientFunds $exception) {
             // User doesn't have enough balance in wallet
             return ['error' => $exception->getMessage()];
@@ -1255,5 +1285,108 @@ if (!function_exists('config_can_peform')) {
         }
 
         return true;
+    }
+}
+
+if(!function_exists('telegram_table')){
+    function telegram_table($array, $keyFormat = '<b>%s</b>', $valueFormat = '<i>%s</i>', $lineBreak = '<br>') {
+        $output = '';
+        foreach ($array as $key => $value) {
+            $formattedKey = sprintf($keyFormat, htmlspecialchars($key));
+            $formattedValue = sprintf($valueFormat, htmlspecialchars($value));
+            $output .= $formattedKey . ': ' . $formattedValue . $lineBreak;
+        }
+        // var_dump($output);
+        return $output;
+    }
+}
+
+if(!function_exists('sendTelegramNotification')) {
+    function sendTelegramNotification() {
+        $message = $collection ?? "Yativo Payout Notification";
+
+        $message_payload = $message."<code>".json_encode($payload)."</code>";
+    
+        $botToken = env("TELEGRAM_TOKEN");
+        $chatId = env('TELEGRAM_CHAT_ID');
+        echo "Telegram notification called";
+        Log::debug("Telegrm notif");
+        // Telegram API endpoint
+        $curl = curl_init();
+        
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.telegram.org/bot{$botToken}/sendMessage",
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode([
+                "text" => $message_payload,
+                "chat_id" => $chatId,
+                "protect_content" => true,
+                "parse_mode" => "html"
+            ]),
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+        ));
+        
+        $response = curl_exec($curl);
+        
+        curl_close($curl);
+        // echo $response;        
+    }
+}
+
+if (!function_exists('mark_payout_completed')) {
+    function mark_payout_completed($id, $payout_id) {
+        // Start a database transaction
+        DB::beginTransaction();
+
+        try {
+            // Find the payout record
+            $payout = Withdraw::where('id', $id)
+                            ->orWhere('payout_id', $payout_id)
+                            ->first();
+
+            if (!$payout) {
+                throw new \Exception("Payout not found");
+            }
+
+            // Update payout status
+            $payout->status = "complete";
+            if (!$payout->save()) {
+                throw new \Exception("Failed to update payout status");
+            }
+
+            // Find and update transaction records
+            $tranx = TransactionRecord::where(function($query) use ($id, $payout_id) {
+                $query->where('transaction_id', $payout_id)
+                      ->orWhere('transaction_id', $id);
+            })->where("transaction_memo", "payout")->first();
+
+            if ($tranx) {
+                $tranx->transaction_status = "complete";
+                if (!$tranx->save()) {
+                    throw new \Exception("Failed to update transaction status");
+                }
+            }
+
+            // Commit the transaction
+            DB::commit();
+
+            return true;
+        } catch (\Exception $e) {
+            // Rollback the transaction on error
+            DB::rollBack();
+
+            // Log the error
+            Log::error("mark_payout_completed error: " . $e->getMessage());
+
+            return false;
+        }
     }
 }

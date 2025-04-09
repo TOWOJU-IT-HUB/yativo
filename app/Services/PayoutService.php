@@ -31,6 +31,7 @@ use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Services\VitaWalletService;
 use Towoju5\Localpayments\Localpayments;
 use App\Services\BrlaDigitalService;
+use Modules\Flow\app\Http\Controllers\FlowController;
 
 
 /**
@@ -63,7 +64,7 @@ class PayoutService
                 $result = self::$gateway($quoteId, $withdrawal->currency, $withdrawal);
 
                 if(isset($result['error'])) {
-                    return back()->with('error', $result['error']);
+                    return ['error' => $result['error']];
                 }
                 // var_dump($result); exit;
 
@@ -91,8 +92,9 @@ class PayoutService
                 ]);
 
                 $withdrawal->update([
-                    "status" => "In Progress"
+                    "status" => "processing"
                 ]);
+
                 return $result;
                 // return back()->with('success', "Transaction initiated successfully");
             }
@@ -128,10 +130,12 @@ class PayoutService
             $request = request();
             $beneficiaryId = $request->payment_method_id;
             $local = new BitsoController();
+            Log::info("Bitso payout model called");
             $payout = $local->withdraw(
-                $request->amount,
-                $beneficiaryId,
-                $currency
+                $payoutObject->customer_receive_amount,
+                $payoutObject->beneficiary_id,
+                $currency,
+                $payoutObject->id
             );
             return $payout;
         } catch (\Throwable $th) {
@@ -139,10 +143,10 @@ class PayoutService
         }
     }
 
-    public function transfi($deposit_id, $amount, $currency, $payoutObject)
+    public function transfi($deposit_id, $currency, $payoutObject)
     {
         $transFi = new TransFiController();
-        $checkout = $transFi->payout($deposit_id, $amount, $currency, $payoutObject);
+        $checkout = $transFi->payout($deposit_id, $payoutObject->customer_receive_amount, $currency, $payoutObject);
         return $checkout;
     }
 
@@ -151,6 +155,14 @@ class PayoutService
         $bridge = new BridgeController();
         $checkout = $bridge->makePayout($deposit_id);
         return $checkout;
+    }
+
+    public function floid($quoteId, $currency, $payoutObject)
+    {
+        $flow = new FlowController();
+        $checkout = $flow->payout($payoutObject, $payoutObject->customer_receive_amount, $currency);
+        return $checkout;
+        // return ['error' => 'Payout method is currently unavailable'];
     }
     
     public function vitawallet($quoteId, $currency, $payoutObject)
@@ -168,9 +180,7 @@ class PayoutService
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
-            // var_dump($gateway); exit;
-
-            // $country = Country::where('currency_code', strtoupper($gateway->currency))->first();
+            
             $country = Country::where('currency_code', $gateway->currency)->where('iso3', $gateway->country)->first();
             
             // var_dump($country); exit;
@@ -190,19 +200,12 @@ class PayoutService
                 "url_notify" => "https://api.yativo.com/callback/webhook/vitawallet", //route("vitawallet.callback.success"),
                 "country" => $country->iso2,
                 "currency" => "CLP",
-                "amount" => $payoutObject->amount * $rate,
+                "amount" => $payoutObject->customer_receive_amount * $rate,
                 "order" => $quoteId,
                 "type" => "business_transaction",
                 "beneficiary_email" => "emma@yativo.com"
             ];
 
-            // if (isset($formArray['email'])) {
-            //     $requestBody['beneficiary_email'] = $formArray['email'];
-            // }
-
-            // if (isset($formArray['beneficiary_type'])) {
-            //     $formArray['beneficiary_type'] = strtolower($formArray['beneficiary_type']);
-            // }
 
             if (!isset($formArray['phone'])) {
                 $requestBody['phone'] = auth()->user()?->phone ?? "9203751431";
@@ -219,15 +222,18 @@ class PayoutService
             $payload = array_merge($formArray, $requestBody);
 
             // echo json_encode($payload, JSON_PRETTY_PRINT); exit;
+            Log::info("My request payload is:", ['payload' => $payload]);
+            $vita = new VitaWalletController();
+            $prices = $vita->prices();
 
-            $vitawallet = new VitaWalletController();
-            $vitawallet->prices();
-            $process = $vitawallet->create_withdrawal($payload);
+            Log::info("Price response is: ", ['price' => $prices]);
 
+            $process = $vita->create_withdrawal($payload);
+
+            Log::info("Main process response is: ", ['main_vita' => $process]);
             if (!is_array($process)) {
                 $process = json_decode($process, true);
             }
-
 
             if (isset($process['error'])) {
                 return ['error' => $process['error']['message'] ?? $process['error'] ?? 'Unknown error occurred'];
@@ -239,7 +245,7 @@ class PayoutService
 
             return $process;
         } catch (\Throwable $th) {
-            Log::error('VitaWallet payout error: ' . $th->getMessage());
+            Log::error('VitaWallet payout error: ' . $th->getTrace());
             return ['error' => $th->getMessage()];
         }
     }
@@ -248,7 +254,7 @@ class PayoutService
     {
         $request = request();
         try {
-            $amount = $payoutObject->amount;
+            $amount = $payoutObject->customer_receive_amount;
             $beneficiaryId = $request->payment_method_id;
             $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
@@ -287,6 +293,11 @@ class PayoutService
         }
     }
 
+    public function manual($quoteId, $currency, $payoutObject)
+    {
+        //
+    }
+
     public function completePayout($transactionId, $status)
     {
         // Prepare the condition to find the TransactionRecord
@@ -321,10 +332,5 @@ class PayoutService
             'success' => true,
             'message' => 'Transaction status updated successfully.',
         ]);
-    }
-
-    public function floid()
-    {
-        return ['error' => 'Payout method is currently unavailable'];
     }
 }

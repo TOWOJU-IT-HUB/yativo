@@ -5,6 +5,7 @@ use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CronController;
+use App\Http\Controllers\CronDepositController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\KycServiceController;
@@ -36,6 +37,7 @@ use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
 use App\Models\Business\VirtualAccount;
 use Illuminate\Support\Facades\Schema;
+use App\Models\localPaymentTransactions;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -55,11 +57,15 @@ Route::get('/', function () {
 });
 
 
+
+Route::get('v', [CronDepositController::class, "vitawallet"]);
+
 Route::any('/coinbase/onramp/token', [CoinbaseOnrampController::class, 'getSessionToken']);
 Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOnrampUrl']);
 
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
+    Route::get('kyc/update-biodata/{customerId}', [DojahVerificationController::class, 'kycStatus'])->name('checkout.kyc');
 });
 
 

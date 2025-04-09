@@ -5,11 +5,13 @@ namespace Modules\Flow\app\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Deposit;
 use App\Models\User;
+use App\Models\payoutMethods;
 use Http;
 use Illuminate\Http\Request;
 use Log;
 use Modules\Flow\app\Services\FlowServices;
 use Modules\SendMoney\app\Models\SendMoney;
+use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
 
 class FlowController extends Controller
@@ -35,6 +37,8 @@ class FlowController extends Controller
                 'webhook_url' => route('floid.callback.success'),
                 // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
+
+            var_dump($requestData); exit;
 
             $response = Http::withToken($authToken)->withHeaders([
                 'Content-Type' => 'application/json',
@@ -119,6 +123,84 @@ class FlowController extends Controller
             }
 
             return rediret()->away('https://app.yativo.com');
+        }
+    }
+
+
+    /**
+     * Payout code
+     */
+
+    public function payout($payload, $amount, $currency)
+    {
+        try{
+            if ($currency == 'CLP') {
+                $url = "https://api.floid.app/cl/payout/create";
+            } else if ($currency == "PEN" || $currency == "USD") {
+                $url = "https://api.floid.app/pe/payout/create";
+            } else {
+                return ['error' => "Unsupported currency selected"];
+            }
+
+            // var_dump($payload); exit;
+
+            $beneficiaryId = $payload->beneficiary_id;
+            $model = new BeneficiaryPaymentMethod();
+            $ben = [];
+            $data= $model->getBeneficiaryPaymentMethod($beneficiaryId);
+            // var_dump($ben); exit;
+
+            if($data) {
+                $ben = $data->payment_data;
+            }
+
+            if (!$ben) {
+                return ['error' => 'Beneficiary not found'];
+            }
+            $gateway = payoutMethods::whereId($data->gateway_id)->first();
+
+            if (!$gateway) {
+                return ['error' => 'Gateway not found'];
+            }
+
+            $authToken = env("FLOID_AUTH_TOKEN");
+            
+            // var_dump([$authToken]); exit;
+            // $rate = getExchangeVal($gateway->currency, "CLP");
+            // Log::debug("Processing payout requests", ['payload' => $payload]);
+            $requestData = [
+                "beneficiary_id" => $ben['beneficiary_id'],
+                "beneficiary_name" => $ben['beneficiary_name'],
+                "beneficiary_account" => $ben['beneficiary_account'],
+                "amount" => floatval($payload->customer_receive_amount),
+                "beneficiary_account_type" => $ben['beneficiary_account_type'],
+                "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
+                "beneficiary_email" => $ben['beneficiary_email'],
+                "description" => $ben['description']
+            ];
+
+            // if(request()->has('debug')) {
+                // dd(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
+            // }
+            // var_dump($requestData); exit;
+            $response = Http::withToken($authToken)->withHeaders([
+                'Content-Type' => 'application/json',
+            ])->post($url, $requestData);
+
+            $result = $response->json();
+            if(isset($result["status"]) && strtoupper($result["status"]) === "SUCCESSFUL") {
+                mark_payout_completed($payload->id, $payload->payout_id);
+            }
+            var_dump($result); exit;
+            if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
+                $error = $result['data']['error_message'] ?? $result['error_message'];
+                return ['error' => $error];
+            }
+            return $result;
+            
+        } catch (\Throwable $e) {
+            var_dump($e); exit;
+            return ["error" => $e->getMessage()];
         }
     }
 }

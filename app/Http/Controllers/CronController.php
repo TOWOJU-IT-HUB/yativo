@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Deposit;
 use App\Models\PayinMethods;
+use App\Models\payoutMethods;
 use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\Withdraw;
@@ -13,6 +14,7 @@ use Log;
 use Modules\BinancePay\app\Http\Controllers\BinancePayController;
 use Modules\BinancePay\app\Models\BinancePay;
 use Modules\Flow\app\Http\Controllers\FlowController;
+use Modules\Bitso\app\Services\BitsoServices;
 
 class CronController extends Controller
 {
@@ -114,6 +116,48 @@ class CronController extends Controller
         // }
     }
 
+    // bitso withdrawal payout 
+    public function bitso()
+    {
+        $bitso = new BitsoServices();
+        $ids = $this->getGatewayPayoutMethods(method: 'bitso');
+        $payouts = Withdraw::whereIn('gateway_id', $ids)->whereStatus('pending')->get();
+        
+        foreach ($payouts as $payout) {
+            $txn_id = $payout->id;
+            $curl = $bitso->getPayoutStatus($txn_id);
+            if(isset($curl['success']) && $curl['success'] != false){
+                Log::info("Below is the payout detail: ", ["curl" => $curl]);
+                $payload = $curl['payload'][0];
+                $payout->status = strtolower($payload['status']);
+                $payout->save();
+
+                // update transaction record also
+                $txn = TransactionRecord::where(['transaction_id' => $txn_id, 'transaction_memo' => 'payout'])->first();
+                if($txn) {
+                    $txn->transaction_status = $payout->status;
+                    $txn->save();
+                }
+
+                if($payout->save() && $txn->save()) {
+                    // if transaction is failed refund customer
+                    if(strtolower($payout->status) === "failed") {
+                        $user = User::whereId($payout->user_id)->first();
+                        if($user) {
+                            $wallet = $user->getWallet($payout->debit_wallet);
+                            $wallet->deposit($payout->debit_amount, [
+                                "description" => "refund",
+                                "full_desc" => "Refund for payout {$payout->id}",
+                                "payload" => $payout
+                            ]);
+                        }
+                    }
+                }
+            }
+            Log::info("Curl response to retrieve data from Bitso: ", ['curl' => $curl]);
+        }
+    }
+
     // get status of transFi transaction
     private function getTransFiStatus(): void
     {
@@ -204,10 +248,17 @@ class CronController extends Controller
             }
         }
     }
-
+    
     private function getGatewayPayinMethods(string $method)
     {
         return PayinMethods::where('gateway', $method)
+            ->pluck('id')
+            ->toArray();
+    }
+
+    private function getGatewayPayoutMethods(string $method)
+    {
+        return payoutMethods::where('gateway', $method)
             ->pluck('id')
             ->toArray();
     }
@@ -221,5 +272,52 @@ class CronController extends Controller
             "raw_data" => (array) $response,
             "tracking_updated_by" => "cron"
         ]);
+    }
+
+    public function vitawallet()
+    {
+        $ids = $this->getGatewayPayinMethods('vitawallet');
+        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
+        $vitawallet = new VitaWalletController();
+
+        foreach ($deposits as $deposit) {
+            $curl = $vitawallet->getPayout($deposit->gateway_deposit_id);
+            if (is_array($curl) && isset($curl['transaction'])) {
+                $record = $curl['transaction'];
+                if (isset($record['status'])) {
+                    $transactionStatus = strtolower($record['status']);
+                    
+                    $now = now();
+                    $failedPayoutIds = Withdraw::query()
+                        ->with('payoutGateway:id,estimated_delivery') // Only load necessary fields
+                        ->where('status', 'pending')
+                        ->whereHas('payoutGateway', function ($query) {
+                            $query->whereNotNull('estimated_delivery');
+                        })
+                        ->get()
+                        ->filter(function ($payout) use ($now) {
+                            $estimatedDeliveryHours = $payout->payoutGateway->estimated_delivery;
+                            $deliveryThreshold = $payout->created_at->addHours(floor($estimatedDeliveryHours))
+                                ->addMinutes(($estimatedDeliveryHours - floor($estimatedDeliveryHours)) * 60);
+
+                            return $now->greaterThan($deliveryThreshold);
+                        })
+                        ->pluck('id');
+
+                    $cancelledPayoutIds = Withdraw::query()
+                        ->doesntHave('payoutGateway')
+                        ->where('status', 'pending')
+                        ->pluck('id');
+
+                    if ($failedPayoutIds->isNotEmpty()) {
+                        Withdraw::whereIn('id', $failedPayoutIds)->update(['status' => 'failed']);
+                    }
+
+                    if ($cancelledPayoutIds->isNotEmpty()) {
+                        Withdraw::whereIn('id', $cancelledPayoutIds)->update(['status' => 'cancelled']);
+                    }
+                }
+            }
+        }
     }
 }

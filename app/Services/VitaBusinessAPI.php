@@ -55,6 +55,7 @@ class VitaBusinessAPI
      */
     private function generateSignature(array|string $requestBody, $xDate)
     {
+        Log::info("vita controller 003");
         // Sort and concatenate the request body (if it's not null)
         $sortedRequestBody = $this->prepareHeaders($requestBody);
 
@@ -78,6 +79,7 @@ class VitaBusinessAPI
                 return '';
             }
 
+            Log::info("vita controller 004");
             // Sort the request body by keys
             ksort($requestBody);
 
@@ -97,9 +99,11 @@ class VitaBusinessAPI
         $X_Trans_Key = $credentials['X_Trans_Key'];
         $secret = $credentials['secret'];
 
+        Log::info("vita controller 005");
         $X_Date = (new DateTime())->format('Y-m-d\TH:i:s.v\Z');
         $result = self::prepareResult($payload);
 
+        Log::info("vita controller 006");
         $signature = hash_hmac('sha256', $X_Login . $X_Date . $result, $secret);
 
         return [
@@ -121,8 +125,10 @@ class VitaBusinessAPI
      * @param string $method (default: post)
      * @return \array
      */
-    public function makeSignedRequest($endpoint, array $body = [], $method = "post")
+    public function makeSignedRequest(string $endpoint, array $body = [], $method = "post")
     {
+
+        Log::info("vita controller 007");
         $credentials = self::getInstance()->credentials;
         $baseUrl = $credentials['BASE_URL'];
         
@@ -131,6 +137,7 @@ class VitaBusinessAPI
         }
 
         $headers = $this->prepareHeaders($body);
+
         $xheaders = [
             "X-Date: " . $headers['headers']["X-Date"],
             "X-Login: " . $headers['headers']["X-Login"],
@@ -139,22 +146,8 @@ class VitaBusinessAPI
             "Authorization: " . $headers['headers']["Authorization"],
         ];
 
-        // make call to prices endpoint - it's required 
-        $pricingheaders = $this->prepareHeaders();
-
-        // Prepare HTTP request
-        $response = Http::withHeaders([
-            "X-Date" => $pricingheaders['headers']["X-Date"],
-            "X-Login" => $pricingheaders['headers']["X-Login"],
-            "X-Trans-Key" => $pricingheaders['headers']["X-Trans-Key"],
-            "Content-Type" => $pricingheaders['headers']["Content-Type"],
-            "Authorization" => $pricingheaders['headers']["Authorization"],
-        ])->get("{$baseUrl}prices");
-
-
         // Prepare cURL request
         $ch = curl_init();
-        // curl_setopt($ch, CURLOPT_URL, Configuration::getWalletsUrl());
         curl_setopt($ch, CURLOPT_URL, $endpoint);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
@@ -172,6 +165,7 @@ class VitaBusinessAPI
             $result = (array) $response;
         }
 
+        Log::info("makeSignedRequest response ", ['curl' => $response, 'curl_result' => $result]);
         curl_close($ch);
 
         return $result;
