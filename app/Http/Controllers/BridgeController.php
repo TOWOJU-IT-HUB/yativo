@@ -749,9 +749,9 @@ class BridgeController extends Controller
                 $this->processVirtualAccountWebhook($eventData);
                 break;
 
-            // case 'kyc_link.updated.status_transitioned':
-            //     $this->handleKycStatusUpdate($eventData);
-            //     break;
+            case 'kyc_link.updated.status_transitioned':
+                $this->handleKycStatusUpdate($eventData);
+                break;
 
             case 'customer.updated.status_transitioned':
                 $this->handleKycStatusUpdate($eventData);
@@ -905,7 +905,8 @@ class BridgeController extends Controller
         Log::info("Customer KYC details: ", ['details' => $data]);
         $customer = Customer::where('bridge_customer_id', $data['id'])->orWhere('customer_kyc_email', $data['email'])->first();
         // Update customer status if active
-        if ($customer && isset($data['status']) && $data['status'] === 'active') {
+        $status = $data['event_object_status'] ?? $data['status'] ?? $data['kyc_status'] ?? "pending";
+        if ($customer && $status === 'active') {
             $customer->update([
                 'bridge_customer_id' => $data['id'],
                 'customer_status' => 'active',

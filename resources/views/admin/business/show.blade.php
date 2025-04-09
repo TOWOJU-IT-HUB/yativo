@@ -205,16 +205,14 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Tab Content: User Details -->
-            <div id="customers" class="tab-content">
+            <div id="user" class="tab-content">
                 <div>
                     <h2 class="text-xl font-semibold">Overview</h2>
-                    @foreach($user as $k => $v)
-                        <p class="text-gray-700 dark:text-gray-300">
-                            <strong>{{ str_replace('_', ' ', ucfirst($k)) }}</strong> {{ $v }}
-                        </p>
-                    @endforeach
+                    <pre>
+                        @php var_dump($user) @endphp
+                    </pre>
                 </div>            
             </div>     
 

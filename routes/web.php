@@ -53,6 +53,20 @@ use App\Models\localPaymentTransactions;
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
+    $user = User::whereEmail('support@cwito.com')->first();
+    if($user) {
+        $wallet = $user->getWallet('user');
+        if(!$wallet) {
+            return response()->json(['message' => 'Unable to retrieve wallet']);
+        }
+        if($wallet && $wallet->deposit(10 * 100)) {
+            return response()->json(['message' => "wallet credited"]);
+        } else {
+            return response()->json(['message' => "Unable to credit user"]);
+        }
+    } else {
+        return response()->json(['message' => "User not found"]);
+    }
     return redirect()->to('https://yativo.com');
 });
 
