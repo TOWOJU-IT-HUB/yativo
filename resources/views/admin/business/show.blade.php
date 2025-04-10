@@ -115,6 +115,7 @@
             <!-- Tabs -->
             <div class="tabs">
                 <div id="tab-overview" class="tab active" onclick="toggleTab('overview')">Overview</div>
+                <div id="tab-user" class="tab" onclick="toggleTab('user')">User Details</div>
                 <div id="tab-customers" class="tab" onclick="toggleTab('customers')">Customers</div>
                 <div id="tab-virtual-accounts" class="tab" onclick="toggleTab('virtual-accounts')">Virtual Accounts</div>
                 <div id="tab-virtual-cards" class="tab" onclick="toggleTab('virtual-cards')">Virtual Cards</div>
@@ -204,6 +205,16 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Tab Content: User Details -->
+            <div id="user" class="tab-content">
+                <div>
+                    <h2 class="text-xl font-semibold">Overview</h2>
+                    <pre>
+                        @php var_dump($user) @endphp
+                    </pre>
+                </div>            
+            </div>     
 
             <!-- Tab Content: Customers -->
             <div id="customers" class="tab-content">

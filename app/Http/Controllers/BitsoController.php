@@ -9,8 +9,8 @@ class BitsoController extends Controller
 {
     public function initiateWithdrawal(Request $request)
     {
-        // $apiKey = 'WOQzVVhdTD';
-        // $apiSecret = '65b52bca95c5be4ef84d3e0e3f615552';    
+        // $apiKey = '';
+        // $apiSecret = '';    
         // $baseUrl = 'https://bitso.com';
         // $requestPath = '/api/v3/withdrawals';
 

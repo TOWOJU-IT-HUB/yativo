@@ -905,7 +905,8 @@ class BridgeController extends Controller
         Log::info("Customer KYC details: ", ['details' => $data]);
         $customer = Customer::where('bridge_customer_id', $data['id'])->orWhere('customer_kyc_email', $data['email'])->first();
         // Update customer status if active
-        if ($customer && $data['status'] === 'active') {
+        $status = $data['event_object_status'] ?? $data['status'] ?? $data['kyc_status'] ?? "pending";
+        if ($customer && $status === 'active') {
             $customer->update([
                 'bridge_customer_id' => $data['id'],
                 'customer_status' => 'active',
