@@ -826,92 +826,93 @@ class BridgeController extends Controller
         } 
 
         
-        // // Update or create the deposit record
-        // $deposit = Deposit::updateOrCreate(
-        //     [
-        //         'gateway_deposit_id' => $payload["id"]
-        //     ],
-        //     [
-        //         'user_id' => $user->id,
-        //         'amount' => $deposit_amount,
-        //         'currency' => "usd", //strtoupper($payload['currency']),
-        //         'deposit_currency' => "USD", //strtoupper($payload['currency']),
-        //         'gateway' => 99999999,
-        //         'status' => $vc_status,
-        //         'receive_amount' => floatval($deposit_amount),
-        //         'meta' => $payload,
-        //     ]
-        // );
+        // Update or create the deposit record
+        $deposit = Deposit::updateOrCreate(
+            [
+                'gateway_deposit_id' => $payload["id"]
+            ],
+            [
+                'user_id' => $user->id,
+                'amount' => $deposit_amount,
+                'currency' => "usd", //strtoupper($payload['currency']),
+                'deposit_currency' => "USD", //strtoupper($payload['currency']),
+                'gateway' => 99999999,
+                'status' => $vc_status,
+                'receive_amount' => floatval($deposit_amount),
+                'meta' => $payload,
+            ]
+        );
                 
-        // // Update or create VirtualAccountDeposit
-        // VirtualAccountDeposit::updateOrCreate(
-        //     [
-        //         "user_id" => $deposit->user_id,
-        //         "deposit_id" => $deposit->id,
-        //     ],
-        //     [
-        //         "currency" => strtoupper($payload['currency']),
-        //         "amount" => $deposit->amount,
-        //         "account_number" => $vc->account_number,
-        //         "status" => $vc_status,
-        //     ]
-        // );
+        // Update or create VirtualAccountDeposit
+        VirtualAccountDeposit::updateOrCreate(
+            [
+                "user_id" => $deposit->user_id,
+                "deposit_id" => $deposit->id,
+            ],
+            [
+                "currency" => strtoupper($payload['currency']),
+                "amount" => $deposit->amount,
+                "account_number" => $vc->account_number,
+                "status" => $vc_status,
+            ]
+        );
         
-        // // Create Transaction Record
-        // TransactionRecord::create([
-        //     "user_id" => $user->id,
-        //     "transaction_beneficiary_id" => $user->id,
-        //     "transaction_id" => $payload['deposit_id'],
-        //     "transaction_amount" => $deposit_amount,
-        //     "gateway_id" => 99999999,
-        //     "transaction_status" => $vc_status,
-        //     "transaction_type" => 'virtual_account',
-        //     "transaction_memo" => "payin",
-        //     "transaction_currency" => strtoupper($payload['currency']),
-        //     "base_currency" => strtoupper($payload['currency']),
-        //     "secondary_currency" => strtoupper($payload['currency']),
-        //     "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
-        //     "transaction_payin_details" => [
-        //         'sender_name' => $payload['source']['sender_name'] ?? null,
-        //         'trace_number' => $payload['source']['trace_number'] ?? null,
-        //         'bank_routing_number' => $payload['source']['sender_bank_routing_number'] ?? null,
-        //         'description' => $payload['source']['description'] ?? null,
-        //         "transaction_fees" => $total_fee
-        //     ],
-        //     "transaction_payout_details" => null,
-        // ]);
+        // Create Transaction Record
+        TransactionRecord::create([
+            "user_id" => $user->id,
+            "transaction_beneficiary_id" => $user->id,
+            "transaction_id" => $payload['deposit_id'],
+            "transaction_amount" => $deposit_amount,
+            "gateway_id" => 99999999,
+            "transaction_status" => $vc_status,
+            "transaction_type" => 'virtual_account',
+            "transaction_memo" => "payin",
+            "transaction_currency" => strtoupper($payload['currency']),
+            "base_currency" => strtoupper($payload['currency']),
+            "secondary_currency" => strtoupper($payload['currency']),
+            "transaction_purpose" => "VIRTUAL_ACCOUNT_DEPOSIT",
+            "transaction_payin_details" => [
+                'sender_name' => $payload['source']['sender_name'] ?? null,
+                'trace_number' => $payload['source']['trace_number'] ?? null,
+                'bank_routing_number' => $payload['source']['sender_bank_routing_number'] ?? null,
+                'description' => $payload['source']['description'] ?? null,
+                "transaction_fees" => $total_fee
+            ],
+            "transaction_payout_details" => null,
+        ]);
         
         
-        // if (strtolower($payload['type']) === "payment_processed") {
-        //     $wallet = $user->getWallet('usd');
-        //     if ($wallet) {
-        //         // Check if transaction already exists for this deposit
-        //         $existingTransaction = $wallet->transactions()
-        //             ->where('meta->deposit_id', $deposit->id)
-        //             ->first();
+        if (strtolower($payload['type']) === "payment_processed") {
+            $wallet = $user->getWallet('usd');
+            if ($wallet) {
+                // Check if transaction already exists for this deposit
+                $existingTransaction = $wallet->transactions()
+                    ->where('meta->deposit_id', $deposit->id)
+                    ->first();
     
-        //         if (!$existingTransaction) {
-        //             $wallet->deposit(floatval($deposit_amount * 100), [
-        //                 'deposit_id' => $deposit->id,
-        //                 'gateway_deposit_id' => $payload['id'],
-        //                 'sender' => $payload['source']['description'] ?? null
-        //             ]);
-        //         }
-        //     }
-        // }
+                if (!$existingTransaction) {
+                    $wallet->deposit(floatval($deposit_amount * 100), [
+                        'deposit_id' => $deposit->id,
+                        'gateway_deposit_id' => $payload['id'],
+                        'sender' => $payload['source']['description'] ?? null
+                    ]);
+                }
+            }
+        }
+
         $incomingData = $eventData;
         $customer = Customer::where("bridge_customer_id", $eventData['customer_id'])->first();
         $vc = VirtualAccount::where("customer_id", $customer->id)->first();
-
-        $userId = $vc->user_id;
+        Log::debug("User for user info is: ", ['user' => $user]);
+        $userId = $user->id;
 
         $webhookData = [
             "event.type" => "virtual_account.deposit",
             "payload" => [
                 "amount" => $incomingData['amount'],
-                "currency" => $incomingData['currency'],
+                "currency" => "USD",
                 "status" => "completed",
-                "credited_amount" => $incomingData['subtotal_amount'],
+                "credited_amount" => $deposit_amount,
                 "transaction_type" => "virtual_account_topup",
                 "transaction_id" => "TXN123456789",
                 "customer" => $customer,
@@ -930,7 +931,7 @@ class BridgeController extends Controller
                     ->dispatchSync();
             }
         })->afterResponse();
-        Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
+        // Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
     }
 
     private function handleKycStatusUpdate($data)
