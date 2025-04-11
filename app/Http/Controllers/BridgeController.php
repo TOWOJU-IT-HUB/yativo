@@ -448,6 +448,8 @@ class BridgeController extends Controller
                 "account_info" => [
                     "country" => $request->country,
                     "currency" => "USD",
+                    "account_type" => "checking",
+                    "bank_address" => "1801 Main Street, Kansas City, MO 64108",
                     "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
                     "bank_name" => $data['source_deposit_instructions']['bank_name'] ?? null,
                     "routing_number" => $data['source_deposit_instructions']['bank_routing_number'] ?? null,
@@ -897,7 +899,39 @@ class BridgeController extends Controller
                 }
             }
         }
-        Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
+
+        $incomingData = $eventData;
+        $customer = Customer::where("bridge_customer_id", $eventData['customer_id'])->first();
+        $vc = VirtualAccount::where("customer_id", $customer->id)->first();
+        Log::debug("User for user info is: ", ['user' => $user]);
+        $userId = $user->id;
+
+        $webhookData = [
+            "event.type" => "virtual_account.deposit",
+            "payload" => [
+                "amount" => $incomingData['amount'],
+                "currency" => "USD",
+                "status" => "completed",
+                "credited_amount" => $deposit_amount,
+                "transaction_type" => "virtual_account_topup",
+                "transaction_id" => "TXN123456789",
+                "customer" => $customer,
+                "source" => $incomingData['source']
+            ]
+        ];
+
+        dispatch(function () use ($userId, $webhookData) {
+            $webhook = Webhook::whereUserId($userId)->first();
+            if ($webhook) {
+                WebhookCall::create()
+                    ->meta(['_uid' => $webhook->user_id])
+                    ->url($webhook->url)
+                    ->useSecret($webhook->secret)
+                    ->payload($webhookData)
+                    ->dispatchSync();
+            }
+        })->afterResponse();
+        // Log::info("Bridge virtual account deposit completed: ", ['wallet' => $wallet, 'payload' => $eventData]);
     }
 
     private function handleKycStatusUpdate($data)

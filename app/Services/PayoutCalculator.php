@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\CustomPricing;
 use App\Models\payoutMethods as PayoutMethods;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
+use Creatydev\Plans\Models\PlanModel;
 
 class PayoutCalculator
 {
