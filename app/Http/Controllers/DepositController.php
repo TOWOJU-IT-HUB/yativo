@@ -89,22 +89,16 @@ class DepositController extends Controller
             $user = $request->user();
 
             // Validate credit_wallet and currency
-            if ($request->has('credit_wallet')) {
-                if (!$user->hasWallet($request->credit_wallet)) {
+            $deposit_currency = $request->credit_wallet ?? $request->currency;
+            if ($deposit_currency) {
+                if (!$user->hasWallet($deposit_currency)) {
                     return get_error_response(['error' => "Invalid credit wallet selected"], 400);
-                }
-                $wallet = $user->getWallet($request->credit_wallet);
-                if ($wallet->currency !== $request->currency) {
-                    return get_error_response(['error' => "Credit wallet must be in currency {$request->currency}"], 400);
-                }
-            } else {
-                $walletExists = $user->wallets()->where('slug', strtolower($request->currency))->exists();
-                if (!$walletExists) {
+                } else {
                     return get_error_response(['error' => "No wallet found for currency {$request->currency}"], 400);
                 }
             }
 
-            $deposit_currency = $request->currency;
+            // $deposit_currency = $request->currency;
 
             $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
 
