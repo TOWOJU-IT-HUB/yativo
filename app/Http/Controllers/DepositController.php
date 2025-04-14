@@ -93,8 +93,6 @@ class DepositController extends Controller
             if ($deposit_currency) {
                 if (!$user->hasWallet($deposit_currency)) {
                     return get_error_response(['error' => "Invalid credit wallet selected"], 400);
-                } else {
-                    return get_error_response(['error' => "No wallet found for currency {$request->currency}"], 400);
                 }
             }
 
