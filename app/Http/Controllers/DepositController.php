@@ -96,8 +96,6 @@ class DepositController extends Controller
                 }
             }
 
-            // $deposit_currency = $request->currency;
-
             $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
 
             if ($payin->minimum_deposit > $request->amount) {
