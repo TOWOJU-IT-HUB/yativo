@@ -234,4 +234,35 @@ class MantecaController extends Controller
 
         return $response->json();
     }
+
+
+    public function create()
+    {
+        $response = Http::withHeaders([
+            'md-api-key' => 'API_Key',
+            'Content-Type' => 'application/json',
+        ])->post('https://api.manteca.dev/crypto/v1/widget/onboarding', [
+            "userExternalId" => "example-external-id-1",
+            "sessionId" => "example-session-id-1",
+            "returnUrl" => "https://www.example.com/widget-end",
+            "failureUrl" => "https://www.example.com/widget-failure",
+            "options" => [
+                "endOnOnboarding" => true,
+                "endOnOperation" => false,
+                "endOnOperationWaiting" => false,
+                "operationSkipDeposit" => false,
+                "orderExternalId" => "example-external-id-1",
+                "side" => "BUY",
+                "asset" => "USDT",
+                "against" => "ARS",
+                "assetAmount" => "1000.00",
+                "againstAmount" => "1001150.00",
+                "withdrawExternalId" => "example-external-id-1",
+                "withdrawAddress" => "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+                "withdrawNetwork" => "BINANCE",
+            ]
+        ]);
+        
+        return response()->json($response);
+    }
 }
