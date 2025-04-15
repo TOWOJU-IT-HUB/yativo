@@ -525,7 +525,7 @@ class BridgeController extends Controller
             "amount" => $payout->amount,
             "on_behalf_of" => "e994df00-c544-424d-a373-3f4db702211d", //$payout->beneficiary->bridge_customer_id,
             "source" => [
-                "currency" => "usdb",
+                "currency" => "usdb", //  pending the time
                 "payment_rail" => "bridge_wallet",
                 "bridge_wallet_id" => $destinationAddress
             ],
