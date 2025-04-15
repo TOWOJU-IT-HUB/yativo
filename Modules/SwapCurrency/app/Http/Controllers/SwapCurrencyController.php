@@ -8,6 +8,7 @@ use Http;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class SwapCurrencyController extends Controller
@@ -138,7 +139,16 @@ class SwapCurrencyController extends Controller
      */
     private function getExchangeRate(string $fromCurrency, string $toCurrency)
     {
-        $exchange_rate = exchange_rates($fromCurrency, $toCurrency);
-        return $exchange_rate;
+        $cacheKey = "exchange_rate_{$fromCurrency}_{$toCurrency}";
+        
+        return Cache::remember($cacheKey, 5, function() use ($fromCurrency, $toCurrency) {
+            $rate = Http::get("https://min-api.cryptocompare.com/data/price?fsym={$fromCurrency}&tsyms={$toCurrency}")->json();
+            
+            if (isset($rate[$toCurrency]) && $rate[$toCurrency] > 0) {
+                return $rate[$toCurrency];
+            }
+            
+            return 0;
+        });
     }
 }
