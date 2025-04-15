@@ -555,7 +555,7 @@ class BridgeController extends Controller
 
     public function externalAccounts(array $req, $gateway)
     {
-        $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/external_accounts";
+        $endpoint = "v0/customers/e994df00-c544-424d-a373-3f4db702211d/external_accounts";
         $data = $req['payment_data'];
 
         // Normalize country code to ISO3
