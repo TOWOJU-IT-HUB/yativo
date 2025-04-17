@@ -388,5 +388,50 @@ class MiscController extends Controller
         }
     }
 
+    public function validateDocument(Request $request)
+    {
+        // Validate input
+        $validated = $request->validate([
+            'country' => 'required|string|size:3',
+            'document.id' => 'required|string',
+            'document.type' => 'required|string',
+        ]);
 
+        $baseUrl = "https://api.stage.localpayment.com/api";
+
+        // STEP 1: Get Bearer Token
+        $tokenResponse = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post($baseUrl.'/token/', [
+            'username' => env('LOCALPAYMENT_EMAIL'),
+            'password' => env('LOCALPAYMENT_PASSWORD'),
+        ]);
+
+        if (!$tokenResponse->ok()) {
+            return response()->json(['error' => 'Unable to fetch bearer token'], 500);
+        }
+
+        $token = $tokenResponse->json('access');
+
+        // STEP 2: Make document validation call
+        $validationResponse = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ])->post($baseUrl.'/validation/document', [
+            'document' => [
+                'id' => $validated['document']['id'],
+                'type' => $validated['document']['type'],
+            ],
+            'country' => $validated['country'],
+        ]);
+
+        $validate = $validationResponse->json();
+        if($validate['code'] == 200) {
+            return get_success_response([
+                "valid" => true
+            ]);
+        }
+
+        return get_error_response(['valid' => false]);
+    }
 }

@@ -49,6 +49,16 @@ class CryptoWalletsController extends Controller
         // Generate wallet address
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
+        $token = $curl->getToken();
+        $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
+
+        if (isset($response['status']) && isset($response['data']) ) {
+            return $response['data'];
+        }
+
+        Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
+        // return ['error' => $response['message'] ?? 'Unknown error'];
+
         // return $curl;
         if (isset($curl['error']) || !isset($curl['address'])) {
             return get_error_response(['error' => $curl]);
