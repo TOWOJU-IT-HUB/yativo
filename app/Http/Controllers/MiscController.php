@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Str;
+use Str, Http;
 use App\Services\PayoutCalculator;
 
 class MiscController extends Controller
