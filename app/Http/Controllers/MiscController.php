@@ -405,7 +405,7 @@ class MiscController extends Controller
         ])->post($baseUrl.'/token/', [
             'username' => env('LOCALPAYMENT_EMAIL'),
             'password' => env('LOCALPAYMENT_PASSWORD'),
-        ]);
+        ]); 
 
         if (!$tokenResponse->ok()) {
             return response()->json(['error' => 'Unable to fetch bearer token'], 500);
@@ -425,6 +425,7 @@ class MiscController extends Controller
             'country' => $validated['country'],
         ]);
 
+        // return response as boolean
         $validate = $validationResponse->json();
         if($validate['code'] == 200) {
             return get_success_response([
