@@ -38,7 +38,7 @@ class FlowController extends Controller
                 // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
 
-            var_dump($requestData); exit;
+            // var_dump($requestData); exit;
 
             $response = Http::withToken($authToken)->withHeaders([
                 'Content-Type' => 'application/json',
