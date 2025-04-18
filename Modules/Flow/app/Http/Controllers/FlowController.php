@@ -191,7 +191,7 @@ class FlowController extends Controller
             if(isset($result["status"]) && strtoupper($result["status"]) === "SUCCESSFUL") {
                 mark_payout_completed($payload->id, $payload->payout_id);
             }
-            var_dump($result); exit;
+            // var_dump($result); exit;
             if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
                 $error = $result['data']['error_message'] ?? $result['error_message'];
                 return ['error' => $error];
@@ -199,7 +199,7 @@ class FlowController extends Controller
             return $result;
             
         } catch (\Throwable $e) {
-            var_dump($e); exit;
+            // var_dump($e); exit;
             return ["error" => $e->getMessage()];
         }
     }

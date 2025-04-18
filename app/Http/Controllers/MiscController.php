@@ -428,6 +428,8 @@ class MiscController extends Controller
         // return response as boolean
         $validate = $validationResponse->json();
         if($validate['code'] == 200) {
+            // charge customer for valid ID.
+            
             return get_success_response([
                 "valid" => true
             ]);
