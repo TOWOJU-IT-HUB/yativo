@@ -39,4 +39,4 @@ class CustomerObserver
             ])->dispatchSync();
         }
     }
-}
+} 

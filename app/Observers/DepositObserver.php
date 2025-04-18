@@ -10,6 +10,7 @@ class DepositObserver
 {
     public function created(Deposit $deposit): void
     {
+        $deposit = $deposit->makeHidden(['user_id', 'raw_data']);
         // dispatch a webhook notification
         $webhook_url = Webhook::whereUserId($deposit->user_id)->first();
 
@@ -26,6 +27,7 @@ class DepositObserver
      */
     public function updated(Deposit $deposit): void
     {
+        $deposit = $deposit->makeHidden(['user_id', 'raw_data']);
         // dispatch a webhook notification
         $webhook_url = Webhook::whereUserId($deposit->user_id)->first();
 

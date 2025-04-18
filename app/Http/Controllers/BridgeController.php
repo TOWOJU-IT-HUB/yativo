@@ -518,14 +518,14 @@ class BridgeController extends Controller
             return ['error' => 'Beneficiary details are incomplete'];
         }
 
-        $destinationAddress = "qFZjGVNS1Tvfs28TS9YumBKTvc44bh6Yt3V83rRUvvD"; 
+        $destinationAddress = "cf413b55-4fc4-4cc0-ae64-148974aaa4a5"; 
 
         $payload = [
             "client_reference_id" => $quoteId,
             "amount" => $payout->amount,
-            "on_behalf_of" => $payout->beneficiary->bridge_customer_id,
+            "on_behalf_of" => "e994df00-c544-424d-a373-3f4db702211d", //$payout->beneficiary->bridge_customer_id,
             "source" => [
-                "currency" => "usdc",
+                "currency" => "usdb", //  pending the time
                 "payment_rail" => "bridge_wallet",
                 "bridge_wallet_id" => $destinationAddress
             ],
@@ -538,7 +538,7 @@ class BridgeController extends Controller
 
         $endpoint = "v0/transfers";
         $curl = $this->sendRequest($endpoint, 'POST', $payload);
-
+        // var_dump($curl); exit;
         if (isset($curl['code']) && $curl['code'] !== 200) {
             return ["error" => $curl['message'] ?? 'Unknown error'];
         }
@@ -555,7 +555,7 @@ class BridgeController extends Controller
 
     public function externalAccounts(array $req, $gateway)
     {
-        $endpoint = "v0/customers/{$this->customer->bridge_customer_id}/external_accounts";
+        $endpoint = "v0/customers/e994df00-c544-424d-a373-3f4db702211d/external_accounts";
         $data = $req['payment_data'];
 
         // Normalize country code to ISO3
