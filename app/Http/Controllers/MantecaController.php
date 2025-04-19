@@ -66,7 +66,7 @@ class MantecaController extends Controller
 
             return get_success_response(['message' => "Customer enrolled successfully"]);
         }
-
+        Log::debug("Error creating Manteca user: ", ['response' => $response]);
         return get_error_response(['error' => "Unable to enroll customer"]);
     }
 
@@ -84,14 +84,16 @@ class MantecaController extends Controller
             return $response->json()['uploadUrl'] ?? null;
         }
 
-        throw new \Exception("Failed to get upload URL. Error: " . $response->body());
+        Log::debug("Error creating Manteca user: ", ['response' => $response]);
+        return ['error' => "Failed to get upload URL. Error: " . $response->body()];
     }
 
     public function uploadToS3(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'docType' => 'required|string',
-            'file' => 'required|file|mimes:jpg,jpeg,png,pdf',
+            'document_front' => 'required|file|mimes:jpg,jpeg,png,pdf',
+            'document_back' => 'required|file|mimes:jpg,jpeg,png,pdf',
             'customer_id' => 'required|exists:customers,customer_id',
         ]);
 
@@ -100,19 +102,36 @@ class MantecaController extends Controller
         }
 
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        $document = $request->file('file');
-        $filename = $document->getClientOriginalName();
-        $mimeType = $document->getMimeType();
+        $document_front = $request->file('document_front');
+        $filename = $document_front->getClientOriginalName();
+        $mimeType = $document_front->getMimeType();
 
         try {
-            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType, $filename);
+            // upload document front
+            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType."FRONT", $filename);
             if (!$uploadUrl) {
                 return get_error_response(['error' => 'Upload URL not received'], 500);
             }
 
             $response = Http::withHeaders([
                 'Content-Type' => $mimeType,
-            ])->put($uploadUrl, file_get_contents($document));
+            ])->put($uploadUrl, [$filename => file_get_contents($document_front)]);
+
+
+            // upload document back
+
+            $document_back = $request->file('document_front');
+            $filename = $document_back->getClientOriginalName();
+            $mimeType = $document_back->getMimeType();
+
+            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType."_BACK", $filename);
+            if (!$uploadUrl) {
+                return get_error_response(['error' => 'Upload URL not received'], 500);
+            }
+
+            $response = Http::withHeaders([
+                'Content-Type' => $mimeType,
+            ])->put($uploadUrl, [$filename => file_get_contents($document_back)]);
 
             return get_success_response(['message' => 'File uploaded successfully'], $response->status());
         } catch (\Exception $e) {
@@ -169,6 +188,8 @@ class MantecaController extends Controller
             return get_success_response($response->json());
         }
 
+
+        Log::debug("Error creating Manteca deposit: ", ['response' => $response]);
         return get_error_response(['error' => 'Unable to process order']);
     }
 
@@ -201,6 +222,7 @@ class MantecaController extends Controller
             return get_success_response($response->json());
         }
 
+        Log::debug("Error creating Manteca payout: ", ['response' => $response]);
         return get_error_response(['error' => 'Unable to process withdrawal']);
     }
 }
