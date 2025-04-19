@@ -176,7 +176,7 @@ class MantecaController extends Controller
         $customer = Customer::where('customer_id', $request->customer_id)->first();
 
         $ratePayload = [
-            "coin" => $request->coin,
+            "coin" => "USDC_{$request->coin}",
             "operation" => "BUY",
             "userId" => "100007696" // $customer->manteca_user_id
         ];
