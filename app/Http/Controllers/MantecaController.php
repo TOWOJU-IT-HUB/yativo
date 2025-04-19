@@ -116,9 +116,10 @@ class MantecaController extends Controller
                 return get_error_response(['error' => 'Upload URL not received'], 500);
             }
 
+            Log::info("Upload url is: ", ['url' => $uploadUrl]);
             $response = Http::withHeaders([
                 'Content-Type' => $mimeType,
-            ])->put($uploadUrl, file_get_contents($document_front));
+            ])->put($uploadUrl['url'], file_get_contents($document_front));
 
 
             // upload document back
@@ -131,10 +132,10 @@ class MantecaController extends Controller
             if (!$uploadUrl) {
                 return get_error_response(['error' => 'Upload URL not received'], 500);
             }
-
+            Log::info("Upload url is: ", ['url' => $uploadUrl]);
             $response = Http::withHeaders([
                 'Content-Type' => $mimeType,
-            ])->put($uploadUrl, file_get_contents($document_back));
+            ])->put($uploadUrl['url'], file_get_contents($document_back));
 
             return get_success_response(['message' => 'File uploaded successfully'], $response->status());
         } catch (\Exception $e) {
