@@ -188,12 +188,24 @@ class MantecaController extends Controller
             return get_error_response(['error' => 'Unable to retrieve rate code']);
         }
 
+        // [
+        //     "userId" => "100007696", //$customer->manteca_user_id,
+        //     "amount" => $request->amount,
+        //     "coin" => $request->coin,
+        //     "operation" => "BUY",
+        //     "code" => $codeResponse['code']
+        // ];
+
         $payload = [
-            "userId" => "100007696", //$customer->manteca_user_id,
-            "amount" => $request->amount,
-            "coin" => $request->coin,
-            "operation" => "BUY",
-            "code" => $codeResponse['code']
+            "externalId" => generate_uuid(),
+            "userAnyId" => "100007696", //$customer->manteca_user_id,
+            "sessionId" => generate_uuid(),
+            "asset" => "USDC",
+            "against" => $request->currency,
+            "assetAmount" => $request->amount,
+            "priceCode" => $codeResponse['code'],
+            "withdrawAddress" => "0x9C2d7ccA1d1023B2038d91196ea420d731226f73",
+            "withdrawNetwork" => "BASE"
         ];
 
         $response = Http::withHeaders($this->headers)
