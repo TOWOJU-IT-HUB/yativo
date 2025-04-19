@@ -199,7 +199,7 @@ class MantecaController extends Controller
 
         $payload = [
             "externalId" => generate_uuid(),
-            "userAnyId" => "100007696", //$customer->manteca_user_id,
+            "userNumberId" => "100007696", //$customer->manteca_user_id,
             "sessionId" => generate_uuid(),
             "asset" => $asset[0],
             "against" => $asset[1],
