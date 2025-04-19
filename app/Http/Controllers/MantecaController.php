@@ -206,7 +206,7 @@ class MantecaController extends Controller
             ->post($this->baseUrl . 'synthetics/ramp-on', $payload);
 
         if ($response->ok()) {
-            Log::debug("Manteca deposit details: ", ['response' => $response->json()]);
+            Log::debug("Manteca deposit details: ", ['payload' => $payload]);
             return get_success_response($response->json());
         }
 
