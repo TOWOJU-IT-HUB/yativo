@@ -178,7 +178,7 @@ class MantecaController extends Controller
         $ratePayload = [
             "coin" => $request->coin,
             "operation" => "BUY",
-            "userId" => $customer->manteca_user_id
+            "userId" => "100007696" // $customer->manteca_user_id
         ];
 
         $codeResponse = $this->getPriceRate($ratePayload);
