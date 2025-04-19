@@ -196,7 +196,7 @@ class MantecaController extends Controller
             "sessionId" => generate_uuid(),
             "asset" => $asset[0],
             "against" => $asset[1],
-            "againstAmount" => $request->amount,
+            "assetAmount" => $request->amount,
             "priceCode" => $codeResponse['code'],
             "withdrawAddress" => "0x9C2d7ccA1d1023B2038d91196ea420d731226f73",
             "withdrawNetwork" => "BASE"
@@ -206,7 +206,7 @@ class MantecaController extends Controller
             ->post($this->baseUrl . 'synthetics/ramp-on', $payload);
 
         if ($response->ok()) {
-            Log::debug("Manteca deposit details: ", ['payload' => $payload]);
+            Log::debug("Manteca deposit details: ", ['payload' => $response->json()]);
             return get_success_response($response->json());
         }
 
