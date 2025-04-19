@@ -200,6 +200,7 @@ class MantecaController extends Controller
             ->post($this->baseUrl . 'order', $payload);
 
         if ($response->ok()) {
+            Log::debug("Manteca deposit details: ", ['response' => $response->json()]);
             return get_success_response($response->json());
         }
 
