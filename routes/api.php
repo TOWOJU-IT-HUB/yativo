@@ -13,6 +13,7 @@ use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EventsController;
 use App\Http\Controllers\Google2faController;
 use App\Http\Controllers\MagicLinkController;
+use App\Http\Controllers\MantecaController;
 use App\Http\Controllers\MiscController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\PinVerificationController;
@@ -81,6 +82,13 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
     Route::post('verify-document', [MiscController::class, 'validateDocument']);
     
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
+
+    Route::prefix('epay')->group(function () {
+        Route::post('enroll-customer', [MantecaController::class, 'createUser']);
+        Route::post('compliance', [MantecaController::class, 'uploadToS3']);
+        Route::post('deposit', [MantecaController::class, 'createOrder']);
+        Route::post('withdraw', [MantecaController::class, 'withdraw']);
+    });
 
     Route::prefix('crypto')->group(function () {
         Route::post('create-wallet', [CryptoWalletsController::class, 'createWallet']);

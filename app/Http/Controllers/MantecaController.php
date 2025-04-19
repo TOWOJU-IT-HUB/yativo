@@ -1,268 +1,212 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class MantecaController extends Controller
 {
-    private $apiKey = 'API_KEY';
-    private $baseUrl = 'https://api.manteca.dev/crypto/v1/user/';
+    protected $baseUrl = 'https://sandbox.manteca.dev/crypto/v1/';
+    protected $headers = [
+        'Content-Type' => 'application/json',
+        'md-api-key' => env('MANTECA_API_KEY')
+    ];
+
+    public function __construct()
+    {
+        if (!Schema::hasColumn('customers', 'manteca_user_id')) {
+            Schema::table('customers', function (Blueprint $table) {
+                $table->string('manteca_user_id')->nullable();
+            });
+        }
+    }
 
     public function createUser(Request $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|email',
-            'legalId' => 'required|string',
-            'phoneNumber' => 'required|string',
-            'country' => 'required|string',
-            'civilState' => 'required|string',
-            'externalId' => 'required|string',
-            'isPep' => 'required|boolean',
-            'isFatca' => 'required|boolean',
-            'isUif' => 'required|boolean',
+        $validator = Validator::make($request->all(), [
+            'legalId' => 'required',
+            'country' => 'required',
+            'state' => 'requied',
+            "customer_id" => "required|exists:customers,customer_id",
         ]);
 
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->baseUrl, $data);
+        if ($validator->fails()) {
+            return get_error_response($validator->errors()->toArray());
+        }
 
-        return $response->json();
+        $customer = Customer::where('customer_id', request('customer_id'))->first();
+        $payload = [
+            "name" => $customer->customer_name,
+            "email" => $customer->customer_email,,
+            "legalId" => $request->legalId,
+            "phoneNumber" => $customer->customer_phone,
+            "country" => $request->country,
+            "civilState" => $request->state,
+            "externalId" => generate_uuid(),
+            "isPep" => false,
+            "isFatca" => false,
+            "isUif" => false
+        ];
+
+        $response = Http::withHeaders($this->headers)->post($this->baseUrl . 'user', $payload);
+        $result = $response->json();
+        if(isset($result["numberId"])) {
+            $customer->update([
+                "manteca_user_id" => $result["numberId"]
+            ]);
+
+            return get_success_response(['message' => "customer enrolled successfully"]);
+        }
+        return get_error_response(['error' => "Unable to enroll customer"]);
     }
 
-    public function getUser($id)
+    public function getUploadUrl($userId, $docType = 'DNI_BACK', $fileName = 'passport.jpg')
     {
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . $id);
+        $payload = [
+            'docType' => $docType,
+            'fileName' => $fileName
+        ];
 
-        return $response->json();
+        $response = Http::withHeaders($this->headers)
+            ->post("{$this->baseUrl}documentation/{$userId}/uploadUrl", $payload);
+
+        if ($response->successful()) {
+            return $response->json()['uploadUrl'] ?? null;
+        }
+
+        throw new \Exception("Failed to get upload URL. Error: " . $response->body());
     }
 
-    public function getUserOrders($userId)
-    {
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . $userId . '/orders');
 
-        return $response->json();
-    }
-
-    public function addBankAccount(Request $request, $userId, $currency)
+    public function uploadToS3(Request $request)
     {
-        $data = $request->validate([
-            'cbu' => 'required|string',
-            'description' => 'required|string',
+        $validator = Validator::make($request->all(), [
+            'docType' => 'required',
+            'file' => 'required|file|mimes:jpg,jpeg,png,pdf',
+            "customer_id" => "required|exists:customers,customer_id",
         ]);
 
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->baseUrl . $userId . '/bankaccount/' . $currency, $data);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $customer = Customer::where('customer_id', $request->customer_id)->first();
+        $userId = $customer->manteca_user_id;
+        $document = $request->file('file');
+        $filename = $document->getClientOriginalName();
+        $mimeType = $document->getMimeType();
+
+        try {
+            $uploadUrl = $this->getUploadUrl($userId, $request->docType, $filename);
+            if (!$uploadUrl) {
+                return get_error_response(['error' => 'Upload URL not received'], 500);
+            }
+
+            $response = Http::withHeaders([
+                'Content-Type' => $mimeType
+            ])->put($uploadUrl, [$filename => file_get_contents($document)]);
+
+            return get_success_response($response->body(),  $response->status());
+        } catch (\Exception $e) {
+            return get_error_response(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    public function getPriceRate($userId = '100007696')
+    {
+        $payload = [
+            "coin" => "USDT_ARS",
+            "operation" => "BUY",
+            "userId" => $userId
+        ];
+
+        $response = Http::withHeaders($this->headers)
+            ->post($this->baseUrl . 'order/lock', $payload);
 
         return $response->json();
     }
 
-    public function deleteBankAccount($userId, $currency, $cbu)
+    public function createOrder(Request $request)
     {
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->delete($this->baseUrl . $userId . '/bankaccount/' . $currency . '/' . $cbu);
-
-        return $response->json();
-    }
-
-    public function makeWithdrawal(Request $request)
-    {
-        $data = $request->validate([
-            'userId' => 'required|string',
+        $validator = Validator::make($request->all(), [
+            'customer_id' => 'required|exists:customers,customer_id',
+            'amount' => 'required|numeric|min:1',
             'coin' => 'required|string',
-            'cbu' => 'required|string',
-            'amount' => 'required|string',
+            // 'operation' => 'required|in:BUY,SELL'
         ]);
 
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->baseUrl . 'fiat/withdraw', $data);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-        return $response->json();
-    }
+        $customer = Customer::where('customer_id', $request->customer_id)->first();
 
-    public function getWithdrawalById($id)
-    {
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . 'fiat/withdraw/' . $id);
+        $ratePayload = [
+            "coin" => $request->coin,
+            "operation" => "BUY",
+            "userId" => $customer->manteca_user_id
+        ];
 
-        return $response->json();
-    }
+        $code = $this->getPriceRate($ratePayload);
 
-    public function getWithdrawals(Request $request)
-    {
-        $userId = $request->query('userId');
-        $page = $request->query('page', 1);
-        $limit = $request->query('limit', 10);
-        $startDate = $request->query('startDate');
-        $endDate = $request->query('endDate');
+        $payload = [
+            "userId" => $customer->manteca_user_id,
+            "amount" => $request->amount,
+            "coin" => $request->coin,
+            "operation" => "BUY",
+            "code" => $code['code']
+        ];
 
-        $query = http_build_query([
-            'userId' => $userId,
-            'page' => $page,
-            'limit' => $limit,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-        ]);
+        $response = Http::withHeaders($this->headers)
+            ->post($this->baseUrl . 'order', $payload);
 
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . 'fiat/withdraw/?' . $query);
-
-        return $response->json();
-    }
-
-    public function getDeposits(Request $request)
-    {
-        $userId = $request->query('userId');
-        $page = $request->query('page', 1);
-        $limit = $request->query('limit', 10);
-        $startDate = $request->query('startDate');
-        $endDate = $request->query('endDate');
-
-        $query = http_build_query([
-            'userId' => $userId,
-            'page' => $page,
-            'limit' => $limit,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-        ]);
-
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . 'fiat/deposit/?' . $query);
-
-        return $response->json();
-    }
-
-    public function createWithdrawalLock(Request $request)
-    {
-        $data = $request->validate([
-            'coin' => 'required|string',
-            'userId' => 'required|string',
-            'chain' => 'required|string',
-        ]);
-
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->baseUrl . 'transaction/withdraw/lock', $data);
-
-        return $response->json();
-    }
-
-    public function createWithdrawal(Request $request)
-    {
-        $data = $request->validate([
-            'tx' => 'required|array',
-            'tx.coin' => 'required|string',
-            'tx.amount' => 'required|string',
-            'tx.to' => 'required|string',
-            'tx.chain' => 'required|string',
-            'userId' => 'required|string',
-            'costCode' => 'required|string',
-        ]);
-
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->post($this->baseUrl . 'transaction/withdraw', $data);
-
-        return $response->json();
-    }
-
-    public function getSupportedAssets()
-    {
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . 'transaction/supported-assets');
-
-        return $response->json();
-    }
-
-    public function getTransactions(Request $request)
-    {
-        $userId = $request->query('userId');
-        $page = $request->query('page', 1);
-        $limit = $request->query('limit', 10);
-        $type = $request->query('type');
-        $startDate = $request->query('startDate');
-        $endDate = $request->query('endDate');
-
-        $query = http_build_query([
-            'userId' => $userId,
-            'page' => $page,
-            'limit' => $limit,
-            'type' => $type,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-        ]);
-
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . 'transaction/?' . $query);
-
-        return $response->json();
-    }
-
-    public function getTransactionById($id)
-    {
-        $response = Http::withHeaders([
-            'md-api-key' => $this->apiKey,
-            'Content-Type' => 'application/json'
-        ])->get($this->baseUrl . 'transaction/' . $id);
-
-        return $response->json();
-    }
-
-
-    public function create()
-    {
-        $response = Http::withHeaders([
-            'md-api-key' => 'API_Key',
-            'Content-Type' => 'application/json',
-        ])->post('https://api.manteca.dev/crypto/v1/widget/onboarding', [
-            "userExternalId" => "example-external-id-1",
-            "sessionId" => "example-session-id-1",
-            "returnUrl" => "https://www.example.com/widget-end",
-            "failureUrl" => "https://www.example.com/widget-failure",
-            "options" => [
-                "endOnOnboarding" => true,
-                "endOnOperation" => false,
-                "endOnOperationWaiting" => false,
-                "operationSkipDeposit" => false,
-                "orderExternalId" => "example-external-id-1",
-                "side" => "BUY",
-                "asset" => "USDT",
-                "against" => "ARS",
-                "assetAmount" => "1000.00",
-                "againstAmount" => "1001150.00",
-                "withdrawExternalId" => "example-external-id-1",
-                "withdrawAddress" => "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-                "withdrawNetwork" => "BINANCE",
-            ]
-        ]);
         
-        return response()->json($response);
+        if($response->status() == 200) {
+            return get_success_response($response->json());
+        }
+        return get_error_response(['error' => 'Unable to process request, try again later or contact support']);
+    }
+
+    public function withdraw(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'customer_id' => 'required|exists:customers,customer_id',
+            'coin' => 'required|string|in:ARS,USD,EUR', // Add other allowed fiat currencies if needed
+            'cbu' => 'required|string',
+            'amount' => 'required|numeric|min:1'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $customer = Customer::where('customer_id', $request->customer_id)->first();
+
+        $payload = [
+            'userId' => $customer->manteca_user_id,
+            'coin' => $request->coin,
+            'cbu' => $request->cbu,
+            'amount' => $request->amount
+        ];
+
+        $response = Http::withHeaders($this->headers)
+                    ->post($this->baseUrl .'fiat/withdraw', $payload);
+
+        if($response->status() == 200) {
+            return get_success_response($response->json());
+        }
+        return get_error_response(['error' => 'Unable to process request, try again later or contact support']);
     }
 }
