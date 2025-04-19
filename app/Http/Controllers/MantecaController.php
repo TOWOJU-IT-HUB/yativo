@@ -199,6 +199,7 @@ class MantecaController extends Controller
 
         $payload = [
             "externalId" => generate_uuid(),
+            "userAnyId" => "100007696", //$customer->manteca_user_id,
             "userNumberId" => "100007696", //$customer->manteca_user_id,
             "sessionId" => generate_uuid(),
             "asset" => $asset[0],
@@ -210,7 +211,7 @@ class MantecaController extends Controller
         ];
 
         $response = Http::withHeaders($this->headers)
-            ->post($this->baseUrl . 'order', $payload);
+            ->post($this->baseUrl . 'synthetics/ramp-on', $payload);
 
         if ($response->ok()) {
             Log::debug("Manteca deposit details: ", ['response' => $response->json()]);
