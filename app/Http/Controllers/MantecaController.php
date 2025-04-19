@@ -189,7 +189,7 @@ class MantecaController extends Controller
         }
 
         $payload = [
-            "userId" => $customer->manteca_user_id,
+            "userId" => "100007696", //$customer->manteca_user_id,
             "amount" => $request->amount,
             "coin" => $request->coin,
             "operation" => "BUY",
@@ -224,7 +224,7 @@ class MantecaController extends Controller
         $customer = Customer::where('customer_id', $request->customer_id)->first();
 
         $payload = [
-            'userId' => $customer->manteca_user_id,
+            'userId' => "100007696", //$customer->manteca_user_id,
             'coin' => $request->coin,
             'cbu' => $request->cbu,
             'amount' => $request->amount
