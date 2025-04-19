@@ -118,7 +118,7 @@ class MantecaController extends Controller
 
             $response = Http::withHeaders([
                 'Content-Type' => $mimeType,
-            ])->put($uploadUrl, [$filename => file_get_contents($document_front)]);
+            ])->put($uploadUrl, file_get_contents($document_front));
 
 
             // upload document back
@@ -134,7 +134,7 @@ class MantecaController extends Controller
 
             $response = Http::withHeaders([
                 'Content-Type' => $mimeType,
-            ])->put($uploadUrl, [$filename => file_get_contents($document_back)]);
+            ])->put($uploadUrl, file_get_contents($document_back));
 
             return get_success_response(['message' => 'File uploaded successfully'], $response->status());
         } catch (\Exception $e) {
