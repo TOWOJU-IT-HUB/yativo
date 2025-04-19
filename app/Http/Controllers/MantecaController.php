@@ -4,21 +4,23 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Validator;
+use Modules\Customer\app\Models\Customer;
 
 class MantecaController extends Controller
 {
     protected $baseUrl = 'https://sandbox.manteca.dev/crypto/v1/';
-    protected $headers = [
-        'Content-Type' => 'application/json',
-        'md-api-key' => env('MANTECA_API_KEY')
-    ];
+    protected $headers;
 
     public function __construct()
     {
+        $this->headers = [
+            'Content-Type' => 'application/json',
+            'md-api-key' => env('MANTECA_API_KEY'),
+        ];
+
         if (!Schema::hasColumn('customers', 'manteca_user_id')) {
             Schema::table('customers', function (Blueprint $table) {
                 $table->string('manteca_user_id')->nullable();
@@ -31,18 +33,19 @@ class MantecaController extends Controller
         $validator = Validator::make($request->all(), [
             'legalId' => 'required',
             'country' => 'required',
-            'state' => 'requied',
-            "customer_id" => "required|exists:customers,customer_id",
+            'state' => 'required',
+            'customer_id' => 'required|exists:customers,customer_id',
         ]);
 
         if ($validator->fails()) {
             return get_error_response($validator->errors()->toArray());
         }
 
-        $customer = Customer::where('customer_id', request('customer_id'))->first();
+        $customer = Customer::where('customer_id', $request->customer_id)->first();
+
         $payload = [
             "name" => $customer->customer_name,
-            "email" => $customer->customer_email,,
+            "email" => $customer->customer_email,
             "legalId" => $request->legalId,
             "phoneNumber" => $customer->customer_phone,
             "country" => $request->country,
@@ -55,13 +58,15 @@ class MantecaController extends Controller
 
         $response = Http::withHeaders($this->headers)->post($this->baseUrl . 'user', $payload);
         $result = $response->json();
-        if(isset($result["numberId"])) {
+
+        if (isset($result["numberId"])) {
             $customer->update([
                 "manteca_user_id" => $result["numberId"]
             ]);
 
-            return get_success_response(['message' => "customer enrolled successfully"]);
+            return get_success_response(['message' => "Customer enrolled successfully"]);
         }
+
         return get_error_response(['error' => "Unable to enroll customer"]);
     }
 
@@ -82,50 +87,41 @@ class MantecaController extends Controller
         throw new \Exception("Failed to get upload URL. Error: " . $response->body());
     }
 
-
     public function uploadToS3(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'docType' => 'required',
+            'docType' => 'required|string',
             'file' => 'required|file|mimes:jpg,jpeg,png,pdf',
-            "customer_id" => "required|exists:customers,customer_id",
+            'customer_id' => 'required|exists:customers,customer_id',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return get_error_response($validator->errors()->toArray());
         }
 
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        $userId = $customer->manteca_user_id;
         $document = $request->file('file');
         $filename = $document->getClientOriginalName();
         $mimeType = $document->getMimeType();
 
         try {
-            $uploadUrl = $this->getUploadUrl($userId, $request->docType, $filename);
+            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType, $filename);
             if (!$uploadUrl) {
                 return get_error_response(['error' => 'Upload URL not received'], 500);
             }
 
             $response = Http::withHeaders([
-                'Content-Type' => $mimeType
-            ])->put($uploadUrl, [$filename => file_get_contents($document)]);
+                'Content-Type' => $mimeType,
+            ])->put($uploadUrl, file_get_contents($document));
 
-            return get_success_response($response->body(),  $response->status());
+            return get_success_response(['message' => 'File uploaded successfully'], $response->status());
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 500);
         }
     }
 
-
-    public function getPriceRate($userId = '100007696')
+    public function getPriceRate($payload)
     {
-        $payload = [
-            "coin" => "USDT_ARS",
-            "operation" => "BUY",
-            "userId" => $userId
-        ];
-
         $response = Http::withHeaders($this->headers)
             ->post($this->baseUrl . 'order/lock', $payload);
 
@@ -138,14 +134,10 @@ class MantecaController extends Controller
             'customer_id' => 'required|exists:customers,customer_id',
             'amount' => 'required|numeric|min:1',
             'coin' => 'required|string',
-            // 'operation' => 'required|in:BUY,SELL'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
+            return get_error_response($validator->errors()->toArray());
         }
 
         $customer = Customer::where('customer_id', $request->customer_id)->first();
@@ -156,40 +148,41 @@ class MantecaController extends Controller
             "userId" => $customer->manteca_user_id
         ];
 
-        $code = $this->getPriceRate($ratePayload);
+        $codeResponse = $this->getPriceRate($ratePayload);
+
+        if (!isset($codeResponse['code'])) {
+            return get_error_response(['error' => 'Unable to retrieve rate code']);
+        }
 
         $payload = [
             "userId" => $customer->manteca_user_id,
             "amount" => $request->amount,
             "coin" => $request->coin,
             "operation" => "BUY",
-            "code" => $code['code']
+            "code" => $codeResponse['code']
         ];
 
         $response = Http::withHeaders($this->headers)
             ->post($this->baseUrl . 'order', $payload);
 
-        
-        if($response->status() == 200) {
+        if ($response->ok()) {
             return get_success_response($response->json());
         }
-        return get_error_response(['error' => 'Unable to process request, try again later or contact support']);
+
+        return get_error_response(['error' => 'Unable to process order']);
     }
 
     public function withdraw(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required|exists:customers,customer_id',
-            'coin' => 'required|string|in:ARS,USD,EUR', // Add other allowed fiat currencies if needed
+            'coin' => 'required|string|in:ARS,USD,EUR',
             'cbu' => 'required|string',
             'amount' => 'required|numeric|min:1'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
+            return get_error_response($validator->errors()->toArray());
         }
 
         $customer = Customer::where('customer_id', $request->customer_id)->first();
@@ -202,11 +195,12 @@ class MantecaController extends Controller
         ];
 
         $response = Http::withHeaders($this->headers)
-                    ->post($this->baseUrl .'fiat/withdraw', $payload);
+            ->post($this->baseUrl . 'fiat/withdraw', $payload);
 
-        if($response->status() == 200) {
+        if ($response->ok()) {
             return get_success_response($response->json());
         }
-        return get_error_response(['error' => 'Unable to process request, try again later or contact support']);
+
+        return get_error_response(['error' => 'Unable to process withdrawal']);
     }
 }
