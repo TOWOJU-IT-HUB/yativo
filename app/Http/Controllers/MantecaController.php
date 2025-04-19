@@ -22,6 +22,8 @@ class MantecaController extends Controller
             'md-api-key' => env('MANTECA_API_KEY'),
         ];
 
+        $this->baseUrl =  env('MANTECA_BASE_URL', 'https://sandbox.manteca.dev/crypto/v1/');
+
         if (!Schema::hasColumn('customers', 'manteca_user_id')) {
             Schema::table('customers', function (Blueprint $table) {
                 $table->string('manteca_user_id')->nullable();
