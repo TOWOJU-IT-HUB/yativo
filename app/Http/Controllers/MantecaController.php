@@ -80,23 +80,27 @@ class MantecaController extends Controller
             'fileName' => $fileName
         ];
 
-        $response = Http::withHeaders($this->headers)
-            ->post("{$this->baseUrl}documentation/{$userId}/uploadUrl", $payload);
+        $finalUrl = "{$this->baseUrl}documentation/{$userId}/uploadUrl";
+        
+        $query = Http::withHeaders($this->headers)
+            ->post($finalUrl, $payload);
 
-        if ($response->successful()) {
-            return $response->json()['uploadUrl'] ?? null;
+        $response = $query->json();
+
+        if (isset($response['url']) && null !== $response['url']) {
+            return $response['url'] ?? null;
         }
 
         Log::debug("Error creating Manteca user: ", ['response' => $response]);
-        return ['error' => "Failed to get upload URL. Error: " . $response->body()];
+        return ['error' => "Failed to get upload URL. Error: " . $response];
     }
 
     public function uploadToS3(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'docType' => 'required|string',
-            'document_front' => 'required|file|mimes:jpg,jpeg,png,pdf',
-            'document_back' => 'required|file|mimes:jpg,jpeg,png,pdf',
+            'docType' => 'required|string|in:DNI_FRONT,DNI_BACK,FUNDS,BALANCE,ESTATUTO,IIBB,ACTA_DESIGNACION,ULTIMO_BALANCE_CERTIFICADO,CONSTANCIA_DE_CUIT,EXTRA,PEP_DDJJ,SUJETO_OBLIGADO_DDJJ,SELFIE,CERTIFICACION_CONTABLE,IMPUESTO_CEDULAR,PRIVATE_REPORT',
+            'document' => 'required|file|mimes:jpg,jpeg,png',
+            'fileName' => 'required',
             'customer_id' => 'required|exists:customers,customer_id',
         ]);
 
@@ -105,39 +109,44 @@ class MantecaController extends Controller
         }
 
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        $document_front = $request->file('document_front');
-        $filename = $document_front->getClientOriginalName();
-        $mimeType = $document_front->getMimeType();
+        $document = $request->file('document');
+        $filename = $request->fileName;
+        $mimeType = $document->getMimeType();
 
         try {
             // upload document front
-            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType."FRONT", $filename);
+            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType, $request->fileName);
             if (!$uploadUrl) {
                 return get_error_response(['error' => 'Upload URL not received'], 500);
             }
 
             Log::info("Upload url is: ", ['url' => $uploadUrl]);
-            $response = Http::withHeaders([
-                'Content-Type' => $mimeType,
-            ])->put($uploadUrl['url'], file_get_contents($document_front));
+            
+            
+            $curl = curl_init();
 
-
-            // upload document back
-
-            $document_back = $request->file('document_front');
-            $filename = $document_back->getClientOriginalName();
-            $mimeType = $document_back->getMimeType();
-
-            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType."_BACK", $filename);
-            if (!$uploadUrl) {
-                return get_error_response(['error' => 'Upload URL not received'], 500);
+            curl_setopt_array($curl, array(
+              CURLOPT_URL => $uploadUrl,
+              CURLOPT_RETURNTRANSFER => true,
+              CURLOPT_ENCODING => '',
+              CURLOPT_MAXREDIRS => 10,
+              CURLOPT_TIMEOUT => 0,
+              CURLOPT_FOLLOWLOCATION => true,
+              CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+              CURLOPT_CUSTOMREQUEST => 'PUT',
+              CURLOPT_POSTFIELDS => array($request->fileName => $request->document),
+              CURLOPT_HTTPHEADER => []
+            ));
+            
+            $response = curl_exec($curl);
+            
+            curl_close($curl);
+            if($response) {
+                $response = (array)$response;
             }
-            Log::info("Upload url is: ", ['url' => $uploadUrl]);
-            $response = Http::withHeaders([
-                'Content-Type' => $mimeType,
-            ])->put($uploadUrl['url'], file_get_contents($document_back));
 
-            return get_success_response(['message' => 'File uploaded successfully'], $response->status());
+
+            return get_success_response(['message' => 'File uploaded successfully', 'response' => $response]);
         } catch (\Exception $e) {
             return get_error_response(['error' => $e->getMessage()], 500);
         }
@@ -148,6 +157,7 @@ class MantecaController extends Controller
         $response = Http::withHeaders($this->headers)
             ->post($this->baseUrl . 'order/lock', $payload);
 
+        Log::debug("Error generating price rate: ", ['response' => $response->json()]);
         return $response->json();
     }
 
@@ -172,6 +182,7 @@ class MantecaController extends Controller
         ];
 
         $codeResponse = $this->getPriceRate($ratePayload);
+        Log::debug("Error generating deposit lock: ", ['response' => $codeResponse]);
 
         if (!isset($codeResponse['code'])) {
             return get_error_response(['error' => 'Unable to retrieve rate code']);
@@ -223,7 +234,7 @@ class MantecaController extends Controller
             ->post($this->baseUrl . 'fiat/withdraw', $payload);
 
         if ($response->ok()) {
-            return get_success_response($response->json());
+            return get_success_response($response->json()[0]);
         }
 
         Log::debug("Error creating Manteca payout: ", ['response' => $response]);
