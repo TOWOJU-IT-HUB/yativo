@@ -182,7 +182,7 @@ class MantecaController extends Controller
         
         $payload = [
             "externalId" => $txnId,
-            "userAnyId" => $customer->manteca_user_id,
+            "userAnyId" => "100007696", //$customer->manteca_user_id,
             // "userNumberId" => $customer->manteca_user_id,
             "sessionId" => generate_uuid(),
             "asset" => $asset[0],
@@ -195,46 +195,58 @@ class MantecaController extends Controller
         $response = Http::withHeaders($this->headers)
             ->post($this->baseUrl . 'synthetics/ramp-on', $payload);
 
+        $result = $response->json();
+
+        if(!isset($result['id'])) {
+            return get_error_response(['error' => 'Unable to initiate deposit, please contact support']);
+        }
 
         // Record deposit
-        // $deposit = new Deposit();
-        // $deposit->currency = $asset[0];
-        // $deposit->deposit_currency = $asset[1];
-        // $deposit->user_id = active_user();
-        // $deposit->amount = $request->amount;
-        // $deposit->gateway = $request->gateway;
-        // $deposit->receive_amount = $request->amount * $exchange_rate;
+        $deposit = new Deposit();
+        $deposit->currency = $asset[0];
+        $deposit->deposit_currency = $asset[1];
+        $deposit->user_id = active_user();
+        $deposit->amount = $request->amount;
+        $deposit->gateway = $request->gateway;
+        $deposit->receive_amount = $request->amount;
         // $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+        $deposit->save();
 
-        
-        // TransactionRecord::create([
-        //     "user_id" => auth()->id(),
-        //     "transaction_beneficiary_id" => active_user(),
-        //     "transaction_id" => $txnId,
-        //     "transaction_amount" => $request->amount,
-        //     "gateway_id" => null,
-        //     "transaction_status" => "In Progress",
-        //     "transaction_type" => 'epay',
-        //     "transaction_memo" => "payin",
-        //     "transaction_currency" => $request->coin,
-        //     "base_currency" => $request->coin,
-        //     "secondary_currency" => $request->coin,
-        //     "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
-        //     "transaction_payin_details" => array_merge([$payload, $response]),
-        //     "transaction_payout_details" => [],
-        // ]);
+    
+        TransactionRecord::create([
+            "user_id" => auth()->id(),
+            "transaction_beneficiary_id" => active_user(),
+            "transaction_id" => $txnId,
+            "transaction_amount" => $request->amount,
+            "gateway_id" => null,
+            "transaction_status" => "In Progress",
+            "transaction_type" => 'epay',
+            "transaction_memo" => "payin",
+            "transaction_currency" => $request->coin,
+            "base_currency" => $request->coin,
+            "secondary_currency" => $request->coin,
+            "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
+            "transaction_payin_details" => array_merge([$payload, $response]),
+            "transaction_payout_details" => [],
+        ]);
 
-        // Track::create([
-        //     "quote_id" => $txnId,
-        //     "transaction_type" => $txn_type ?? 'deposit',
-        //     "tracking_status" => "Deposit initiated successfully",
-        //     "raw_data" => (array) $response
-        // ]);
+        Track::create([
+            "quote_id" => $txnId,
+            "transaction_type" => $txn_type ?? 'deposit',
+            "tracking_status" => "Deposit initiated successfully",
+            "raw_data" => (array) $response
+        ]);
 
 
         if ($response->ok()) {
-            Log::debug("Manteca deposit details: ", ['payload' => $payload, 'response' => $response->json()]);
-            return get_success_response($response->json());
+            // Log::debug("Manteca deposit details: ", ['payload' => $payload, 'response' => $response->json()]);
+            $finalResponse = [
+                'bank_account' => $result['details']['depositAddress'],
+                'deposit_alias' => $result['details']['depositAlias'],
+                'price_expire_at' => $result['details']['priceExpireAt'],
+                'asset' => $result['against']
+            ];
+            return get_success_response($finalResponse);
         }
 
 
