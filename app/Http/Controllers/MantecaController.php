@@ -221,7 +221,7 @@ class MantecaController extends Controller
             "transaction_beneficiary_id" => active_user(),
             "transaction_id" => $txnId,
             "transaction_amount" => $request->amount,
-            "gateway_id" => null,
+            "gateway_id" => 999999,
             "transaction_status" => "In Progress",
             "transaction_type" => 'epay',
             "transaction_memo" => "payin",
