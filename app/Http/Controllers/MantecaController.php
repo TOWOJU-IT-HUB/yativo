@@ -212,10 +212,8 @@ class MantecaController extends Controller
         $deposit->amount = $request->amount;
         $deposit->gateway = $request->gateway;
         $deposit->receive_amount = $request->amount;
-        // $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
         $deposit->save();
 
-    
         TransactionRecord::create([
             "user_id" => auth()->id(),
             "transaction_beneficiary_id" => active_user(),
@@ -240,15 +238,22 @@ class MantecaController extends Controller
             "raw_data" => (array) $response
         ]);
 
-
         if (isset($result['externalId'])) {
             // Log::debug("Manteca deposit details: ", ['payload' => $payload, 'response' => $response->json()]);
             $finalResponse = [
                 'id' => $txnId,
-                'bank_account' => $result['details']['depositAddress'],
-                'deposit_alias' => $result['details']['depositAlias'],
-                'price_expire_at' => $result['details']['priceExpireAt'],
-                'asset' => $asset[1]
+                // 'bank_account' => $result['details']['depositAddress'] ?? null,
+                'deposit_alias' => $result['details']['depositAlias'] ?? null,
+                'price_expire_at' => $result['details']['priceExpireAt'] ?? null,
+                'asset' => $asset[1],
+
+                'cvu' => $result['details']['depositAddress'] ?? null,
+                // 'alias' => $result['details']['depositAlias'] ?? null,
+                'order_expiration_time' => $result['stages']['1']['expireAt'] ?? null,
+                'amount_to_be_paid' => $result['stages']['1']['thresholdAmount'] ?? null,
+                'currency' => $result['stages']['1']['asset'] ?? null,
+                'expected_receiving_amount' => $result['stages']['2']['assetAmount'] ?? null,
+                'rate_expire_at' => $result['details']['priceExpireAt'] ?? null,
             ];
             return get_success_response($finalResponse);
         }
