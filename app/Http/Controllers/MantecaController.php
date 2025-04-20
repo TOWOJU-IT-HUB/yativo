@@ -195,13 +195,50 @@ class MantecaController extends Controller
         $response = Http::withHeaders($this->headers)
             ->post($this->baseUrl . 'synthetics/ramp-on', $payload);
 
+
+        // Record deposit
+        // $deposit = new Deposit();
+        // $deposit->currency = $asset[0];
+        // $deposit->deposit_currency = $asset[1];
+        // $deposit->user_id = active_user();
+        // $deposit->amount = $request->amount;
+        // $deposit->gateway = $request->gateway;
+        // $deposit->receive_amount = $request->amount * $exchange_rate;
+        // $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+
+        
+        // TransactionRecord::create([
+        //     "user_id" => auth()->id(),
+        //     "transaction_beneficiary_id" => active_user(),
+        //     "transaction_id" => $txnId,
+        //     "transaction_amount" => $request->amount,
+        //     "gateway_id" => null,
+        //     "transaction_status" => "In Progress",
+        //     "transaction_type" => 'epay',
+        //     "transaction_memo" => "payin",
+        //     "transaction_currency" => $request->coin,
+        //     "base_currency" => $request->coin,
+        //     "secondary_currency" => $request->coin,
+        //     "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
+        //     "transaction_payin_details" => array_merge([$payload, $response]),
+        //     "transaction_payout_details" => [],
+        // ]);
+
+        // Track::create([
+        //     "quote_id" => $txnId,
+        //     "transaction_type" => $txn_type ?? 'deposit',
+        //     "tracking_status" => "Deposit initiated successfully",
+        //     "raw_data" => (array) $response
+        // ]);
+
+
         if ($response->ok()) {
             Log::debug("Manteca deposit details: ", ['payload' => $payload, 'response' => $response->json()]);
             return get_success_response($response->json());
         }
 
 
-        Log::debug("Error creating Manteca deposit: ", ['response' => $response]);
+        Log::debug("Error creating Manteca deposit: ", ['payload' => $payload, 'response' => $response]);
         return get_error_response(['error' => 'Unable to process order']);
     }
 
