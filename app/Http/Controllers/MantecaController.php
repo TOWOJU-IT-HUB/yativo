@@ -248,7 +248,7 @@ class MantecaController extends Controller
                 'bank_account' => $result['details']['depositAddress'],
                 'deposit_alias' => $result['details']['depositAlias'],
                 'price_expire_at' => $result['details']['priceExpireAt'],
-                'asset' => $result['against']
+                'asset' => $asset[1]
             ];
             return get_success_response($finalResponse);
         }
