@@ -197,7 +197,7 @@ class MantecaController extends Controller
             "asset" => $asset[0],
             "against" => $asset[1],
             "assetAmount" => $request->amount,
-            "priceCode" => $codeResponse['code'],
+            // "priceCode" => $codeResponse['code'],
             "withdrawAddress" => "0x9C2d7ccA1d1023B2038d91196ea420d731226f73",
             "withdrawNetwork" => "BASE"
         ];
