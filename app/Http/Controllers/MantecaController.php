@@ -176,28 +176,18 @@ class MantecaController extends Controller
         $customer = Customer::where('customer_id', $request->customer_id)->first();
 
         $asset = explode("_", $request->coin);
-        $ratePayload = [
-            "coin" => $request->coin,
-            "operation" => "BUY",
-            "userId" => "100007696" // $customer->manteca_user_id
-        ];
 
-        $codeResponse = $this->getPriceRate($ratePayload);
-        Log::debug("Error generating deposit lock: ", ['response' => $codeResponse]);
-
-        if (!isset($codeResponse['code'])) {
-            return get_error_response(['error' => 'Unable to retrieve rate code']);
-        }
-
+        // record as deposit request
+        $txnId = generate_uuid();
+        
         $payload = [
-            "externalId" => generate_uuid(),
-            "userAnyId" => "100007696", //$customer->manteca_user_id,
-            "userNumberId" => "100007696", //$customer->manteca_user_id,
+            "externalId" => $txnId,
+            "userAnyId" => $customer->manteca_user_id,
+            "userNumberId" => $customer->manteca_user_id,
             "sessionId" => generate_uuid(),
             "asset" => $asset[0],
             "against" => $asset[1],
             "assetAmount" => $request->amount,
-            // "priceCode" => $codeResponse['code'],
             "withdrawAddress" => "0x9C2d7ccA1d1023B2038d91196ea420d731226f73",
             "withdrawNetwork" => "BASE"
         ];
@@ -206,7 +196,7 @@ class MantecaController extends Controller
             ->post($this->baseUrl . 'synthetics/ramp-on', $payload);
 
         if ($response->ok()) {
-            Log::debug("Manteca deposit details: ", ['payload' => $response->json()]);
+            Log::debug("Manteca deposit details: ", ['payload' => $payload, 'response' => $response->json()]);
             return get_success_response($response->json());
         }
 
@@ -231,7 +221,7 @@ class MantecaController extends Controller
         $customer = Customer::where('customer_id', $request->customer_id)->first();
 
         $payload = [
-            'userId' => "100007696", //$customer->manteca_user_id,
+            'userId' => $customer->manteca_user_id,
             'coin' => $request->coin,
             'cbu' => $request->cbu,
             'amount' => $request->amount
