@@ -241,9 +241,10 @@ class MantecaController extends Controller
         ]);
 
 
-        if ($response->ok()) {
+        if (isset($result['externalId'])) {
             // Log::debug("Manteca deposit details: ", ['payload' => $payload, 'response' => $response->json()]);
             $finalResponse = [
+                'id' => $txnId,
                 'bank_account' => $result['details']['depositAddress'],
                 'deposit_alias' => $result['details']['depositAlias'],
                 'price_expire_at' => $result['details']['priceExpireAt'],
