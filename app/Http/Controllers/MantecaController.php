@@ -211,8 +211,8 @@ class MantecaController extends Controller
 
         // Record deposit
         $deposit = new Deposit();
-        $deposit->currency = $asset[0];
-        $deposit->deposit_currency = $asset[1];
+        $deposit->currency = $asset['crypto'];
+        $deposit->deposit_currency = $asset['fiat'];
         $deposit->user_id = active_user();
         $deposit->amount = $request->amount;
         $deposit->gateway = $request->gateway;
@@ -229,7 +229,7 @@ class MantecaController extends Controller
             "transaction_type" => 'epay',
             "transaction_memo" => "payin",
             "transaction_currency" => $request->coin,
-            "base_currency" => $request->coin,
+            "base_currency" => $asset['crypto'],
             "secondary_currency" => $request->coin,
             "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
             "transaction_payin_details" => array_merge([$payload, $response]),
