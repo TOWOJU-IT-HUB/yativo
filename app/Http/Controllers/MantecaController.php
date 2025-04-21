@@ -303,7 +303,7 @@ class MantecaController extends Controller
     private function mapFiatToPair(string $against): ?array {
         $map_list = [
             'USDC_ARS',
-            'USDT_USD',
+            'USDC_USD',
             'USDCB_GTQ',
             'USDCB_CRC',
             'USDCB_PUSD'
