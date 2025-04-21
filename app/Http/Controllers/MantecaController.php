@@ -205,7 +205,8 @@ class MantecaController extends Controller
         $result = $response->json();
 
         if(!isset($result['id'])) {
-            return get_error_response(['error' => 'Unable to initiate deposit, please contact support']);
+            return get_error_response($result);
+            // return get_error_response(['error' => 'Unable to initiate deposit, please contact support']);
         }
 
         // Record deposit
