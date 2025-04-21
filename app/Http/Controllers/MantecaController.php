@@ -169,7 +169,7 @@ class MantecaController extends Controller
         $validator = Validator::make($request->all(), [
             'customer_id' => 'required|exists:customers,customer_id',
             'amount' => 'required|numeric|min:1',
-            'coin' => 'required|string',
+            'coin' => 'required|string|in:USD,ARS,PUSD,GTQ,CRC',
         ]);
 
         if ($validator->fails()) {
@@ -178,7 +178,11 @@ class MantecaController extends Controller
 
         $customer = Customer::where('customer_id', $request->customer_id)->first();
 
-        $asset = explode("_", $request->coin);
+        // CHECK IF THE COIN IS IN THE SUPPORTED PAIR AND GRAB THE CRYPTO
+        $asset = $this->mapFiatToPair($request->coin);
+        if(!$asset || null == $asset) {
+            return get_error_response(['error' => 'Please contact support']);
+        }
 
         // record as deposit request
         $txnId = generate_uuid();
@@ -188,8 +192,8 @@ class MantecaController extends Controller
             "userAnyId" => "100007696", //$customer->manteca_user_id,
             // "userNumberId" => $customer->manteca_user_id,
             "sessionId" => generate_uuid(),
-            "asset" => $asset[0],
-            "against" => $asset[1],
+            "asset" => $asset['crypto'],
+            "against" => $asset['fiat'],
             "assetAmount" => $request->amount,
             "withdrawAddress" => "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
             "withdrawNetwork" => "BASE"
@@ -245,13 +249,12 @@ class MantecaController extends Controller
                 // 'bank_account' => $result['details']['depositAddress'] ?? null,
                 'deposit_alias' => $result['details']['depositAlias'] ?? null,
                 'price_expire_at' => $result['details']['priceExpireAt'] ?? null,
-                'asset' => $asset[1],
+                // 'receiving_currency' => $asset[1],
 
                 'cvu' => $result['details']['depositAddress'] ?? null,
-                // 'alias' => $result['details']['depositAlias'] ?? null,
                 'order_expiration_time' => $result['stages']['1']['expireAt'] ?? null,
                 'amount_to_be_paid' => $result['stages']['1']['thresholdAmount'] ?? null,
-                'currency' => $result['stages']['1']['asset'] ?? null,
+                'deposit_currency' => $result['stages']['1']['asset'] ?? null,
                 'expected_receiving_amount' => $result['stages']['2']['assetAmount'] ?? null,
                 'rate_expire_at' => $result['details']['priceExpireAt'] ?? null,
             ];
@@ -295,4 +298,28 @@ class MantecaController extends Controller
         Log::debug("Error creating Manteca payout: ", ['response' => $response]);
         return get_error_response(['error' => 'Unable to process withdrawal']);
     }
+
+    private function mapFiatToPair(string $against): ?array {
+        $map_list = [
+            'USDT_ARS',
+            'USDT_USD',
+            'USDCB_GTQ',
+            'USDCB_CRC',
+            'USDCB_PUSD'
+        ];
+        
+        foreach ($map_list as $item) {
+            [$crypto, $fiat] = explode('_', $item);
+            if ($fiat === $against) {
+                return [
+                    'crypto' => $crypto,
+                    'fiat' => $fiat
+                ];
+            }
+        }
+    
+        // Return null if no match found
+        return null;
+    }
+    
 }
