@@ -53,10 +53,30 @@ class DepositController extends Controller
         try {
             $request = request();
             $per_page = $request->per_page ?? per_page();
-            $deposits = Deposit::whereUserId(active_user())->with(['depositGateway'])->latest()->paginate($per_page);
+            
+            $query = Deposit::whereUserId(active_user())->with(['depositGateway']);
+    
+            // Filter by customer_id
+            if ($request->has('customer_id')) {
+                $query->where('customer_id', $request->customer_id);
+            }
+    
+            // Filter by date range
+            $start_date = $request->input('start_date');
+            $end_date = $request->input('end_date');
+            
+            if ($start_date && $end_date) {
+                $query->whereBetween('created_at', [$start_date, $end_date]);
+            } elseif ($start_date) {
+                $query->where('created_at', '>=', $start_date);
+            } elseif ($end_date) {
+                $query->where('created_at', '<=', $end_date);
+            }
+    
+            $deposits = $query->latest()->paginate($per_page);
             return paginate_yativo($deposits);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
@@ -116,6 +136,7 @@ class DepositController extends Controller
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
             $deposit->receive_amount = $request->amount * $exchange_rate;
+            $deposit->customer_id = $request->customer_id ?? null;
             $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
             if (!$payin) {

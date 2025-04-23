@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DepositService;
 use Log;
 use App\Models\Track;
 use App\Models\Deposit;
@@ -189,7 +190,7 @@ class MantecaController extends Controller
         
         $payload = [
             "externalId" => $txnId,
-            "userAnyId" => "100007696", //$customer->manteca_user_id,
+            "userAnyId" => $customer->manteca_user_id, // "100007696", //
             // "userNumberId" => $customer->manteca_user_id,
             "sessionId" => generate_uuid(),
             "asset" => $asset['crypto'],
@@ -208,7 +209,7 @@ class MantecaController extends Controller
             return get_error_response($result);
             // return get_error_response(['error' => 'Unable to initiate deposit, please contact support']);
         }
-
+        $txnId = $result['numberId'];
         // Record deposit
         $deposit = new Deposit();
         $deposit->currency = $asset['crypto'];
@@ -217,6 +218,8 @@ class MantecaController extends Controller
         $deposit->amount = $request->amount;
         $deposit->gateway = $request->gateway;
         $deposit->receive_amount = $request->amount;
+        $deposit->customer_id = $request->customer_id ?? null;
+        $deposit->payment_gateway_id = $txnId;
         $deposit->save();
 
         TransactionRecord::create([
@@ -323,4 +326,116 @@ class MantecaController extends Controller
         return null;
     }
     
+    public function handleWebhook(Request $request)
+    {
+        $payload = $request->all();
+
+        if (!isset($payload['event'], $payload['data'])) {
+            return response()->json(['message' => 'Invalid payload'], 400);
+        }
+
+        $event = $payload['event'];
+        $data = $payload['data'];
+
+        switch ($event) {
+            case 'SYNTHETIC_STATUS_UPDATE':
+                // Handle synthetic ramp operation
+                $this->handleSyntheticStatusUpdate($data);
+                break;
+
+            case 'WITHDRAW_STATUS_UPDATE':
+                // Handle withdraw status
+                $this->handleWithdrawStatusUpdate($data);
+                break;
+
+            case 'FIAT_WITHDRAW_UPDATE':
+                // Handle fiat withdrawal
+                $this->handleFiatWithdrawUpdate($data);
+                break;
+
+            case 'DOCUMENT_VALIDATION':
+                // Handle document validation
+                $this->handleDocumentValidation($data);
+                break;
+
+            case 'DEPOSIT_STATUS_UPDATE':
+                // Handle deposit status
+                $this->handleDepositStatusUpdate($data);
+                break;
+
+            default:
+                Log::warning("Unhandled event type: $event", $payload);
+                break;
+        }
+
+        return response()->json(['message' => 'Webhook received'], 200);
+    }
+
+    protected function handleSyntheticStatusUpdate(array $data)
+    {
+        // Example: Save ramp operation data
+        Log::info('Synthetic status update received', $data);
+
+        // You can store this data in DB like:
+        // RampOperation::updateOrCreate(['id' => $data['id']], [...])
+    }
+
+    protected function handleWithdrawStatusUpdate(array $data)
+    {
+        Log::info('Withdraw status update received', $data);
+        // Save withdrawal data or update status in DB
+        if(!isset($data['userExternalId'])) {
+            return false;
+        }
+        $wid = $data['userExternalId'];
+        $w = Withdraw::whereId($wid)->first();
+        if($w->status != 'completed'){
+            $w->status = 'completed';
+            if($w->save()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function handleFiatWithdrawUpdate(array $data)
+    {
+        Log::info('Fiat withdraw update received', $data);
+        // Process based on destAccount, user, etc.
+    }
+
+    protected function handleDocumentValidation(array $data)
+    {
+        Log::info('Document validation update received', $data);
+        // Store document validation status for a user
+    }
+
+    protected function handleDepositStatusUpdate(array $data)
+    {
+        Log::info('Deposit status update received', $data);
+        // Track deposit lifecycle
+        if(!isset($data['userExternalId'])) {
+            return false;
+        }
+        // recheck the deposit status - COMPLETED
+        $txnId = $data['numberId'];
+        $response = Http::withHeaders($this->headers)->get("{$this->baseUrl}/crypto/v1/synthetics/{$txnId}")->json();
+        if(!$response || !isset($response['status']) || $response['status'] != 'COMPLETED') {
+            return false;
+        }
+        $where = [
+            "transaction_id" => $txnId,
+            "transaction_type" => "epay",
+            "transaction_memo" => "payin"
+        ];
+        $order = TransactionRecord::where($where)->first();
+        if(!$order) {
+            return false;
+        }
+        // process order complete.
+        $deposit_services = new DepositService();
+        $deposit_services->process_deposit($order->transaction_id);
+        return true;
+    }
 }

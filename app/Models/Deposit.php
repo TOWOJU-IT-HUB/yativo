@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Scopes\GlobalModelActivityLog;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Modules\Customer\app\Models\Customer;
 
 
 class Deposit extends Model
@@ -26,6 +27,7 @@ class Deposit extends Model
         'deposit_currency',
         'status',
         'redirect_url',
+        'customer_id',
         'credit_wallet' // wallet to be credited
     ];
 
@@ -53,6 +55,11 @@ class Deposit extends Model
         return $this->belongsTo(User::class);
     }
     
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
     /**
      * Get the payin method associated with the exchange rate.
      */
