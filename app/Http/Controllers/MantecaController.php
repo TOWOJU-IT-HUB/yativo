@@ -434,8 +434,8 @@ class MantecaController extends Controller
             return false;
         }
         // process order complete.
-        $deposit_services = new DepositService();
-        $deposit_services->process_deposit($order->transaction_id);
+        // $deposit_services = new DepositService();
+        // $deposit_services->process_deposit($order->transaction_id);
         return true;
     }
 }
