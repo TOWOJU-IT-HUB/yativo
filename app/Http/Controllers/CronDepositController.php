@@ -380,4 +380,8 @@ class CronDepositController extends Controller
         }
     }
 
+    public function manteca()
+    {
+        //
+    }
 }

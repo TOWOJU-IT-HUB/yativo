@@ -15,10 +15,11 @@ use Spatie\WebhookServer\WebhookCall;
 
 class CryptoWalletsController extends Controller
 {
-    public $coinpayment, $businessConfig;
+    public $coinpayment, $businessConfig, $baseUrl;
 
     public function __construct()
     {
+        $this->baseUrl = env("YATIVO_CRYPTO_API_URL");
         // $apiKey = getenv("COINPAYMENT_PRIVATE_KEY");
         // $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
         // $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
@@ -33,7 +34,7 @@ class CryptoWalletsController extends Controller
         // Validate the request
         $validator = Validator::make($request->all(), [
             'currency' => 'required',
-            'customer_id' => 'required',
+            // 'customer_id' => 'required',
         ]);
     
         if ($validator->fails()) {
@@ -44,12 +45,13 @@ class CryptoWalletsController extends Controller
         $currency = $request->currency;
     
         $userId = auth()->id();
-        $isCustomer = $request->customer_id ? true : false;
+        // $isCustomer = $request->customer_id ? true : false;
     
         // Generate wallet address
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
-        $token = $curl->getToken();
+        $token = $yativo->getToken();
+        $payload = [];
         $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
 
         if (isset($response['status']) && isset($response['data']) ) {
@@ -68,8 +70,8 @@ class CryptoWalletsController extends Controller
         $data = $curl;
         $walletData = [
             "user_id" => $userId,
-            "is_customer" => $isCustomer,
-            "customer_id" => $request->customer_id ?? null,
+            "is_customer" => false,
+            "customer_id" => null,
             "wallet_address" => $data['address'],
             "wallet_currency" => trim($data['ticker_name']),
             "wallet_network" => $data['chain'],

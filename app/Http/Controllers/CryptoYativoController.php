@@ -19,7 +19,7 @@ class CryptoYativoController extends Controller
         $this->baseUrl = env("YATIVO_CRYPTO_API_URL");
     }
 
-    private function getToken()
+    public function getToken()
     {
         $payload = [
             "email" => env("YATIVO_CRYPTO_API_EMAIL"),
