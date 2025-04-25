@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Validator;
 use Modules\CoinPayments\app\Services\CoinpaymentServices;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
+use Http;
 
 class CryptoWalletsController extends Controller
 {
