@@ -76,7 +76,8 @@ class User extends Authenticatable implements JWTSubject
         'kyc_status',
         'is_kyc_submitted',
         'last_login_at',
-        'is_pnd'
+        'is_pnd',
+        'yativo_customer_id'
     ];
 
     protected $with = [
