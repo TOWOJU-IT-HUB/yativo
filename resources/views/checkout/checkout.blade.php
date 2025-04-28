@@ -114,7 +114,7 @@
             @elseif($checkout->checkout_mode == 'brCode')
                 <div class="text-center">
                     <p class="text-lg mb-4">Scan the generated QR code to complete the payment:</p>
-                    <div id="qrcode" class="mx-auto"></div>
+                    <div style="display: inline-flex;" id="qrcode" class="mx-auto"></div>
                     <script>
                         document.addEventListener("DOMContentLoaded", function() {
                             const qrData =
