@@ -99,59 +99,55 @@ class DepositController extends Controller
 
             // Validate credit_wallet and currency
             $deposit_currency = $request->credit_wallet ?? $request->currency;
-            if ($deposit_currency) {
-                if (!$user->hasWallet($deposit_currency)) {
-                    return get_error_response(['error' => "Invalid credit wallet selected"], 400);
-                }
+            if (!$user->hasWallet($deposit_currency)) {
+                return get_error_response(['error' => "Invalid credit wallet selected"], 400);
             }
 
+            // Get Payin Method
             $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
 
-            if ($payin->minimum_deposit > $request->amount) {
-                return get_error_response(['error' => "Minimum deposit amount is {$payin->minimum_deposit} {$payin->currency}"], 400);
-            }
+            // Assumption: Payin Method currency = USD
+            $gateway_base_currency = $payin->currency;
 
-            if ($payin->maximum_deposit < $request->amount) {
-                return get_error_response(['error' => "Maximum deposit amount is {$payin->maximum_deposit} {$payin->currency}"], 400);
-            }
+            // Fetch Exchange Rate
+            $exchange_rate = floatval($this->get_transaction_rate($gateway_base_currency, $deposit_currency, $payin->id, "payin"));
 
-            $exchange_rate = floatval($this->get_transaction_rate($payin->currency, $deposit_currency, $payin->id, "payin"));
+            // Calculate amounts
+            $receive_amount = $request->amount * $exchange_rate;
 
-            // Record deposit
+            // Calculate transaction fee based on gateway currency (optional adjustment)
+            $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+
+            // Create Deposit
             $deposit = new Deposit();
-            $deposit->currency = $payin->currency;
+            $deposit->currency = $gateway_base_currency;
             $deposit->deposit_currency = $deposit_currency;
             $deposit->user_id = active_user();
             $deposit->amount = $request->amount;
             $deposit->gateway = $request->gateway;
-            $deposit->receive_amount = $request->amount * $exchange_rate;
+            $deposit->receive_amount = $receive_amount;
             $deposit->customer_id = $request->customer_id ?? null;
-            $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
-
-            if (!$payin) {
-                return get_error_response(['error' => 'Invalid gateway']);
-            }
 
             if ($deposit->save()) {
                 $total_amount_due = round($request->amount + $transaction_fee, 4);
+
                 $arr['payment_info'] = [
-                    "send_amount" => round($request->amount, 4) . " " . strtoupper($payin->currency),
-                    "receive_amount" => round($deposit->receive_amount, 4) . " " . strtoupper($deposit_currency),
-                    "exchange_rate" => "1 " . strtoupper($payin->currency) . " = " . $exchange_rate . " " . strtoupper($deposit_currency),
-                    "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($payin->currency),
+                    "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway_base_currency),
+                    "receive_amount" => round($receive_amount, 4) . " " . strtoupper($deposit_currency),
+                    "exchange_rate" => "1 " . strtoupper($gateway_base_currency) . " = " . $exchange_rate . " " . strtoupper($deposit_currency),
+                    "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($gateway_base_currency),
                     "payment_method" => $payin->method_name,
                     "estimate_delivery_time" => formatSettlementTime($payin->settlement_time),
-                    "total_amount_due" => $total_amount_due . " " . strtoupper($payin->currency)
+                    "total_amount_due" => $total_amount_due . " " . strtoupper($gateway_base_currency)
                 ];
 
-                $process = $this->process_store($request->gateway, $payin->currency, $total_amount_due, $deposit->toArray());
+                $process = $this->process_store($request->gateway, $gateway_base_currency, $total_amount_due, $deposit->toArray());
 
                 if (isset($process['error'])) {
                     return get_error_response($process);
                 }
                 return get_success_response(array_merge($process, $arr));
             }
-
             return get_error_response(['error' => "Unable to process deposit"]);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
