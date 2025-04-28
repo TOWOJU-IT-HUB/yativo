@@ -13,6 +13,8 @@ use Modules\CoinPayments\app\Services\CoinpaymentServices;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Http;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class CryptoWalletsController extends Controller
 {
@@ -25,6 +27,12 @@ class CryptoWalletsController extends Controller
         // $secretKey = getenv("COINPAYMENT_PUBLIC_KEY");
         // $this->coinpayment = new CoinpaymentServices($apiKey, $secretKey);
         // $this->middleware('can_create_crypto')->only(['createWallet']);
+
+        if(!Schema::hasColumn('users', 'yativo_customer_id')) {
+            Schema::table('users', function(Blueprint $table) {
+                $table->string('yativo_customer_id')->nullable();
+            });
+        }
     }
     
     public function createWallet()
@@ -384,7 +392,7 @@ class CryptoWalletsController extends Controller
 
             $yativo = new CryptoYativoController();
             $token = $yativo->getToken();
-            
+
             if (!$token) {
                 return ['error' => 'Failed to authenticate with Yativo API'];
             }
