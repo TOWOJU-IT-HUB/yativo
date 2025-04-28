@@ -50,7 +50,7 @@ use App\Models\localPaymentTransactions;
 |
 */
 
-dd(CustomPricing::all());
+// dd(CustomPricing::all());
 
 Route::view('onramp', 'welcome');
 
