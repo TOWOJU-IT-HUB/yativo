@@ -53,7 +53,7 @@ class CryptoWalletsController extends Controller
         $yativo_customer_id = $this->addCustomer();
         
         $payload = [
-            "asset_name" => $currency, // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
+            "ticker_name" => $currency, // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
             "customer_id" => $yativo_customer_id,
         ];
 
