@@ -108,7 +108,7 @@ class DepositController extends Controller
             $gateway_base_currency = $gateway->currency;
 
             // Step 1: Get base exchange rate (e.g., from USD to deposit currency)
-            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+            $base_exchange_rate = getExchangeVal($request->currency, strtoupper($gateway->currency));
 
             // Step 2: Adjust exchange rate with gateway's exchange_rate_float (markup)
             $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
@@ -188,7 +188,7 @@ class DepositController extends Controller
             if ($deposit->save()) {
                 $arr['payment_info'] = [
                     "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway_base_currency),
-                    "receive_amount" => round($receive_amount, 4) . " " . strtoupper($deposit_currency),
+                    "receive_amount" => floor($receive_amount, 4) . " " . strtoupper($deposit_currency),
                     "exchange_rate" => "1 " . strtoupper($deposit_currency) . " = " . round($final_exchange_rate, 8) . " " . strtoupper($gateway_base_currency),
                     "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($gateway_base_currency),
                     "payment_method" => $gateway->method_name,
