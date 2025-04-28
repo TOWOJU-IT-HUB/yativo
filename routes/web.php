@@ -12,6 +12,7 @@ use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\PaxosController;
 use App\Models\BeneficiaryFoems as BeneficiaryForms;
+use App\Models\CustomPricing;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use App\Services\OnrampService;
@@ -49,6 +50,7 @@ use App\Models\localPaymentTransactions;
 |
 */
 
+var_dump(CustomPricing::all());
 
 Route::view('onramp', 'welcome');
 

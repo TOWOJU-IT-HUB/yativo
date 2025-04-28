@@ -120,6 +120,65 @@ class DepositController extends Controller
             // Calculate transaction fee based on gateway currency (optional adjustment)
             $transaction_fee = $this->exchange_rate($request->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
+            $usdRate = $this->exchange_rate("USD", $gateway_base_currency);
+            
+            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
+        
+            // ✅ Fixed Exchange Rate Calculation
+            $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
+        
+            // Default charges
+            $fixed_charge = $float_charge = 0;
+        
+            $user = auth()->user();
+            if (!$user->hasActiveSubscription()) {
+                $plan = PlanModel::where('price', 0)->latest()->first();
+                if ($plan) {
+                    $user->subscribeTo($plan, 30, true);
+                }
+            }
+        
+            $subscription = $user->activeSubscription();
+            $user_plan = (int) $subscription->plan_id;
+            // Determine user plan pricing
+            if ($user_plan === 3) {
+                $customPricing = CustomPricing::where('user_id', $user->id)
+                    ->where('gateway_id', $gateway->id)
+                    ->first();
+        
+                if (!$customPricing) {
+                    $user_plan = 2; // Fallback to Plan 2
+                } else {
+                    $fixed_charge = $customPricing->fixed_charge;
+                    $float_charge = $customPricing->float_charge;
+                }
+            }
+        
+            if ($user_plan === 1 || $user_plan === 2) {
+                $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
+                $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
+            }
+        
+            // Convert fixed fee to local currency using exchange rate
+            $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
+        
+            // ✅ Fixed Floating Fee Calculation
+            $floating_fee_in_local_currency = round(($amount * ($float_charge / 100)) * $exchange_rate, 8);
+        
+            // Calculate total charge in local currency
+            $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
+        
+            // Apply minimum and maximum charge constraints
+            $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
+            $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
+        
+            if ($total_charge < $minimum_charge) {
+                $total_charge = $minimum_charge;
+            } elseif ($total_charge > $maximum_charge) {
+                $total_charge = $maximum_charge;
+            }
+            
             return [
                 'deposit_currency' => $request->currency,
                 'payin_currency' => $gateway_base_currency,
