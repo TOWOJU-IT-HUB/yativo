@@ -201,7 +201,8 @@ class DepositController extends Controller
                     "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($gateway_base_currency),
                     "payment_method" => $payin->method_name,
                     "estimate_delivery_time" => formatSettlementTime($payin->settlement_time),
-                    "total_amount_due" => $total_amount_due . " " . strtoupper($gateway_base_currency)
+                    "total_amount_due" => $total_amount_due . " " . strtoupper($gateway_base_currency),
+                    "exchange_rate_new" => $total_charge
                 ];
 
                 $process = $this->process_store($request->gateway, $gateway_base_currency, $total_amount_due, $deposit->toArray());
