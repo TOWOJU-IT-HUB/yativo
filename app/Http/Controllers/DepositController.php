@@ -370,6 +370,10 @@ class DepositController extends Controller
             'type' => $type,
         ]);
         
+        if(strtoupper($send_currency) === strtoupper($receive_currency)) {
+            return 1;
+        }
+
         $result = 0;
     
         // Fetch exchange rate details based on gateway and type
