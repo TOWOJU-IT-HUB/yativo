@@ -219,7 +219,7 @@ class MantecaController extends Controller
         $deposit->gateway = $request->gateway;
         $deposit->receive_amount = $request->amount;
         $deposit->customer_id = $request->customer_id ?? null;
-        $deposit->payment_gateway_id = $txnId;
+        $deposit->gateway_deposit_id = $txnId;
         $deposit->save();
 
         TransactionRecord::create([
