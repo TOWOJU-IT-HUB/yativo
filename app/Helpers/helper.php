@@ -203,6 +203,71 @@ if (!function_exists('get_transaction_rate')) {
     }
 }
 
+if (!function_exists('deposit_transaction_rate')) {
+    function deposit_transaction_rate($send_currency, $receive_currency, $Id, $type)
+    {
+        $result = 0;
+        $rate = 0;
+        $gatewayId = $Id;
+
+        if ($type === "payout") {
+            $gateway = payoutMethods::find($gatewayId);
+        } elseif ($type === "payin") {
+            $gateway = PayinMethods::find($gatewayId);
+        } else {
+            Log::error("Invalid transaction type provided", ['type' => $type]);
+            return 0;
+        }
+
+        if (!$gateway) {
+            Log::error("Gateway not found", ['gateway_id' => $gatewayId, 'type' => $type]);
+            return 0;
+        }
+
+        $rate = $gateway->exchange_rate_float ?? 0;
+        $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
+
+        if ($baseRate <= 0) {
+            Log::error("Invalid base exchange rate fetched", [
+                'send_currency' => $send_currency,
+                'receive_currency' => $receive_currency,
+                'baseRate' => $baseRate,
+            ]);
+            return 0;
+        }
+
+        Log::info("Exchange Rate Details", [
+            "Exchange_rate" => $baseRate,
+            "From_currency" => $send_currency,
+            "To_currency" => $receive_currency,
+            "Gateway_ID" => $gatewayId,
+            "Type" => $type,
+        ]);
+
+        // Adjust for 'payin' transactions (apply the rate to the base rate)
+        if ($type === "payin" && $rate > 0) {
+            // Adjust the deposit based on the rate
+            $result = $baseRate * (1 + ($rate / 100));  // Increase by the percentage
+        } elseif ($type === "payout" && $rate > 0) {
+            // Reduce for payout
+            $result = $baseRate * (1 - ($rate / 100));  // Reduce by the percentage
+        } else {
+            $result = $baseRate;  // Default to baseRate if no adjustment needed
+        }
+
+        session([
+            "rates" => [
+                "base_rate" => $baseRate,
+                "final_rate" => $result,
+                "exchange_rate_float" => $rate
+            ]
+        ]);
+
+        return floatval($result);
+    }
+}
+
+
 if (!function_exists('exchange_rates')) {
     function exchange_rates($from, $to) : float
     {

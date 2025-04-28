@@ -363,34 +363,51 @@ class DepositController extends Controller
 
     private function get_transaction_rate($send_currency, $receive_currency, $gateway, $type)
     {
-        Log::info(json_encode([$send_currency, $receive_currency, $gateway, $type]));
+        Log::info("Fetching transaction rate", [
+            'send_currency' => $send_currency,
+            'receive_currency' => $receive_currency,
+            'gateway' => $gateway,
+            'type' => $type,
+        ]);
+        
         $result = 0;
-
+    
         // Fetch exchange rate details based on gateway and type
         $method = PayinMethods::whereId($gateway)->first();
-        $rates = $method->exchange_rate_float ?? 0;
-
+    
+        if (!$method) {
+            Log::error("Payin method not found for gateway ID: {$gateway}");
+            return 0;
+        }
+    
+        // Fetch float percentage from the gateway method (exchange rate float)
+        $rate = $method->exchange_rate_float ?? 0;
+    
         // Fetch base rate from external service or function
         $baseRate = exchange_rates(strtoupper($send_currency), strtoupper($receive_currency));
-
-        if ($rates) {
-
-            if ($baseRate > 0) {
-                // Calculate floated amount if float percentage is set
-                $rate_floated_amount = ($rates->float_percentage ?? 0) / 100 * $baseRate;
-                $result = $baseRate + $rate_floated_amount;
-            } else {
-                Log::error("Base rate is 0 for {$send_currency} to {$receive_currency}");
-            }
-        } else {
-            if ($baseRate > 0) {
-                $result = $baseRate;
-            } else {
-                Log::error("No exchange rate found for gateway ID: {$gateway}, type: {$type}");
-            }
+    
+        if ($baseRate <= 0) {
+            Log::error("Invalid base rate fetched for {$send_currency} to {$receive_currency}");
+            return 0;
         }
-
+    
+        if ($rate > 0) {
+            // If rate is provided, calculate adjusted rate (increase by float percentage)
+            $rate_floated_amount = ($rate / 100) * $baseRate;
+            $result = $baseRate + $rate_floated_amount;
+        } else {
+            // If no rate is provided, simply return base rate
+            $result = $baseRate;
+        }
+    
+        Log::info("Calculated exchange rate", [
+            'base_rate' => $baseRate,
+            'rate' => $rate,
+            'adjusted_rate' => $result,
+        ]);
+    
         return floatval($result);
     }
+    
 
 }
