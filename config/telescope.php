@@ -94,7 +94,7 @@ return [
 
     'middleware' => [
         Authorize::class,
-        // 'auth:admin',
+        'auth:admin',
     ],
 
     /*
