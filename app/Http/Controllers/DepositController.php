@@ -106,7 +106,7 @@ class DepositController extends Controller
             $request->credit_wallet = $deposit_currency;
 
             // Get Payin Method
-            $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
+            $gateway = $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
 
             // Assumption: Payin Method currency = USD
             $gateway_base_currency = $payin->currency;
@@ -116,7 +116,7 @@ class DepositController extends Controller
 
             // Calculate amounts
             $receive_amount = $request->amount * $exchange_rate;
-
+            
             // Calculate transaction fee based on gateway currency (optional adjustment)
             $transaction_fee = $this->exchange_rate($request->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
@@ -141,7 +141,7 @@ class DepositController extends Controller
         
             $subscription = $user->activeSubscription();
             $user_plan = (int) $subscription->plan_id;
-            $gateway = $payin;
+
             // Determine user plan pricing
             if ($user_plan === 3) {
                 $customPricing = CustomPricing::where('user_id', $user->id)
@@ -167,7 +167,7 @@ class DepositController extends Controller
             $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
         
             // ✅ Fixed Floating Fee Calculation
-            $floating_fee_in_local_currency = round(($amount * ($float_charge / 100)) * $exchange_rate, 8);
+            $floating_fee_in_local_currency = round(($request->amount * ($float_charge / 100)) * $exchange_rate, 8);
         
             // Calculate total charge in local currency
             $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
@@ -182,11 +182,11 @@ class DepositController extends Controller
                 $total_charge = $maximum_charge;
             }
             
-            return [
-                'deposit_currency' => $request->currency,
-                'payin_currency' => $gateway_base_currency,
-                'exchange_rate' => $exchange_rate
-            ];
+            // return [
+            //     'deposit_currency' => $request->currency,
+            //     'payin_currency' => $gateway_base_currency,
+            //     'exchange_rate' => $exchange_rate
+            // ];
 
             // Create Deposit
             $deposit = new Deposit();
