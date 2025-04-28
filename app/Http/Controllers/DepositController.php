@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\Transaction;
 use App\Models\CheckoutModel;
 use App\Models\CurrencyList;
+use App\Models\CustomPricing;
 use App\Models\Deposit;
 use App\Models\PayinMethods;
 use App\Models\TransactionRecord;
