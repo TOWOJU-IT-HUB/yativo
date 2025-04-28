@@ -64,15 +64,14 @@ class CryptoWalletsController extends Controller
         }
 
         Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
-        // return ['error' => $response['message'] ?? 'Unknown error'];
-
-        // return $curl;
+        
+        
         if (isset($curl['error']) || !isset($curl['address'])) {
-            return get_error_response(['error' => $curl]);
+            return get_error_response(['error' => $response]);
         }
     
         // Create wallet record in the database
-        $data = $curl;
+        $data = $response;
         $walletData = [
             "user_id" => $userId,
             "is_customer" => false,
