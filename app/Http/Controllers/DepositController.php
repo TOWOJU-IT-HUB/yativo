@@ -112,13 +112,19 @@ class DepositController extends Controller
             $gateway_base_currency = $payin->currency;
 
             // Fetch Exchange Rate
-            $exchange_rate = floatval($this->get_transaction_rate($gateway_base_currency, $deposit_currency, $payin->id, "payin"));
+            $exchange_rate = $this->exchange_rate($payin->currency, $gateway_base_currency); // floatval($this->get_transaction_rate($gateway_base_currency, $deposit_currency, $payin->id, "payin"));
 
             // Calculate amounts
             $receive_amount = $request->amount * $exchange_rate;
 
             // Calculate transaction fee based on gateway currency (optional adjustment)
-            return $transaction_fee = $this->exchange_rate($payin->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+            $transaction_fee = $this->exchange_rate($payin->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+
+            return [
+                'payin_currency' => $payin->currency,
+                'base_currency' => $gateway_base_currency,
+                'exchange_rate' => $transaction_fee
+            ];
 
             // Create Deposit
             $deposit = new Deposit();
