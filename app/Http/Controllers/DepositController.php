@@ -87,7 +87,7 @@ class DepositController extends Controller
                     'gateway' => 'required',
                     'amount' => 'required|numeric|min:0',
                     'currency' => 'required',
-                    'credit_wallet' => 'sometimes'
+                    '' => 'sometimes'
                 ]
             );
 
@@ -98,10 +98,12 @@ class DepositController extends Controller
             $user = $request->user();
 
             // Validate credit_wallet and currency
-            $deposit_currency = $request->credit_wallet ?? $request->currency;
+            $deposit_currency = $request->currency;
             if (!$user->hasWallet($deposit_currency)) {
                 return get_error_response(['error' => "Invalid credit wallet selected"], 400);
             }
+
+            $request->credit_wallet = $deposit_currency;
 
             // Get Payin Method
             $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
@@ -116,7 +118,7 @@ class DepositController extends Controller
             $receive_amount = $request->amount * $exchange_rate;
 
             // Calculate transaction fee based on gateway currency (optional adjustment)
-            $transaction_fee = get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+            $transaction_fee = 0;// get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
             // Create Deposit
             $deposit = new Deposit();

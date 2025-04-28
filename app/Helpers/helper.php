@@ -1119,7 +1119,7 @@ if (!function_exists('get_transaction_fee')) {
      * @param float $amount - The transaction amount
      * @param string $txn_type - Type of transaction ('deposit' or 'payout')
      * @param string $gateway_type - Gateway type ('payin' or 'payout')
-     * @return float The total transaction fee in the currency of the transaction.
+     * @return float|array The total transaction fee in the currency of the transaction.
      */
     function get_transaction_fee(int $gateway, float $amount, string $txn_type = "", string $gateway_type = "payin")
     {
