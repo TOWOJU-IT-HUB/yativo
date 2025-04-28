@@ -118,16 +118,14 @@ class DepositController extends Controller
             $receive_amount = $request->amount * $exchange_rate;
             
             // Calculate transaction fee based on gateway currency (optional adjustment)
-            $transaction_fee = $this->exchange_rate($request->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
-
-            $usdRate = $this->exchange_rate("USD", $gateway_base_currency);
+            $transaction_fee = $this->exchange_rate($request->currency, $gateway_base_currency); 
             
             $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
             $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
         
             // ✅ Fixed Exchange Rate Calculation
-            $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
-        
+            echo $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
+            
             // Default charges
             $fixed_charge = $float_charge = 0;
         
@@ -181,12 +179,6 @@ class DepositController extends Controller
             } elseif ($total_charge > $maximum_charge) {
                 $total_charge = $maximum_charge;
             }
-            
-            // return [
-            //     'deposit_currency' => $request->currency,
-            //     'payin_currency' => $gateway_base_currency,
-            //     'exchange_rate' => $exchange_rate
-            // ];
 
             // Create Deposit
             $deposit = new Deposit();
