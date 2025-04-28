@@ -121,8 +121,8 @@ class DepositController extends Controller
             $transaction_fee = $this->exchange_rate($request->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
             return [
-                'payin_currency' => $request->currency,
-                'base_currency' => $gateway_base_currency,
+                'deposit_currency' => $request->currency,
+                'payin_currency' => $gateway_base_currency,
                 'exchange_rate' => $exchange_rate
             ];
 
