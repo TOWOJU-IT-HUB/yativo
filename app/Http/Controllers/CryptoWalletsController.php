@@ -382,7 +382,9 @@ class CryptoWalletsController extends Controller
                 return $user->yativo_customer_id;
             }
 
-            $token = $this->yativo_getToken();
+            $yativo = new CryptoYativoController();
+            $token = $yativo->getToken();
+            
             if (!$token) {
                 return ['error' => 'Failed to authenticate with Yativo API'];
             }
