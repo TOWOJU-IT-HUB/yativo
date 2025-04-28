@@ -81,136 +81,72 @@ class DepositController extends Controller
      */
     public function store(Request $request)
     {
-        try {
-            $validate = Validator::make(
-                $request->all(),
-                [
-                    'gateway' => 'required',
-                    'amount' => 'required|numeric|min:0',
-                    'currency' => 'required',
-                ]
-            );
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'currency' => 'required|string',
+            'gateway_id' => 'required|integer|exists:payment_gateways,id',
+        ]);
 
-            if ($validate->fails()) {
-                return get_error_response($validate->errors()->toArray());
-            }
+        $gateway = PaymentGateway::findOrFail($request->gateway_id);
 
-            $user = $request->user();
-            $deposit_currency = $request->currency;
+        // Step 1: Determine fixed charge
+        $fixed_charge = $gateway->fixed_charge ?? 0;
 
-            if (!$user->hasWallet($deposit_currency)) {
-                return get_error_response(['error' => "Invalid credit wallet selected"], 400);
-            }
-
-            $request->credit_wallet = $deposit_currency;
-
-            $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
-            $gateway_base_currency = $gateway->currency;
-
-            // Step 1: Get base exchange rate (e.g., from USD to deposit currency)
-            $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-
-            // Step 2: Adjust exchange rate with gateway's exchange_rate_float (markup)
-            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
-            $final_exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
-
-            // Step 3: Calculate receive amount in deposit currency
-            $receive_amount = $request->amount * $final_exchange_rate;
-
-            // Step 4: Determine charges (Fixed + Floating)
-            $fixed_charge = $float_charge = 0;
-            $user_plan = 1; // Default
-
-            if (!$user->hasActiveSubscription()) {
-                $plan = PlanModel::where('price', 0)->latest()->first();
-                if ($plan) {
-                    $user->subscribeTo($plan, 30, true);
-                }
-            }
-
-            $subscription = $user->activeSubscription();
-            if ($subscription) {
-                $user_plan = (int) $subscription->plan_id;
-            }
-
-            // Check Custom Pricing first if user_plan == 3
-            if ($user_plan === 3) {
-                $customPricing = CustomPricing::where('user_id', $user->id)
-                    ->where([
-                        'gateway_id' => $gateway->id,
-                        'gateway_type' => 'payin',
-                    ])->first();
-
-                if ($customPricing) {
-                    $fixed_charge = $customPricing->fixed_charge;
-                    $float_charge = $customPricing->float_charge;
-                } else {
-                    // fallback to Plan 2 if no custom pricing found
-                    $user_plan = 2;
-                }
-            }
-
-            // If no custom pricing or Plan 1/2
-            if ($user_plan === 1) {
-                $fixed_charge = $gateway->fixed_charge;
-                $float_charge = $gateway->float_charge;
-            } elseif ($user_plan === 2) {
-                $fixed_charge = $gateway->pro_fixed_charge;
-                $float_charge = $gateway->pro_float_charge;
-            }
-
-            // Step 5: Calculate the transaction fee
-            $floating_fee = ($request->amount * $float_charge) / 100; // % of amount
-            $transaction_fee = $fixed_charge + $floating_fee; // Fixed + Float
-
-            // Step 6: Enforce min/max fee
-            $minimum_charge = $gateway->minimum_charge ?? 0;
-            $maximum_charge = $gateway->maximum_charge ?? 0;
-
-            if ($transaction_fee < $minimum_charge) {
-                $transaction_fee = $minimum_charge;
-            } elseif ($maximum_charge > 0 && $transaction_fee > $maximum_charge) {
-                $transaction_fee = $maximum_charge;
-            }
-
-            $total_amount_due = $request->amount + $transaction_fee; // Total to pay
-
-            // Save deposit
-            $deposit = new Deposit();
-            $deposit->currency = $gateway_base_currency;
-            $deposit->deposit_currency = $deposit_currency;
-            $deposit->user_id = active_user();
-            $deposit->amount = $request->amount;
-            $deposit->gateway = $request->gateway;
-            $deposit->receive_amount = $receive_amount;
-            $deposit->customer_id = $request->customer_id ?? null;
-
-            if ($deposit->save()) {
-                $arr['payment_info'] = [
-                    "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway_base_currency),
-                    "receive_amount" => round($receive_amount, 4) . " " . strtoupper($deposit_currency),
-                    "exchange_rate" => "1 " . strtoupper($gateway_base_currency) . " = " . round($final_exchange_rate, 8) . " " . strtoupper($deposit_currency),
-                    "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($gateway_base_currency),
-                    "payment_method" => $gateway->method_name,
-                    "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
-                    "total_amount_due" => round($total_amount_due, 4) . " " . strtoupper($gateway_base_currency),
-                ];
-
-                $process = $this->process_store($request->gateway, $gateway_base_currency, $total_amount_due, $deposit->toArray());
-
-                if (isset($process['error'])) {
-                    return get_error_response($process);
-                }
-
-                return get_success_response(array_merge($process, $arr));
-            }
-
-            return get_error_response(['error' => "Unable to process deposit"]);
-
-        } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+        // Check if the user has a pro plan or custom pricing
+        if (auth()->user()->isPro()) {
+            $fixed_charge = $gateway->pro_fixed_charge ?? $fixed_charge;
         }
+
+        // (Optional) If user has custom plan pricing
+        if (auth()->user()->hasCustomPricing()) {
+            $fixed_charge = auth()->user()->getCustomFixedCharge($gateway->id) ?? $fixed_charge;
+        }
+
+        // Step 2: Determine the floating charge (percentage charge)
+        $floating_charge_percentage = $gateway->percentage_charge ?? 0;
+
+        // Step 3: Calculate total fee
+        $percentage_fee = ($request->amount * $floating_charge_percentage) / 100;
+        $total_fee = $fixed_charge + $percentage_fee;
+
+        // Step 4: Calculate exchange rate using the new helper
+        try {
+            $exchange_rate = calculate_exchange_rate('USD', $request->currency, $gateway->exchange_rate_float ?? 0);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Unable to retrieve exchange rate.'], 422);
+        }
+
+        // Step 5: Calculate receive amount
+        $receive_amount = $request->amount * $exchange_rate;
+
+        // Step 6: Build payment object (not saved yet)
+        $payin = new Payin();
+        $payin->user_id = auth()->id();
+        $payin->gateway_id = $gateway->id;
+        $payin->amount = $request->amount;
+        $payin->fixed_charge = $fixed_charge;
+        $payin->percentage_charge = $floating_charge_percentage;
+        $payin->total_charge = $total_fee;
+        $payin->currency = strtoupper($request->currency);
+        $payin->exchange_rate = $exchange_rate;
+        $payin->receive_amount = $receive_amount;
+        $payin->status = 'pending'; // or 'created'
+        $payin->save();
+
+        // Step 7: Return response
+        return response()->json([
+            'message' => 'Payin created successfully.',
+            'data' => [
+                'transaction_id' => $payin->id,
+                'send_amount' => number_format($payin->amount, 2) . ' USD',
+                'receive_amount' => number_format($payin->receive_amount, 2) . ' ' . strtoupper($payin->currency),
+                'exchange_rate' => "1 USD = " . $payin->exchange_rate . ' ' . strtoupper($payin->currency),
+                'transaction_fee' => number_format($payin->total_charge, 2) . ' USD',
+                'total_amount_due' => number_format($payin->amount + $payin->total_charge, 2) . ' USD',
+            ],
+        ]);
     }
+
 
     
     /**

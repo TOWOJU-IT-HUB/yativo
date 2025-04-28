@@ -1455,3 +1455,30 @@ if (!function_exists('mark_payout_completed')) {
         }
     }
 }
+
+
+if (!function_exists('calculate_exchange_rate')) {
+    /**
+     * Calculate the final exchange rate between two currencies
+     * after applying a float/markup percentage.
+     *
+     * @param string $from_currency
+     * @param string $to_currency
+     * @param float $float_percentage
+     * @return float
+     */
+    function calculate_exchange_rate(string $from_currency, string $to_currency, float $float_percentage = 0): float
+    {
+        // Get the base exchange rate (example: 1 USD = 937.595 CLP)
+        $base_exchange_rate = getExchangeVal(strtoupper($from_currency), strtoupper($to_currency));
+
+        if ($base_exchange_rate <= 0) {
+            throw new Exception("Invalid base exchange rate retrieved.");
+        }
+
+        // Apply float (markup/discount)
+        $final_exchange_rate = $base_exchange_rate * (1 - ($float_percentage / 100));
+
+        return round($final_exchange_rate, 8); // Keep up to 8 decimal places
+    }
+}
