@@ -125,7 +125,7 @@ class DepositController extends Controller
             $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
         
             // ✅ Fixed Exchange Rate Calculation
-            echo $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
+            $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
             
             // Default charges
             $fixed_charge = $float_charge = 0;
