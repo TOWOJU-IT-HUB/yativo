@@ -141,11 +141,14 @@ class DepositController extends Controller
         
             $subscription = $user->activeSubscription();
             $user_plan = (int) $subscription->plan_id;
+            $gateway = $payin;
             // Determine user plan pricing
             if ($user_plan === 3) {
                 $customPricing = CustomPricing::where('user_id', $user->id)
-                    ->where('gateway_id', $gateway->id)
-                    ->first();
+                    ->where([
+                        "gateway_id" => $payin->id,
+                        "gateway_type" => "payin"
+                    ])->first();
         
                 if (!$customPricing) {
                     $user_plan = 2; // Fallback to Plan 2
