@@ -48,7 +48,6 @@ class CryptoWalletsController extends Controller
     
         // Generate wallet address
         $yativo = new CryptoYativoController();
-        $curl = $yativo->generateCustomerWallet();
         $token = $yativo->getToken();
 
         $yativo_customer_id = $this->addCustomer();
