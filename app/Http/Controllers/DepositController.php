@@ -88,7 +88,6 @@ class DepositController extends Controller
                     'gateway' => 'required',
                     'amount' => 'required|numeric|min:0',
                     'currency' => 'required',
-                    '' => 'sometimes'
                 ]
             );
 
@@ -97,91 +96,86 @@ class DepositController extends Controller
             }
 
             $user = $request->user();
-
-            // Validate credit_wallet and currency
             $deposit_currency = $request->currency;
+
             if (!$user->hasWallet($deposit_currency)) {
                 return get_error_response(['error' => "Invalid credit wallet selected"], 400);
             }
 
             $request->credit_wallet = $deposit_currency;
 
-            // Get Payin Method
-            $gateway = $payin = PayinMethods::whereId($request->gateway)->firstOrFail();
+            $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
+            $gateway_base_currency = $gateway->currency;
 
-            // Assumption: Payin Method currency = USD
-            $gateway_base_currency = $payin->currency;
-
-            // Fetch Exchange Rate
-            $exchange_rate = $this->exchange_rate($request->currency, $gateway_base_currency); // floatval($this->get_transaction_rate($gateway_base_currency, $deposit_currency, $payin->id, "payin"));
-
-            // Calculate amounts
-            $receive_amount = $request->amount * $exchange_rate;
-            
-            // Calculate transaction fee based on gateway currency (optional adjustment)
-            $transaction_fee = $this->exchange_rate($request->currency, $gateway_base_currency); 
-            
-            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            // Step 1: Get base exchange rate (e.g., from USD to deposit currency)
             $base_exchange_rate = getExchangeVal("USD", strtoupper($gateway->currency));
-        
-            // ✅ Fixed Exchange Rate Calculation
-            $exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
-            
-            // Default charges
+
+            // Step 2: Adjust exchange rate with gateway's exchange_rate_float (markup)
+            $exchange_rate_float = $gateway->exchange_rate_float ?? 0;
+            $final_exchange_rate = $base_exchange_rate * (1 - ($exchange_rate_float / 100));
+
+            // Step 3: Calculate receive amount in deposit currency
+            $receive_amount = $request->amount * $final_exchange_rate;
+
+            // Step 4: Determine charges (Fixed + Floating)
             $fixed_charge = $float_charge = 0;
-        
-            $user = auth()->user();
+            $user_plan = 1; // Default
+
             if (!$user->hasActiveSubscription()) {
                 $plan = PlanModel::where('price', 0)->latest()->first();
                 if ($plan) {
                     $user->subscribeTo($plan, 30, true);
                 }
             }
-        
-            $subscription = $user->activeSubscription();
-            $user_plan = (int) $subscription->plan_id;
 
-            // Determine user plan pricing
+            $subscription = $user->activeSubscription();
+            if ($subscription) {
+                $user_plan = (int) $subscription->plan_id;
+            }
+
+            // Check Custom Pricing first if user_plan == 3
             if ($user_plan === 3) {
                 $customPricing = CustomPricing::where('user_id', $user->id)
                     ->where([
-                        "gateway_id" => $payin->id,
-                        "gateway_type" => "payin"
+                        'gateway_id' => $gateway->id,
+                        'gateway_type' => 'payin',
                     ])->first();
-        
-                if (!$customPricing) {
-                    $user_plan = 2; // Fallback to Plan 2
-                } else {
+
+                if ($customPricing) {
                     $fixed_charge = $customPricing->fixed_charge;
                     $float_charge = $customPricing->float_charge;
+                } else {
+                    // fallback to Plan 2 if no custom pricing found
+                    $user_plan = 2;
                 }
             }
-        
-            if ($user_plan === 1 || $user_plan === 2) {
-                $fixed_charge = $user_plan === 1 ? $gateway->fixed_charge : $gateway->pro_fixed_charge;
-                $float_charge = $user_plan === 1 ? $gateway->float_charge : $gateway->pro_float_charge;
-            }
-        
-            // Convert fixed fee to local currency using exchange rate
-            $fixed_fee_in_local_currency = $fixed_charge * $base_exchange_rate;
-        
-            // ✅ Fixed Floating Fee Calculation
-            $floating_fee_in_local_currency = round(($request->amount * ($float_charge / 100)) * $exchange_rate, 8);
-        
-            // Calculate total charge in local currency
-            $total_charge = $fixed_fee_in_local_currency + $floating_fee_in_local_currency;
-        
-            // Apply minimum and maximum charge constraints
-            $minimum_charge = floatval($gateway->minimum_charge * $exchange_rate);
-            $maximum_charge = floatval($gateway->maximum_charge * $exchange_rate);
-        
-            if ($total_charge < $minimum_charge) {
-                $total_charge = $minimum_charge;
-            } elseif ($total_charge > $maximum_charge) {
-                $total_charge = $maximum_charge;
+
+            // If no custom pricing or Plan 1/2
+            if ($user_plan === 1) {
+                $fixed_charge = $gateway->fixed_charge;
+                $float_charge = $gateway->float_charge;
+            } elseif ($user_plan === 2) {
+                $fixed_charge = $gateway->pro_fixed_charge;
+                $float_charge = $gateway->pro_float_charge;
             }
 
-            // Create Deposit
+            // Step 5: Calculate the transaction fee
+            $floating_fee = ($request->amount * $float_charge) / 100; // % of amount
+            $transaction_fee = $fixed_charge + $floating_fee; // Fixed + Float
+
+            // Step 6: Enforce min/max fee
+            $minimum_charge = $gateway->minimum_charge ?? 0;
+            $maximum_charge = $gateway->maximum_charge ?? 0;
+
+            if ($transaction_fee < $minimum_charge) {
+                $transaction_fee = $minimum_charge;
+            } elseif ($maximum_charge > 0 && $transaction_fee > $maximum_charge) {
+                $transaction_fee = $maximum_charge;
+            }
+
+            $total_amount_due = $request->amount + $transaction_fee; // Total to pay
+
+            // Save deposit
             $deposit = new Deposit();
             $deposit->currency = $gateway_base_currency;
             $deposit->deposit_currency = $deposit_currency;
@@ -192,17 +186,14 @@ class DepositController extends Controller
             $deposit->customer_id = $request->customer_id ?? null;
 
             if ($deposit->save()) {
-                $total_amount_due = round($request->amount + $transaction_fee, 4);
-
                 $arr['payment_info'] = [
                     "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway_base_currency),
                     "receive_amount" => round($receive_amount, 4) . " " . strtoupper($deposit_currency),
-                    "exchange_rate" => "1 " . strtoupper($gateway_base_currency) . " = " . $exchange_rate . " " . strtoupper($deposit_currency),
+                    "exchange_rate" => "1 " . strtoupper($gateway_base_currency) . " = " . round($final_exchange_rate, 8) . " " . strtoupper($deposit_currency),
                     "transaction_fee" => round($transaction_fee, 4) . " " . strtoupper($gateway_base_currency),
-                    "payment_method" => $payin->method_name,
-                    "estimate_delivery_time" => formatSettlementTime($payin->settlement_time),
-                    "total_amount_due" => $total_amount_due . " " . strtoupper($gateway_base_currency),
-                    "exchange_rate_new" => $total_charge
+                    "payment_method" => $gateway->method_name,
+                    "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
+                    "total_amount_due" => round($total_amount_due, 4) . " " . strtoupper($gateway_base_currency),
                 ];
 
                 $process = $this->process_store($request->gateway, $gateway_base_currency, $total_amount_due, $deposit->toArray());
@@ -210,13 +201,17 @@ class DepositController extends Controller
                 if (isset($process['error'])) {
                     return get_error_response($process);
                 }
+
                 return get_success_response(array_merge($process, $arr));
             }
+
             return get_error_response(['error' => "Unable to process deposit"]);
+
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
+
     
     /**
      * @return array
