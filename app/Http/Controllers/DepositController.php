@@ -163,7 +163,7 @@ class DepositController extends Controller
             }
         
             // Convert fixed fee to local currency using exchange rate
-            $fixed_fee_in_local_currency = $fixed_charge * $exchange_rate;
+            $fixed_fee_in_local_currency = $fixed_charge * $base_exchange_rate;
         
             // ✅ Fixed Floating Fee Calculation
             $floating_fee_in_local_currency = round(($request->amount * ($float_charge / 100)) * $exchange_rate, 8);
