@@ -118,7 +118,7 @@ class DepositController extends Controller
             $receive_amount = $request->amount * $exchange_rate;
 
             // Calculate transaction fee based on gateway currency (optional adjustment)
-            $transaction_fee = 0;// get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
+            $transaction_fee = $this->exchange_rate($payin->currency, $gateway_base_currency); // get_transaction_fee($request->gateway, $request->amount, 'deposit', "payin");
 
             // Create Deposit
             $deposit = new Deposit();
@@ -411,5 +411,11 @@ class DepositController extends Controller
         return floatval($result);
     }
     
-
+    private function exchange_rate($from_currency, $receive_currency)
+    {
+        $get_rate = file_get_contents("https://min-api.cryptocompare.com/data/price?fsym={$from_currency}&tsyms={$receive_currency}");
+        $rateInArray = json_decode($get_rate, true);
+        $rate = $rateInArray[$receive_currency];
+        return $rate;
+    }
 }
