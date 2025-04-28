@@ -53,6 +53,12 @@ class CryptoWalletsController extends Controller
         $currency = $request->currency;
     
         $userId = $user->id;
+
+        // return exiting wallet if any
+        $walletAddresses = CryptoWallets::where(["user_id" => $userId])->first();
+        if($walletAddresses) {
+            return get_success_response($walletAddresses, 200, "Wallet already exists");
+        }
     
         // Generate wallet address
         $yativo = new CryptoYativoController();
