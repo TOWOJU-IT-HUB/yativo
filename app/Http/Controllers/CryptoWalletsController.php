@@ -30,12 +30,10 @@ class CryptoWalletsController extends Controller
     public function createWallet()
     {
         $request = request();
-        Log::info('Incoming request data:', $request->all());
-    
+
         // Validate the request
         $validator = Validator::make($request->all(), [
             'currency' => 'required',
-            // 'customer_id' => 'required',
         ]);
     
         if ($validator->fails()) {
@@ -43,16 +41,23 @@ class CryptoWalletsController extends Controller
         }
     
         // Check business approval for issuing wallet
+        $user = auth()->user();
         $currency = $request->currency;
     
-        $userId = auth()->id();
-        // $isCustomer = $request->customer_id ? true : false;
+        $userId = $user->id;
     
         // Generate wallet address
         $yativo = new CryptoYativoController();
         $curl = $yativo->generateCustomerWallet();
         $token = $yativo->getToken();
-        $payload = [];
+
+        $yativo_customer_id = $this->addCustomer();
+        
+        $payload = [
+            "asset_name" => $currency, // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
+            "customer_id" => $yativo_customer_id,
+        ];
+
         $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
 
         if (isset($response['status']) && isset($response['data']) ) {
@@ -100,7 +105,7 @@ class CryptoWalletsController extends Controller
         })->afterResponse();
     
         // Load relationships for the response
-        $record = $record->load($isCustomer ? 'customer' : 'user');
+        $record = $record->load('user');
     
         return get_success_response($record);
     }
@@ -367,6 +372,43 @@ class CryptoWalletsController extends Controller
         ])->paginate(per_page())->withQueryString();
 
         return paginate_yativo($walletAddresses);
+    }
+
+    public function addCustomer()
+    {
+        try {
+            $request = request();
+            $user = auth()->user();
+
+            if (!empty($user->yativo_customer_id)) {
+                return $user->yativo_customer_id;
+            }
+
+            $token = $this->yativo_getToken();
+            if (!$token) {
+                return ['error' => 'Failed to authenticate with Yativo API'];
+            }
+
+            $payload = [
+                "username" => explode("@", $user->email)[0] . rand(0, 9999),
+                "email" => $user->email
+            ];
+
+            $curl = Http::withToken($token)->post($this->baseUrl . "customers/create-customer", $payload)->json();
+
+            if (isset($curl['status']) && $curl['status'] === true) {
+                $user->yativo_customer_id = $curl['data']['_id'];
+                $user->save();
+                Log::debug("Yativo User added successfully", ["user_id" => $curl['data']['_id']]);
+                return $curl['data']['_id'];
+            }
+
+            Log::error("Failed to create yativo user", ["error" => $curl]);
+            return ['error' => $curl['message'] ?? 'Unknown error'];
+        } catch (\Throwable $th) {
+            Log::error("Error encountered", ["error" => $th->getMessage()]);
+            return ["error" => $th->getMessage()];
+        }
     }
 }
 

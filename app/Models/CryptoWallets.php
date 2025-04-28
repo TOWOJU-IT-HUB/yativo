@@ -40,7 +40,8 @@ class CryptoWallets extends Model
         "deleted_at",
         "updated_at",
         "updated_at",
-        'wallet_provider'
+        'wallet_provider',
+        'wallet_balance'
     ];  
     
     public function customer()
