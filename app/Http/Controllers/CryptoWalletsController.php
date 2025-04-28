@@ -67,19 +67,18 @@ class CryptoWalletsController extends Controller
 
         $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
 
-        if (isset($response['status']) && isset($response['data']) ) {
-            return $response['data'];
+        if (!isset($response['status']) || !isset($response['data']) ) {
+            Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
+            return get_error_response(['error' => $response]);
         }
-
-        Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
         
-        
-        if (isset($curl['error']) || !isset($curl['address'])) {
+        if (isset($response['error']) || !isset($response['address'])) {
+            Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
             return get_error_response(['error' => $response]);
         }
     
         // Create wallet record in the database
-        $data = $response;
+        $data = $response['data'];
         $walletData = [
             "user_id" => $userId,
             "is_customer" => false,
