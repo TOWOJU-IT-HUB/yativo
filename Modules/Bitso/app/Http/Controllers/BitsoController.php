@@ -258,6 +258,8 @@ class BitsoController extends Controller
 
 
         $user = User::whereId($acc->user_id)->first();
+        
+        $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
 
         BitsoWebhookLog::create([
             'fid' => $payload['fid'],
@@ -276,7 +278,7 @@ class BitsoController extends Controller
         $deposit->user_id = $user->id;
         $deposit->amount = $payload['amount'];
         $deposit->gateway = 0;
-        $deposit->status = SendMoneyController::SUCCESS;
+        $deposit->status = $status;
         $deposit->receive_amount = floatval($payload['amount']);
         $deposit->meta = [
             'transaction_id' => $payload['fid'],
@@ -298,7 +300,7 @@ class BitsoController extends Controller
             "currency" => $deposit->currency,
             "amount" => $deposit->amount,
             "account_number" => $payload['details']['receive_clabe'],
-            "status" => "complete",
+            "status" => $status,
         ]);
     
         TransactionRecord::create([
@@ -390,10 +392,11 @@ class BitsoController extends Controller
                 Log::debug("completed crypto payin");
             }
         }
+        $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
     
         Deposit::create([
             'transaction_id' => $payload['fid'],
-            'status' => $payload['status'],
+            'status' => $status,
             'currency' => $currency,
             'amount' => $amount,
             'method' => $payload['method_name'],
@@ -433,6 +436,8 @@ class BitsoController extends Controller
 
         $amount = (float) $payload['amount'];
         $currency = strtoupper($payload['currency']);
+        $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
+
 
         BitsoWebhookLog::create([
             'fid' => $payload['fid'],
@@ -446,7 +451,7 @@ class BitsoController extends Controller
 
         Deposit::create([
             'transaction_id' => $payload['fid'],
-            'status' => $payload['status'],
+            'status' => $status,
             'currency' => $payload['currency'],
             'amount' => $payload['amount'],
             'method' => $payload['method_name'],
@@ -482,10 +487,12 @@ class BitsoController extends Controller
         }
 
         try {
+            $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
+    
             // Log the webhook payload
             BitsoWebhookLog::create([
                 'fid' => $payload['wid'],
-                'status' => $payload['status'],
+                'status' => $status,
                 'currency' => $payload['currency'],
                 'method_name' => $payload['method'],
                 'amount' => $payload['amount'],
@@ -506,7 +513,7 @@ class BitsoController extends Controller
     
             if ($payout) {
                 try {
-                    $payout->status = strtolower($payload['status']);
+                    $payout->status = strtolower($status);
                     $payout->save();
     
                     // Update transaction record also
@@ -547,9 +554,11 @@ class BitsoController extends Controller
 
     protected static function handleTrade(array $payload): void
     {
+        $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
+
         BitsoWebhookLog::create([
             'fid' => $payload['tid'],
-            'status' => $payload['status'],
+            'status' => $status,
             'currency' => $payload['pair'],
             'amount' => $payload['amount'],
             'details' => ($payload ?? []),
@@ -557,7 +566,7 @@ class BitsoController extends Controller
 
         Trade::create([
             'trade_id' => $payload['tid'],
-            'status' => $payload['status'],
+            'status' => $status,
             'pair' => $payload['pair'],
             'side' => $payload['side'],
             'amount' => $payload['amount'],
