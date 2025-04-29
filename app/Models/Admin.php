@@ -17,4 +17,9 @@ class Admin extends Authenticatable
     protected $hidden = [
         'password', 'remember_token', 'google2fa_secret',
     ];
+
+    public function authentications()
+    {
+        return true;
+    }
 }

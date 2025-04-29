@@ -423,5 +423,10 @@ class CryptoWalletsController extends Controller
             return ["error" => $th->getMessage()];
         }
     }
+
+    public function yativo_webhook(Request $request)
+    {
+        //
+    }
 }
 

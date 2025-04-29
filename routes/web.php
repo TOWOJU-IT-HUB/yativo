@@ -92,6 +92,7 @@ Route::group([], function () {
     Route::get('callback/payOutn/onramp', [OnrampService::class, 'payOutCallback'])->name('onramp.payOut.callback');
 
     Route::any('callback/webhook/coinpayments', [CryptoWalletsController::class, 'wallet_webhook']);
+    Route::any('callback/webhook/yativo-crypto', [CryptoWalletsController::class, 'yativo_webhook']);
     Route::any('callback/webhook/local-payments', [LocalPaymentWebhookController::class, 'handle']);
     Route::any('callback/webhook/bitso', [ControllersBitsoController::class, 'deposit_webhook'])->name('bitso.cop.deposit');
 
