@@ -18,5 +18,5 @@ use Modules\LocalPayments\app\Http\Controllers\LocalPaymentsController;
 Route::middleware(['auth:api'])->prefix('v1')->name('api.')->group(function () {
     Route::get('localpayments', fn (Request $request) => $request->user())->name('localpayments');
 
-    Route::get('local/banks', [LocalPaymentsController::class, 'getBanks']);
+    // Route::get('local/banks', [LocalPaymentsController::class, 'getBanks']); 
 })->middleware('kyc_check');

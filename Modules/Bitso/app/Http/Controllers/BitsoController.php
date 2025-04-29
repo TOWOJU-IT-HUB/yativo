@@ -20,6 +20,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 use Modules\Bitso\app\Services\BitsoServices;
+use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 
 class BitsoController extends Controller
 {
@@ -275,7 +276,7 @@ class BitsoController extends Controller
         $deposit->user_id = $user->id;
         $deposit->amount = $payload['amount'];
         $deposit->gateway = 0;
-        $deposit->status = "complete";
+        $deposit->status = SendMoneyController::SUCCESS;
         $deposit->receive_amount = floatval($payload['amount']);
         $deposit->meta = [
             'transaction_id' => $payload['fid'],
@@ -319,7 +320,15 @@ class BitsoController extends Controller
         
         $wallet = $user->getWallet('mxn');
         if($wallet) {
-            $wallet->deposit(floatval($payload['amount'] * 100));
+            // calculate the fee and credit the balance - 6MXN and 0.1% - 
+            $fixedFee = 6;
+            $percentageFee = 0.1;
+            $amount = $payload['amount'];
+
+            $percentageAmount = ($percentageFee / 100) * $amount;
+            $totalFee = $fixedFee + $percentageAmount;
+            $credit_amount = $amount - $totalFee;
+            $wallet->deposit(floatval($credit_amount * 100));
         }
     }
 
