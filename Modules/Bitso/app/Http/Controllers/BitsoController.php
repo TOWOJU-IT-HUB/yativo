@@ -247,90 +247,93 @@ class BitsoController extends Controller
             ]);
         }
         
+        try {
+            $amount = (float) $payload['amount'];
+            $currency = strtoupper($payload['currency']);
 
-        $amount = (float) $payload['amount'];
-        $currency = strtoupper($payload['currency']);
-
-        $acc = VirtualAccount::where('account_number', $payload['details']['receive_clabe'])->first();
-        if(!$acc) {
-           return false;
-        }
+            $acc = VirtualAccount::where('account_number', $payload['details']['receive_clabe'])->first();
+            if(!$acc) {
+            return false;
+            }
 
 
-        $user = User::whereId($acc->user_id)->first();
+            $user = User::whereId($acc->user_id)->first();
+            
+            $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
+
+            BitsoWebhookLog::create([
+                'fid' => $payload['fid'],
+                'status' => $payload['status'],
+                'currency' => $payload['currency'],
+                'method' => $payload['method'],
+                'method_name' => $payload['method_name'],
+                'amount' => $amount,
+                'details' => ($payload['details'] ?? []),
+            ]);
+
+            // record deposit info into the DB
+            $deposit = new Deposit();
+            $deposit->currency = $payload['currency'];
+            $deposit->deposit_currency = $payload['currency'];
+            $deposit->user_id = $user->id;
+            $deposit->amount = $payload['amount'];
+            $deposit->gateway = 0;
+            $deposit->status = $status;
+            $deposit->receive_amount = floatval($payload['amount']);
+            $deposit->meta = [
+                'transaction_id' => $payload['fid'],
+                'status' => $payload['status'],
+                'currency' => $payload['currency'],
+                'amount' => $payload['amount'],
+                'method' => $payload['method_name'],
+                'network' => $payload['network'],
+                'sender_name' => $payload['details']['sender_name'] ?? null,
+                'sender_clabe' => $payload['details']['sender_clabe'] ?? null,
+                'receiver_clabe' => $payload['details']['receive_clabe'] ?? null,
+                'sender_bank' => $payload['details']['sender_bank'] ?? null,
+                'concept' => $payload['details']['concepto'] ?? null,
+            ];
+            $deposit->save();
         
-        $status = strtolower($payload['status']) == "complete" ? SendMoneyController::SUCCESS : $payload['status'];
-
-        BitsoWebhookLog::create([
-            'fid' => $payload['fid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'method' => $payload['method'],
-            'method_name' => $payload['method_name'],
-            'amount' => $amount,
-            'details' => ($payload['details'] ?? []),
-        ]);
-
-         // record deposit info into the DB
-        $deposit = new Deposit();
-        $deposit->currency = $payload['currency'];
-        $deposit->deposit_currency = $payload['currency'];
-        $deposit->user_id = $user->id;
-        $deposit->amount = $payload['amount'];
-        $deposit->gateway = 0;
-        $deposit->status = $status;
-        $deposit->receive_amount = floatval($payload['amount']);
-        $deposit->meta = [
-            'transaction_id' => $payload['fid'],
-            'status' => $payload['status'],
-            'currency' => $payload['currency'],
-            'amount' => $payload['amount'],
-            'method' => $payload['method_name'],
-            'network' => $payload['network'],
-            'sender_name' => $payload['details']['sender_name'] ?? null,
-            'sender_clabe' => $payload['details']['sender_clabe'] ?? null,
-            'receiver_clabe' => $payload['details']['receive_clabe'] ?? null,
-            'sender_bank' => $payload['details']['sender_bank'] ?? null,
-            'concept' => $payload['details']['concepto'] ?? null,
-        ];
-        $deposit->save();
-    
-        VirtualAccountDeposit::updateOrCreate([
-            "deposit_id" => $deposit->id,
-            "currency" => $deposit->currency,
-            "amount" => $deposit->amount,
-            "account_number" => $payload['details']['receive_clabe'],
-            "status" => $status,
-        ]);
-    
-        TransactionRecord::create([
-            "user_id" => $user->id,
-            "transaction_beneficiary_id" => $user->id,
-            "transaction_id" => $payload['fid'],
-            "transaction_amount" => $payload['amount'],
-            "gateway_id" => null,
-            "transaction_status" => "completed",
-            "transaction_type" => 'virtual_account',
-            "transaction_memo" => "payin",
-            "transaction_currency" => $payload['currency'] ?? "MXN",
-            "base_currency" => $payload['currency'] ?? "MXN",
-            "secondary_currency" => $payload['currency'] ?? "MXN",
-            "transaction_purpose" => "VIRTUAL ACCOUNT DEPOSIT",
-            "transaction_payin_details" => ['payin_data' => $payload],
-            "transaction_payout_details" => null,
-        ]);
+            VirtualAccountDeposit::updateOrCreate([
+                "deposit_id" => $deposit->id,
+                "currency" => $deposit->currency,
+                "amount" => $deposit->amount,
+                "account_number" => $payload['details']['receive_clabe'],
+                "status" => $status,
+            ]);
         
-        $wallet = $user->getWallet('mxn');
-        if($wallet) {
-            // calculate the fee and credit the balance - 6MXN and 0.1% - 
-            $fixedFee = 6;
-            $percentageFee = 0.1;
-            $amount = $payload['amount'];
+            TransactionRecord::create([
+                "user_id" => $user->id,
+                "transaction_beneficiary_id" => $user->id,
+                "transaction_id" => $payload['fid'],
+                "transaction_amount" => $payload['amount'],
+                "gateway_id" => null,
+                "transaction_status" => "completed",
+                "transaction_type" => 'virtual_account',
+                "transaction_memo" => "payin",
+                "transaction_currency" => $payload['currency'] ?? "MXN",
+                "base_currency" => $payload['currency'] ?? "MXN",
+                "secondary_currency" => $payload['currency'] ?? "MXN",
+                "transaction_purpose" => "VIRTUAL ACCOUNT DEPOSIT",
+                "transaction_payin_details" => ['payin_data' => $payload],
+                "transaction_payout_details" => null,
+            ]);
+            
+            $wallet = $user->getWallet('mxn');
+            if($wallet) {
+                // calculate the fee and credit the balance - 6MXN and 0.1% - 
+                $fixedFee = 6;
+                $percentageFee = 0.1;
+                $amount = $payload['amount'];
 
-            $percentageAmount = ($percentageFee / 100) * $amount;
-            $totalFee = $fixedFee + $percentageAmount;
-            $credit_amount = $amount - $totalFee;
-            $wallet->deposit(floatval($credit_amount * 100));
+                $percentageAmount = ($percentageFee / 100) * $amount;
+                $totalFee = $fixedFee + $percentageAmount;
+                $credit_amount = $amount - $totalFee;
+                $wallet->deposit(floatval($credit_amount * 100));
+            }
+        } catch (\Throwable $th) {
+            echo json_encode(['message' => $th->getMessage(), 'trace' => $th->getTrace()]);
         }
     }
 
