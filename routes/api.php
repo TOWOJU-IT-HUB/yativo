@@ -83,13 +83,13 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
     
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
 
-    Route::prefix('epay')->group(function () {
-        Route::post('enroll-customer', [MantecaController::class, 'createUser']);
-        Route::post('compliance', [MantecaController::class, 'uploadToS3']);
-        Route::post('deposit', [MantecaController::class, 'createOrder']);
-        Route::post('withdraw', [MantecaController::class, 'withdraw']);
-        Route::get('customers', [MantecaController::class, 'mantecaCustomer']);
-    });
+    // Route::prefix('epay')->group(function () {
+    //     Route::post('enroll-customer', [MantecaController::class, 'createUser']);
+    //     Route::post('compliance', [MantecaController::class, 'uploadToS3']);
+    //     Route::post('deposit', [MantecaController::class, 'createOrder']);
+    //     Route::post('withdraw', [MantecaController::class, 'withdraw']);
+    //     Route::get('customers', [MantecaController::class, 'mantecaCustomer']);
+    // });
 
     Route::prefix('crypto')->group(function () {
         Route::post('create-wallet', [CryptoWalletsController::class, 'createWallet']);
