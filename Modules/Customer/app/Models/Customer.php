@@ -66,6 +66,7 @@ class Customer extends Model
         "brla_subaccount_id",
         "customer_kyc_email",
         "yativo_customer_id",
+        "manteca_user_id",
         "can_create_vc", // can_create_virtual_card
         "can_create_va", // can_create_virtual_account
     ];
