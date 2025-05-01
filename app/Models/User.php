@@ -109,7 +109,8 @@ class User extends Authenticatable implements JWTSubject
         'idNumber',
         'idType',
         'is_pnd',
-        'bussinessName'
+        'bussinessName',
+        'manteca_user_id'
     ];
 
     protected $casts = [
