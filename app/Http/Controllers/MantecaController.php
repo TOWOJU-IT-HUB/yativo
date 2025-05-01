@@ -102,59 +102,67 @@ class MantecaController extends Controller
     public function uploadToS3(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'docType' => 'required|string|in:DNI_FRONT,DNI_BACK,FUNDS,BALANCE,ESTATUTO,IIBB,ACTA_DESIGNACION,ULTIMO_BALANCE_CERTIFICADO,CONSTANCIA_DE_CUIT,EXTRA,PEP_DDJJ,SUJETO_OBLIGADO_DDJJ,SELFIE,CERTIFICACION_CONTABLE,IMPUESTO_CEDULAR,PRIVATE_REPORT',
-            'document' => 'required|file|mimes:jpg,jpeg,png',
-            'fileName' => 'required',
+            'documents' => 'required|array',
+            'documents.*.docType' => 'required|string|in:DNI_FRONT,DNI_BACK,FUNDS',
+            'documents.*.file' => 'required|file|mimes:jpg,jpeg,png',
+            'documents.*.fileName' => 'required|string',
             'customer_id' => 'required|exists:customers,customer_id',
         ]);
-
+    
         if ($validator->fails()) {
             return get_error_response($validator->errors()->toArray());
         }
-
+    
         $customer = Customer::where('customer_id', $request->customer_id)->first();
-        $document = $request->file('document');
-        $filename = $request->fileName;
-        $mimeType = $document->getMimeType();
-
-        try {
-            // upload document front
-            $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $request->docType, $request->fileName);
-            if (!$uploadUrl) {
-                return get_error_response(['error' => 'Upload URL not received'], 500);
+        $responses = [];
+    
+        foreach ($request->documents as $index => $docData) {
+            try {
+                $docType = $docData['docType'];
+                $file = $docData['file'];
+                $fileName = $docData['fileName'];
+                $mimeType = $file->getMimeType();
+    
+                // Get presigned upload URL
+                $uploadUrl = $this->getUploadUrl($customer->manteca_user_id, $docType, $fileName);
+    
+                if (!$uploadUrl) {
+                    $responses[] = ['docType' => $docType, 'error' => 'Upload URL not received'];
+                    continue;
+                }
+    
+                Log::info("Upload URL for {$docType}: ", ['url' => $uploadUrl]);
+    
+                $fileStream = fopen($file->getRealPath(), 'r');
+    
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => $uploadUrl,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CUSTOMREQUEST => 'PUT',
+                    CURLOPT_HTTPHEADER => [
+                        'Content-Type: ' . $mimeType,
+                    ],
+                    CURLOPT_POSTFIELDS => file_get_contents($file->getRealPath()),
+                ]);
+    
+                $curlResponse = curl_exec($curl);
+                $error = curl_error($curl);
+                curl_close($curl);
+    
+                if ($error) {
+                    $responses[] = ['docType' => $docType, 'error' => $error];
+                } else {
+                    $responses[] = ['docType' => $docType, 'message' => 'Uploaded successfully'];
+                }
+            } catch (\Exception $e) {
+                $responses[] = ['docType' => $docType, 'error' => $e->getMessage()];
             }
-
-            Log::info("Upload url is: ", ['url' => $uploadUrl]);
-            
-            
-            $curl = curl_init();
-
-            curl_setopt_array($curl, array(
-              CURLOPT_URL => $uploadUrl,
-              CURLOPT_RETURNTRANSFER => true,
-              CURLOPT_ENCODING => '',
-              CURLOPT_MAXREDIRS => 10,
-              CURLOPT_TIMEOUT => 0,
-              CURLOPT_FOLLOWLOCATION => true,
-              CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-              CURLOPT_CUSTOMREQUEST => 'PUT',
-              CURLOPT_POSTFIELDS => array($request->fileName => $request->document),
-              CURLOPT_HTTPHEADER => []
-            ));
-            
-            $response = curl_exec($curl);
-            
-            curl_close($curl);
-            if($response) {
-                $response = (array)$response;
-            }
-
-
-            return get_success_response(['message' => 'File uploaded successfully', 'response' => $response]);
-        } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()], 500);
         }
+    
+        return get_success_response(['results' => $responses]);
     }
+    
 
     public function getPriceRate($payload)
     {
@@ -216,7 +224,7 @@ class MantecaController extends Controller
         $deposit->deposit_currency = $asset['fiat'];
         $deposit->user_id = active_user();
         $deposit->amount = $request->amount;
-        $deposit->gateway = $request->gateway;
+        $deposit->gateway = $request->gateway ?? '999999';
         $deposit->receive_amount = $request->amount;
         $deposit->customer_id = $request->customer_id ?? null;
         $deposit->gateway_deposit_id = $txnId;
@@ -438,4 +446,12 @@ class MantecaController extends Controller
         // $deposit_services->process_deposit($order->transaction_id);
         return true;
     }
+
+    public function mantecaCustomer()
+    {
+        $request = request();
+        $per_page = $request->per_page ?? per_page();
+        $customer = Customer::whereNotNull('manteca_user_id')->paginate($per_page);
+        return paginate_yativo($customer);
+    }    
 }

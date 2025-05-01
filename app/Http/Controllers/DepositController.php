@@ -51,6 +51,19 @@ class DepositController extends Controller
                 $query->where('customer_id', $request->customer_id);
             }
     
+            // Filter by customer_id
+            if ($request->has('gateway') && $request->gateway == 'epay') {
+                $query->where('gateway', '999999');
+            } else if ($request->has('gateway')) {
+                $query->where('gateway', $request->gateway);
+            }
+
+            // Filter by customer_id
+            if ($request->has('currency')) {
+                $query->where('currency', $request->currency);
+            }
+
+    
             // Filter by date range
             $start_date = $request->input('start_date');
             $end_date = $request->input('end_date');

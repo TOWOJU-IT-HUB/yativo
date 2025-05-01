@@ -88,6 +88,7 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
         Route::post('compliance', [MantecaController::class, 'uploadToS3']);
         Route::post('deposit', [MantecaController::class, 'createOrder']);
         Route::post('withdraw', [MantecaController::class, 'withdraw']);
+        Route::get('customers', [MantecaController::class, 'mantecaCustomer']);
     });
 
     Route::prefix('crypto')->group(function () {
