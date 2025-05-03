@@ -21,6 +21,6 @@ class Admin extends Authenticatable
 
     public function authentications()
     {
-        return true;
+        return auth('admin')->user();
     }
 }
