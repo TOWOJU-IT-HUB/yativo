@@ -12,6 +12,7 @@ use App\Models\Track;
 use App\Models\TransactionRecord;
 use App\Models\User;
 use Modules\Customer\app\Models\Customer;
+use Modules\Khipu\app\Services\KhipuServices;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Spatie\WebhookServer\WebhookCall;
 use Illuminate\Support\Facades\Log;
@@ -181,9 +182,12 @@ class DepositService
         return $checkout;
     }
 
-    private function khipu()
+    private function khipu($deposit_id, $amount, $currency, $txn_type, $gateway)
     {
-        return ['error' => 'Deposit method is currently unavailable'];
+        $khipu = new KhipuServices();
+        $checkout = $khipu->makePayment($deposit_id, $amount, $currency);
+        return $checkout;
+        // return ['error' => 'Deposit method is currently unavailable'];
     }
 
     /**

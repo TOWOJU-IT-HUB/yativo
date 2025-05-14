@@ -36,7 +36,7 @@ class KhipuServices
         }
     }
 
-    public function makePayment($txn_id, $amount, $currency = "CLP")
+    public function makePayment($txn_id, $amount, $currency, $return_url = null)
     {
         try {
             $payload = [
@@ -44,7 +44,7 @@ class KhipuServices
                 "currency" => $currency,
                 "subject" => "Yativo wallet deposit",
                 "transaction_id" => $txn_id,
-                "return_url" => request('return_url'),
+                "return_url" => request('return_url', $return_url ?? "https://yativo.com"),
             ];
 
             $response = Http::withHeaders([
@@ -52,13 +52,27 @@ class KhipuServices
                 'x-api-key' => env('KHIPU_API_KEY'),
             ])->post('https://payment-api.khipu.com/v3/payments', $payload);
 
+            // Success
             if ($response->successful()) {
-                return $response->json(); // Returns array
-            } else {
+                $data = $response->json();
+                if(isset($data['payment_url'])) {
+                    return $data['payment_url'];
+                }
+            }
+
+            // Error Handling
+            $data = $response->json();
+
+            if (isset($data['error_payment_post_payments']['http_body'])) {
+                $body = json_decode($data['error_payment_post_payments']['http_body'], true);
                 return [
-                    'error' => $response->body()
+                    'error' => $body['errors'][0]['message'] ?? 'Unknown error'
                 ];
             }
+
+            return [
+                'error' => $data['message'] ?? 'Error encountered, please contact support'
+            ];
         } catch (\Throwable $e) {
             return [
                 'error' => $e->getMessage()
