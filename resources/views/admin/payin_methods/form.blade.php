@@ -49,13 +49,15 @@
     <!-- Currency -->
     <div class="form-group">
         <label for="currency" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Currency</label>
-        <select id="currency" name="currency" value="{{ old('currency', $method->currency) }}"
+        <input type="text" id="currency" name="currency" value="{{ old('currency', $method->currency) }}"
+            class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+        <!-- <select id="currency" name="currency" value="{{ old('currency', $method->currency) }}"
             class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
             @foreach ($currencies as $currency)
                 <option value="{{ $currency->currency_code }}" @if ($method->currency == $currency->currency_code) selected @endif>
                     {{ ucfirst("$currency->name $currency->currency_name ($currency->currency_code)") }}</option>
             @endforeach
-        </select>
+        </select> -->
         @error('currency')
             <div class="text-sm text-red-500 mt-1">{{ $message }}</div>
         @enderror
