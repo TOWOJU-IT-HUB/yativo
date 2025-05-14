@@ -58,7 +58,8 @@ class BeneficiaryFoemsController extends Controller
             return get_success_response($record);
         } catch (\Throwable $th) {
             return get_error_response(['error'=> $th->getMessage()]);
-        }    }
+        }    
+    }
 }
 
 
