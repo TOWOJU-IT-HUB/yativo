@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Khipu\app\Http\Controllers\KhipuController;
+use Modules\Khipu\app\Services\KhipuServices;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,4 +17,10 @@ use Modules\Khipu\app\Http\Controllers\KhipuController;
 
 Route::group([], function () {
     Route::resource('khipu', KhipuController::class)->names('khipu');
+
+    Route::get('khipu/test', function() {
+        $khipu = new KhipuServices();
+        $init = $khipu->makePayment(generate_uuid(), 1000, "CLP");
+        return response()->json($init);
+    })
 });
