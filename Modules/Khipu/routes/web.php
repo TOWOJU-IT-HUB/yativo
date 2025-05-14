@@ -16,7 +16,7 @@ use Modules\Khipu\app\Services\KhipuServices;
 */
 
 Route::group([], function () {
-    Route::resource('khipu', KhipuController::class)->names('khipu');
+    // Route::resource('khipu', KhipuController::class)->names('khipu');
 
     Route::get('khipu/test', function() {
         $khipu = new KhipuServices();
