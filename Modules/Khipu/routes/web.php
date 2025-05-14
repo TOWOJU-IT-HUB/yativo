@@ -22,5 +22,5 @@ Route::group([], function () {
         $khipu = new KhipuServices();
         $init = $khipu->makePayment(generate_uuid(), 1000, "CLP");
         return response()->json($init);
-    })
+    });
 });
