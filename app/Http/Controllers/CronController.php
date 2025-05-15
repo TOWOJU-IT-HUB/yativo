@@ -2,19 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Business\VirtualAccount;
 use App\Models\Deposit;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use App\Models\Track;
 use App\Models\TransactionRecord;
+use App\Models\User;
+use App\Models\VirtualAccountDeposit;
 use App\Models\Withdraw;
 use App\Services\DepositService;
 use Illuminate\Http\Request;
-use Log, Cache;
+use Log, Cache, Http;
 use Modules\BinancePay\app\Http\Controllers\BinancePayController;
 use Modules\BinancePay\app\Models\BinancePay;
 use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\Bitso\app\Services\BitsoServices;
+use Modules\Customer\app\Models\Customer;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Modules\Webhook\app\Models\Webhook;
+use Spatie\WebhookServer\WebhookCall;
 
 class CronController extends Controller
 {
@@ -377,7 +385,7 @@ class CronController extends Controller
 
         // Ensure necessary deposit columns exist
         if (Schema::hasTable('deposits') && Schema::hasColumn('deposits', 'deposit_currency')) {
-            Schema::table('deposits', function ($table) {
+            Schema::table('deposits', function (Blueprint $table) {
                 $table->string('deposit_currency')->nullable()->change();
                 $table->string('currency')->nullable()->change();
                 $table->string('receive_amount')->nullable()->change();
