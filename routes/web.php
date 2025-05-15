@@ -60,7 +60,12 @@ Route::get('/', function () {
 
 Route::post('clone', function(){
     $id = request('id');
-    $original = BeneficiaryForms::findOrFail($id);
+    $original = BeneficiaryForms::where('gateway_id', $id)->first();
+    if(!$original) {
+        return response()->json([
+            "error" => "Gateway_id $id not found"
+        ]);
+    }
     $clone = $original->replicate();
     $clone->gateway_id = request('gateway');
     $clone->save();
