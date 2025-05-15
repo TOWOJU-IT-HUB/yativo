@@ -337,13 +337,10 @@ class CronController extends Controller
         $queryParams = $lastEventId ? ['ending_before' => $lastEventId] : [];
         $queryParams['event_type'] = 'payment_processed';
 
-        // $response = Http::withToken(env('BRIDGE_API_KEY'))
-        //     ->get(env('BRIDGE_BASE_URL') . , $queryParams);
-
         $bridge = new BridgeController();
         $response = $bridge->sendRequest("/v0/virtual_accounts/history", "GET", $queryParams);
         Log::info("Bridge request processed: ", ['result' => $response->json()]);
-        if ($response->successful() && isset($response['data']) && !empty($response['data'])) {
+        if (isset($response['count']) && isset($response['data']) && !empty($response['data'])) {
             foreach ($response['data'] as $eventData) {
                 $this->processVirtualAccountWebhook($eventData);
                 // Update the last event ID
