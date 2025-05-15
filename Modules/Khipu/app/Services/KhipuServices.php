@@ -40,7 +40,7 @@ class KhipuServices
     {
         try {
             $payload = [
-                "amount" => $amount,
+                "amount" => round($amount),
                 "currency" => $currency,
                 "subject" => "Yativo wallet deposit",
                 "transaction_id" => $txn_id,
