@@ -23,4 +23,44 @@ class ClabeController extends Controller
 
         return response()->json($results);
     }
+
+    // handle all stp-mx payouts
+    public function handlePayout(Request $request)
+    {
+        $data = $request->all();
+
+
+        // Validate and store/update payout info
+        Log::info('Payout Webhook Received', $data);
+
+
+        // Return acknowledgment
+        return response()->json(['message' => 'Webhook received'], 200);
+    }
+
+
+    // handle all payin into the virtual account from stp.mx
+    public function handleDeposit(Request $request)
+    {
+        $data = $request->all();
+
+
+        if ($this->isSuspicious($data)) {
+            return response()->json(['error' => 'Invalid amount or suspicious transaction'], 402);
+        }
+
+
+        // Store deposit
+        Log::info('Deposit Received', $data);
+
+
+        return response()->json(['message' => 'Webhook received'], 200);
+    }
+
+
+    private function isSuspicious($data)
+    {
+        return $data['amount'] <= 0 || !in_array($data['type'], ['SPEI']);
+    }
+
 }

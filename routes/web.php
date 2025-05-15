@@ -76,7 +76,7 @@ Route::post('clone', function(){
         'clone_id' => $clone->id,
         'clone' => $clone,
     ]);
-});
+})->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::get('v', [CronDepositController::class, "vitawallet"]);
 
@@ -124,6 +124,9 @@ Route::group([], function () {
 
     Route::any('callback/webhook/floid', [FlowController::class, 'callback'])->name('floid.callback.success');
     Route::any('callback/webhook/floid-redirect', [FlowController::class, 'callback'])->name('floid.callback.redirect');
+
+    Route::any('callback/webhook/stp-payout', [FlowController::class, 'callback'])->name('floid.callback.success');
+    Route::any('callback/webhook/stp-payin', [FlowController::class, 'callback'])->name('floid.callback.redirect');
 
     Route::post("callback/webhook/virtual-account-webhook", [VirtualAccountsController::class, 'virtualAccountWebhook'])->name('business.virtual-account.virtualAccountWebhook');
     Route::any('callback/wallet/webhook/{userId}/{currency}', [CryptoWalletsController::class, 'walletWebhook'])->name('crypto.wallet.address.callback');
