@@ -58,7 +58,20 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
+Route::post('clone', function(){
+    $id = request('id');
+    $original = BeneficiaryForms::findOrFail($id);
+    $clone = $original->replicate();
+    $clone->gateway_id = request('gateway');
+    $clone->save();
 
+    return response()->json([
+        'message' => 'Form cloned successfully',
+        'original_id' => $original->id,
+        'clone_id' => $clone->id,
+        'clone' => $clone,
+    ]);
+});
 
 Route::get('v', [CronDepositController::class, "vitawallet"]);
 
