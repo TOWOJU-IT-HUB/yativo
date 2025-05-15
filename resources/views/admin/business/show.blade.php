@@ -101,7 +101,7 @@
                 <div class="flex justify-between items-center">
                     <form action="{{ route('admin.business.manage.user.wallet', $user->id) }}" method="post" class="flex items-center gap-2" id="plansForm">
                         @csrf
-                        <input type="number" name="amount" step="any value="" class="py-2 px-3 w-full">
+                        <input type="number" name="amount" step="any value="" class="py-2 px-3 w-full bg-black text-white">
                         <button class="p-2 bg-blue-600 text-white rounded-md">Debit</button>
                     </form>
                 </div>

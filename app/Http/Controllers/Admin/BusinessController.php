@@ -14,6 +14,7 @@ use App\Models\Withdraw;
 use Illuminate\Http\Request;
 use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
+use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 use Validator;
 use Yajra\DataTables\DataTables;
 use App\Models\VirtualAccountDeposit;
@@ -208,21 +209,21 @@ class BusinessController extends Controller
     {
         // Validate request input
         $validator = Validator::make($request->all(), [
-            'currency' => 'required|string',
+            'currency' => 'sometimes|string',
             'amount' => 'required|numeric|min:0.01',
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
-
+        $currency = $request->currency ?? 'USD';
         $user = User::find($userId);
 
         if (!$user) {
             return back()->with('error', 'User not found.');
         }
 
-        $wallet = $user->getWallet($request->currency);
+        $wallet = $user->getWallet($currency);
 
         if (!$wallet) {
             return back()->with('error', 'User wallet not found for selected currency.');
@@ -235,6 +236,23 @@ class BusinessController extends Controller
         }
 
         if ($wallet->withdraw($amount)) {
+            // Create TransactionRecord
+            TransactionRecord::create([
+                'user_id' => $user->id,
+                'transaction_beneficiary_id' => $user->id,
+                'transaction_id' => Str::uuid(),
+                'transaction_amount' => $amount,
+                'gateway_id' => 888888, // system debit ID
+                'transaction_status' => SendMoneyController::SUCCESS,
+                'transaction_type' => 'service_charge',
+                'transaction_memo' => 'service_charge',
+                'transaction_currency' => $currency,
+                'base_currency' => $currency,
+                'secondary_currency' => $currency,
+                'transaction_purpose' => 'SERVICE_CHARGE',
+                'transaction_payin_details' => null,
+                'transaction_payout_details' => null,
+            ]);
             return back()->with('success', 'User wallet debited successfully.');
         }
 
