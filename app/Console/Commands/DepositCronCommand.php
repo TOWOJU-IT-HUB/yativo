@@ -42,5 +42,9 @@ class DepositCronCommand extends Command
 
         $payout = new CronController();
         $payout->bitso();
+
+
+        // handle USD virtual account deposits
+        $payout->checkForBridgeVirtualAccountDeposits();
     }
 }

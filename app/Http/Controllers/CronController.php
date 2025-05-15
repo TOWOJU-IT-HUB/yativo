@@ -325,8 +325,8 @@ class CronController extends Controller
 
     public function checkForBridgeVirtualAccountDeposits()
     {
-        $lastEventId = Cache::get('bridge_last_event_id');
-        $queryParams = $lastEventId ? ['starting_after' => $lastEventId] : [];
+        $lastEventId = Cache::get('bridge_last_event_id', 'd6626362-d6ea-429d-ac79-82ab33eb0c32');
+        $queryParams = $lastEventId ? ['ending_before' => $lastEventId] : [];
         $queryParams['event_type'] = 'payment_processed';
 
         $response = Http::withToken(env('BRIDGE_API_KEY'))
