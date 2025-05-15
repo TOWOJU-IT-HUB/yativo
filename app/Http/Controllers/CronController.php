@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
+use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 
 class CronController extends Controller
 {
@@ -380,7 +381,7 @@ class CronController extends Controller
         }
 
         $vc_status = strtolower($payload['type']) === "payment_processed"
-            ? \App\Http\Controllers\Api\V1\SendMoneyController::SUCCESS
+            ? SendMoneyController::SUCCESS
             : "pending";
 
         // Ensure necessary deposit columns exist
@@ -460,7 +461,7 @@ class CronController extends Controller
         ]);
 
         // Credit wallet if not already done
-        if ($vc_status === \App\Http\Controllers\Api\V1\SendMoneyController::SUCCESS) {
+        if ($vc_status === SendMoneyController::SUCCESS) {
             $wallet = $user->getWallet('usd');
             if ($wallet) {
                 $existingTransaction = $wallet->transactions()
