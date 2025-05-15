@@ -331,7 +331,7 @@ class CronController extends Controller
 
         $response = Http::withToken(env('BRIDGE_API_KEY'))
             ->get(env('BRIDGE_BASE_URL') . "/v0/virtual_accounts/history", $queryParams);
-
+        Log::info("Bridge request processed: ", ['result' => $response->json()]);
         if ($response->successful() && isset($response['data']) && !empty($response['data'])) {
             foreach ($response['data'] as $eventData) {
                 $this->processVirtualAccountWebhook($eventData);
