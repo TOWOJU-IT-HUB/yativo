@@ -203,4 +203,41 @@ class BusinessController extends Controller
         }
         return redirect()->back()->with('error', 'Business not found');
     }
+
+    public function manageUserWallet(Request $request, $userId)
+    {
+        // Validate request input
+        $validator = Validator::make($request->all(), [
+            'currency' => 'required|string',
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return back()->with('error', 'User not found.');
+        }
+
+        $wallet = $user->getWallet($request->currency);
+
+        if (!$wallet) {
+            return back()->with('error', 'User wallet not found for selected currency.');
+        }
+
+        $amount = $request->amount * 100;
+
+        if (!$wallet->canWithdraw($amount)) {
+            return back()->with('error', 'Insufficient wallet balance.');
+        }
+
+        if ($wallet->withdraw($amount)) {
+            return back()->with('success', 'User wallet debited successfully.');
+        }
+
+        return back()->with('error', 'Failed to debit the wallet.');
+    }
 }

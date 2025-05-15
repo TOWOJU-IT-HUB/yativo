@@ -71,6 +71,7 @@ Route::prefix('backoffice')->group(function () {
                     Route::get('/', [BusinessController::class, 'index'])->name('businesses.index');
                     Route::get('show/{id}', [BusinessController::class, 'show'])->name('businesses.show');
                     Route::get('approve/{userId}', [BusinessController::class, 'approve_business'])->name('business.approve');
+                    Route::post('update-wallet/debit/{userId}', [BusinessController::class, 'manageUserWallet'])->name('business.manage.user.wallet');
                 });
             });
             Route::get('/', [AdminController::class, 'index'])->name('index');
