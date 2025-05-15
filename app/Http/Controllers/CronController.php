@@ -10,7 +10,7 @@ use App\Models\TransactionRecord;
 use App\Models\Withdraw;
 use App\Services\DepositService;
 use Illuminate\Http\Request;
-use Log;
+use Log, Cache;
 use Modules\BinancePay\app\Http\Controllers\BinancePayController;
 use Modules\BinancePay\app\Models\BinancePay;
 use Modules\Flow\app\Http\Controllers\FlowController;
