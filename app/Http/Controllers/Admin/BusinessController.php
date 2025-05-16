@@ -241,7 +241,7 @@ class BusinessController extends Controller
                 'user_id' => $user->id,
                 'transaction_beneficiary_id' => $user->id,
                 'transaction_id' => generate_uuid(),
-                'transaction_amount' => $amount,
+                'transaction_amount' => floatval($amount / 100),
                 'gateway_id' => 888888, // system debit ID
                 'transaction_status' => SendMoneyController::SUCCESS,
                 'transaction_type' => 'service_charge',

@@ -42,6 +42,22 @@ class CronController extends Controller
         // $this->payout();
         // $this->deposit();
 
+        $deposit = new CronDepositController();
+        // info("Cron Job running at ". now());
+
+        $deposit->brla();
+        $deposit->getFloidStatus();
+        $deposit->vitawallet();
+        $deposit->transfi();
+        $deposit->onramp();
+        $deposit->bitso();
+
+
+        $payout = new CronController();
+        $payout->bitso();
+
+
+        // handle USD virtual account deposits
         $this->checkForBridgeVirtualAccountDeposits();
     }
 

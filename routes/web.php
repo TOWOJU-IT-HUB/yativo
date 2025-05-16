@@ -58,7 +58,7 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
-Route::post('clone', function(){
+Route::post('09039clone', function(){
     $id = request('id');
     $original = BeneficiaryForms::where('gateway_id', $id)->first();
     if(!$original) {
