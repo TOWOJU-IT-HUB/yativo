@@ -7,6 +7,8 @@ use App\Models\Admin;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 class AuthController extends Controller
 {
@@ -64,10 +66,16 @@ class AuthController extends Controller
     * @return If the login attempt for the admin user is successful, the function will redirect the
     * user to the admin dashboard. If the login attempt fails, it will update the last login timestamp
     * for the authenticated user and return the user back to the login page with the email field
-    * pre-filled and the remember checkbox status retained.
+    * pre-filled and the remember checkbox status retained. ip_address
     */
     public function login(Request $request)
     {
+        if (!Schema::hasColumn('admins', 'ip_address')) {
+            Schema::table('deposits', function (Blueprint $table) {
+                $table->string('ip_address')->nullable();
+            });
+        }
+        
         $this->validate($request, [
             'email' => 'required|email',
             'password' => 'required|min:6',
