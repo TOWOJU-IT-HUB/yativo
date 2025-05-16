@@ -240,7 +240,7 @@ class BusinessController extends Controller
             TransactionRecord::create([
                 'user_id' => $user->id,
                 'transaction_beneficiary_id' => $user->id,
-                'transaction_id' => Str::uuid(),
+                'transaction_id' => generate_uuid(),
                 'transaction_amount' => $amount,
                 'gateway_id' => 888888, // system debit ID
                 'transaction_status' => SendMoneyController::SUCCESS,
