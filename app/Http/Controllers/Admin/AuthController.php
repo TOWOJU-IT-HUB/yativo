@@ -73,6 +73,7 @@ class AuthController extends Controller
         if (!Schema::hasColumn('admins', 'ip_address')) {
             Schema::table('deposits', function (Blueprint $table) {
                 $table->string('ip_address')->nullable();
+                $table->string('user_agent')->nullable();
             });
         }
         
