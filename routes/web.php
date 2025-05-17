@@ -52,6 +52,12 @@ use App\Models\localPaymentTransactions;
 
 // dd(CustomPricing::all());
 
+// routes/web.php
+Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
+Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
+
+
+
 
 Route::view('onramp', 'welcome');
 
