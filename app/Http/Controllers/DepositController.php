@@ -11,6 +11,7 @@ use App\Models\PayinMethods;
 use App\Models\TransactionRecord;
 use App\Services\DepositService;
 use App\Services\PaymentService;
+use Creatydev\Plans\Models\PlanModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
