@@ -33,7 +33,7 @@ use Bavix\Wallet\Exceptions\InsufficientFunds;
 use Illuminate\Support\Facades\Cache;
 use Modules\SendMoney\app\Models\SendQuote;
 use Illuminate\Support\Facades\File;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 if (!function_exists('user_can')) {

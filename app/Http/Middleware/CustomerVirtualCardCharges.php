@@ -17,7 +17,7 @@ class CustomerVirtualCardCharges
     {
         if ($request->has('amount')) {
             $user = $request->user();
-            $curr = $request->currency ?? "USD";
+            $curr = "USD"; //$request->currency ?? "USD";
             $wallet = $user->getWallet($curr);
             if (!$wallet) {
                 return get_error_response(['error' => "Please contact support, we can't complete your request at the momment"]);
@@ -28,7 +28,7 @@ class CustomerVirtualCardCharges
                 $amount = $request->amount;
                 $fees = 0;
                 $finalAmount = $amount + $fees;
-                if (debit_user_wallet($finalAmount)) {
+                if (debit_user_wallet($finalAmount, $curr)) {
                     return $next($request);
                 }
             } catch (\Throwable $th) {
