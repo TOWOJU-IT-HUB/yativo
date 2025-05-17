@@ -62,6 +62,11 @@ class BitsoController extends Controller
                 $result = json_decode($result->fid, true);
             }
 
+            if(!isset($result['data'])) {
+                mail("towojuads@gmail.com", "Bitso Error", "Error encountered on Bitso deposit: ".json_encode($result));
+                return ['error' => 'Unable to complete deposit request, please contact support'];
+            }
+
             update_deposit_gateway_id($depositId, $result['data']['id']);
             Log::info(json_encode(['response_cop' => $result]));
             // return $result;
