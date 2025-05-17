@@ -70,12 +70,12 @@ class AuthController extends Controller
     */
     public function login(Request $request)
     {
-        if (!Schema::hasColumn('admins', 'ip_address')) {
-            Schema::table('deposits', function (Blueprint $table) {
-                $table->string('ip_address')->nullable();
-                $table->string('user_agent')->nullable();
-            });
-        }
+        // if (!Schema::hasColumn('admins', 'ip_address')) {
+        //     Schema::table('deposits', function (Blueprint $table) {
+        //         $table->string('ip_address')->nullable();
+        //         $table->string('user_agent')->nullable();
+        //     });
+        // }
         
         $this->validate($request, [
             'email' => 'required|email',
