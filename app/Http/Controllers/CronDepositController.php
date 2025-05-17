@@ -269,63 +269,65 @@ class CronDepositController extends Controller
     
             foreach ($deposits as $deposit) {
                 try {
-                    // Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
-                    $order = $this->getfloid(strtolower($deposit->deposit_currency), $deposit->gateway_deposit_id);
-    
-                    // Log the full API response
-                    // Log::info("Floid API Response", [
-                    //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
-                    //     'response' => $order
-                    // ]);
-
-                    if(is_array($order) && isset($order[0])) {
-                        $order = $order[0];
-                    }
-    
-                    // Check if response has a valid status
-                    if (!isset($order['status'])) {
-                        // Log::error("Floid API Response Missing Status", [
+                    if(!empty($deposit->gateway_deposit_id)){
+                        // Log::info("deposit info for floid is: ", ['deposit' => $deposit]);
+                        $order = $this->getfloid(strtolower($deposit->deposit_currency), $deposit->gateway_deposit_id);
+        
+                        // Log the full API response
+                        // Log::info("Floid API Response", [
                         //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
                         //     'response' => $order
                         // ]);
-                        continue;
+
+                        if(is_array($order) && isset($order[0])) {
+                            $order = $order[0];
+                        }
+        
+                        // Check if response has a valid status
+                        if (!isset($order['status'])) {
+                            // Log::error("Floid API Response Missing Status", [
+                            //     'gateway_deposit_id' => $deposit->gateway_deposit_id,
+                            //     'response' => $order
+                            // ]);
+                            continue;
+                        }
+        
+                        $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+                        if (!$txn) {
+                            // Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
+                            continue;
+                        }
+        
+                        $transactionStatus = strtolower($order['status']);
+        
+                        // Log transaction status
+                        // Log::info("Processing Floid Deposit", [
+                        //     'deposit_id' => $deposit->id,
+                        //     'transaction_status' => $transactionStatus
+                        // ]);
+        
+                        DB::beginTransaction();
+        
+                        if ($transactionStatus === "success") {
+                            $depositService = new DepositService();
+                            $depositService->process_deposit($txn->transaction_id);
+                        } else {
+                            $txn->update(["transaction_status" => $transactionStatus]);
+                            $deposit->update(['status' => $transactionStatus]);
+                        }
+        
+                        DB::commit();
                     }
-    
-                    $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-                    if (!$txn) {
-                        // Log::error("Transaction record not found for deposit", ['deposit_id' => $deposit->id]);
-                        continue;
-                    }
-    
-                    $transactionStatus = strtolower($order['status']);
-    
-                    // Log transaction status
-                    // Log::info("Processing Floid Deposit", [
-                    //     'deposit_id' => $deposit->id,
-                    //     'transaction_status' => $transactionStatus
-                    // ]);
-    
-                    DB::beginTransaction();
-    
-                    if ($transactionStatus === "success") {
-                        $depositService = new DepositService();
-                        $depositService->process_deposit($txn->transaction_id);
-                    } else {
-                        $txn->update(["transaction_status" => $transactionStatus]);
-                        $deposit->update(['status' => $transactionStatus]);
-                    }
-    
-                    DB::commit();
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    // Log::error("Error processing Floid deposit", [
-                    //     'deposit_id' => $deposit->id,
-                    //     'error' => $e->getMessage()
-                    // ]);
+                    Log::error("Error processing Floid deposit", [
+                        'deposit_id' => $deposit->id,
+                        'error' => $e->getMessage()
+                    ]);
                 }
             }
         } catch (\Exception $e) {
-            // Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
+            Log::error("Error in getFloidStatus cron job", ['error' => $e->getMessage()]);
         }
     }
     
