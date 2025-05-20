@@ -48,7 +48,7 @@ class BitsoController extends Controller
             $customer = Customer::where('customer_id', $request->customer_id)->first();
         } 
 
-        $phone = $customer->customer_phone ?? $user->phone;
+        $phone = $request->cellphone;
         $email = $customer->customer_email ?? $user->email;
         $fullname = $customer->customer_name ?? $user->name ?? $user->business->business_legal_name;
         $bank_code = $request->bank_code;
@@ -57,7 +57,7 @@ class BitsoController extends Controller
 
         if (strtolower($currency) == 'mxn') {
         } elseif (strtolower($currency) == 'cop') {
-            $result = $bitso->depositCop($amount, $phone, $email, $documentType, $documentNumber, $fullname, $bank_code);
+            $result = $bitso->depositCop($amount, $phone, $email, $documentType, $documentNumber, $fullname);
             if (!is_array($result)) {
                 $result = json_decode($result->fid, true);
             }
