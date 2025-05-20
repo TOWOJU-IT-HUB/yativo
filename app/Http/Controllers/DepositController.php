@@ -200,7 +200,7 @@ class DepositController extends Controller
                     'calc' => $calc
                 ];
 
-                $process = $this->process_store($request->gateway, $gateway->currency, $calc['total_due'], $deposit->toArray());
+                $process = $this->process_store($request->gateway, $gateway->currency, $totalAmount, $deposit->toArray());
 
                 if (isset($process['error'])) {
                     return get_error_response($process);
