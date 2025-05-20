@@ -116,6 +116,10 @@ class DepositController extends Controller
 
             $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
 
+            if($gateway->gateway == "bitso") {
+                
+            }
+
             // Get user plan and charges
             $user_plan = 1;
             if (!$user->hasActiveSubscription()) {
@@ -186,7 +190,7 @@ class DepositController extends Controller
                 $arr['payment_info'] = [
                     "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway->currency),
                     "receive_amount" => floor($calc['credited_amount']) . " " . strtoupper($deposit_currency),
-                    "exchange_rate" => "1 " . strtoupper($deposit_currency) . " = " . round($calc['adjusted_exchange_rate'], 8) . " " . strtoupper($gateway->currency),
+                    "exchange_rate" => "1 " . strtoupper($deposit_currency) . " = " . round($calc['exchange_rate'], 8) . " " . strtoupper($gateway->currency),
                     "transaction_fee" => round($calc['total_fee'], 4) . " " . strtoupper($gateway->currency),
                     "payment_method" => $gateway->method_name,
                     "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
@@ -208,7 +212,6 @@ class DepositController extends Controller
             return get_error_response(['error' => $th->getMessage()]);
         }
     }
-
 
     
     /**

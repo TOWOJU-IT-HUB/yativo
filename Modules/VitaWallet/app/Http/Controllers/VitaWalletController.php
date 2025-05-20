@@ -64,7 +64,7 @@ class VitaWalletController extends Controller
             "success_redirect_url" => route('vitawallet.deposit.callback.success', ["quoteId" => $quoteId]),
         ];
 
-        // var_dump($payload); exit;
+        var_dump($payload); exit;
 
         $this->prices();
 

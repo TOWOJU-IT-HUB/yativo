@@ -52,8 +52,8 @@ class BitsoController extends Controller
         $email = $customer->customer_email ?? $user->email;
         $fullname = $customer->customer_name ?? $user->name ?? $user->business->business_legal_name;
         $bank_code = $request->bank_code;
-        $documentType = $request->documentType;
-        $documentNumber = $request->documentNumber;
+        $documentType = $request->documentType ?? "";
+        $documentNumber = $request->documentNumber ?? "";
 
         if (strtolower($currency) == 'mxn') {
         } elseif (strtolower($currency) == 'cop') {
