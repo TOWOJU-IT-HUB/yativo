@@ -58,6 +58,7 @@ class BitsoController extends Controller
         if (strtolower($currency) == 'mxn') {
         } elseif (strtolower($currency) == 'cop') {
             $result = $bitso->depositCop($amount, $phone, $email, $documentType, $documentNumber, $fullname);
+            var_dump($result); exit;
             if (!is_array($result)) {
                 $result = json_decode($result->fid, true);
             }
