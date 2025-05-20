@@ -117,7 +117,15 @@ class DepositController extends Controller
             $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
 
             if($gateway->gateway == "bitso") {
-                
+                $validate = Validator::make($request->all(), [
+                    'cellphone' => 'required',
+                    'documentType' => 'required',
+                    'documentNumber' => 'required',
+                ]);
+
+                if ($validate->fails()) {
+                    return get_error_response($validate->errors()->toArray());
+                }
             }
 
             // Get user plan and charges
