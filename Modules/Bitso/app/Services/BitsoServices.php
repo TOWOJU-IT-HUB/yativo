@@ -128,7 +128,7 @@ class BitsoServices
         return $result;
     }
 
-    public function depositCop($amount, $cellphone, $email, $documentType, $documentNumber, $fullName)
+    public function depositCop($amount, $cellphone, $email, $documentType, $documentNumber, $fullName, $bank_code = null)
     {
         $this->requestPath = "/api/v3/funding_details/pse/payment_links";
         $callback_url = request()->redirect_url ?? "https://app.yativo.com";
@@ -139,8 +139,11 @@ class BitsoServices
             "document_type" => $documentType,
             "document_number" => $documentNumber,
             "full_name" => $fullName,
+            "bank_code" => $bank_code,
             "callback_url" => base64_encode($callback_url)
         ];
+
+        var_dump($data); exit;
 
         $payload = json_encode($data);
         return $this->sendRequest($payload, 'POST');
