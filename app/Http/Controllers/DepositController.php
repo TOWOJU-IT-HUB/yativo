@@ -191,7 +191,7 @@ class DepositController extends Controller
                     "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway->currency),
                     "receive_amount" => floor($calc['credited_amount']) . " " . strtoupper($deposit_currency),
                     "exchange_rate" => "1 " . strtoupper($deposit_currency) . " = " . round($calc['exchange_rate'], 8) . " " . strtoupper($gateway->currency),
-                    "transaction_fee" => round($calc['total_fee'], 4) . " " . strtoupper($gateway->currency),
+                    "transaction_fee" => round($calc['total_fees'], 4) . " " . strtoupper($gateway->currency),
                     "payment_method" => $gateway->method_name,
                     "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
                     "total_amount_due" => round($calc['total_due'], 4) . " " . strtoupper($gateway->currency),
