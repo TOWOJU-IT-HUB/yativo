@@ -50,7 +50,7 @@ class BitsoController extends Controller
 
         $phone = $request->cellphone;
         $email = $customer->customer_email ?? $user->email;
-        $fullname = $customer->customer_name ?? $user->name ?? $user->business->business_legal_name;
+        $fullname = "Daniela Aldana Valencia"; //$customer->customer_name ?? $user->name ?? $user->business->business_legal_name;
         $bank_code = $request->bank_code;
         $documentType = $request->documentType ?? "";
         $documentNumber = $request->documentNumber ?? "";
