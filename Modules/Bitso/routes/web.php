@@ -36,7 +36,7 @@ Route::group(['prefix' => 'bitso'], function () {
             ];
         } elseif(request()->input('doc') && request()->input('doc') == "test") {
             $data = [
-                "amount" => "2000",
+                "amount" => "20000",
                 "cellphone" => "+573156289887",
                 "email" => "mymail@bitso.com",
                 "document_type" => "NIT",
