@@ -41,5 +41,5 @@ Route::group(['prefix' => 'bitso'], function () {
             "payload" => $data,
             "result" => $result
         ]); exit;
-    })
+    });
 });
