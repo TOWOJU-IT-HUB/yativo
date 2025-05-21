@@ -34,6 +34,17 @@ Route::group(['prefix' => 'bitso'], function () {
                 "bank_code" => "007",
                 "callback_url" => base64_encode($callback_url)
             ];
+        } elseif(request()->input('doc') && request()->input('doc') == "test") {
+            $data = [
+                "amount" => "2000",
+                "cellphone" => "+573156289887",
+                "email" => "mymail@bitso.com",
+                "document_type" => "NIT",
+                "document_number" => "9014977087",
+                "full_name" => "Jane Doe",
+                "bank_code" => "006",
+                "callback_url" => "aHR0cHM6Ly9hY21lLmNvbQ"
+            ];
         } else {
             $data = [
                 "amount" => "12000",
@@ -50,7 +61,7 @@ Route::group(['prefix' => 'bitso'], function () {
 
         $payload = json_encode($data);
         $result = $bitso->sendRequest($payload, 'POST');
-        var_dump([
+        echo response()->json([
             "payload" => $data,
             "result" => $result
         ]); exit;
