@@ -61,9 +61,9 @@ Route::group(['prefix' => 'bitso'], function () {
 
         $payload = json_encode($data);
         $result = $bitso->sendRequest($payload, 'POST');
-        echo response()->json([
+        echo json_encode([
             "payload" => $data,
             "result" => $result
-        ]); exit;
+        ], JSON_PRETTY_PRINT); exit;
     });
 });
