@@ -53,6 +53,8 @@ class DepositCalculator
 
         return [
             'deposit_amount' => round($depositAmount, 2),
+            'fixed_fee' => $fixedFeeInQuote,
+            'float_fee' => $percentageFee,
             'exchange_rate' => $adjustedRate,
             'percentage_fee' => round($percentageFee, 2),
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
