@@ -46,7 +46,7 @@ class DepositCalculator
         $floatChargeRate = $this->gateway['float_charge'] ?? 0;
         $fixedChargeUSD = $this->gateway['fixed_charge'] ?? 0;
 
-        $percentageFee = $depositAmount * $floatChargeRate;
+        $percentageFee = $depositAmount * floatval($floatChargeRate / 100);
         $fixedFeeInQuote = $fixedChargeUSD * $adjustedRate;
         $totalFees = $percentageFee + $fixedFeeInQuote;
         $creditedAmount = $depositAmount - $totalFees;
