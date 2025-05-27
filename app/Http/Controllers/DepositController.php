@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\DemoDepositWebhookJob;
 use App\Jobs\Transaction;
 use App\Models\CheckoutModel;
 use App\Models\CurrencyList;
 use App\Models\CustomPricing;
+use App\Models\DemoModel;
 use App\Models\Deposit;
 use App\Models\PayinMethods;
 use App\Models\TransactionRecord;
@@ -128,6 +130,7 @@ class DepositController extends Controller
                 }
             }
 
+
             // Get user plan and charges
             $user_plan = 1;
             if (!$user->hasActiveSubscription()) {
@@ -181,6 +184,13 @@ class DepositController extends Controller
                 'maximum_charge'      => $gateway->maximum_charge ?? 0,
             ];
 
+            if(env('IS_DEMO') === true) {
+                $demo = new DemoModel();
+                $demoResponse = $demo->response(request());
+                // dispatch(new DemoDepositWebhookJob($deposit));
+                return get_success_response($demoResponse);
+            }                
+
             $calculator = new DepositCalculator($gatewayConfig);
             $calc = $calculator->calculate($request->amount);
 
@@ -207,7 +217,6 @@ class DepositController extends Controller
                     "total_amount_due" => round($totalAmount, 4) . " " . strtoupper($gateway->currency),
                     'calc' => $calc
                 ];
-
                 $process = $this->process_store($request->gateway, $gateway->currency, $totalAmount, $deposit->toArray());
 
                 if (isset($process['error'])) {
