@@ -395,14 +395,14 @@ class BridgeController extends Controller
         $customer = Customer::where('customer_id', $customerId)->first();
         $customer->bridge_customer_id = "0ce55745-48d8-441d-90d8-6405293356e2";
         $customer->save();
-        
+
         // var_dump($customer); exit;
         if(!$customer) {
             return ['error' => "Customer with ID: {$customerId} not found!."];
         }
 
         if(!$customer->bridge_customer_id) {
-            return ['error' => 'Customer not enrolled for service or KYC not complete'];
+            return ['error' => 'Customer not enrolled for service or KYC not complete '.$customer->bridge_customer_id];
         }
 
         $endpoint = "v0/customers/{$customer->bridge_customer_id}/virtual_accounts";
