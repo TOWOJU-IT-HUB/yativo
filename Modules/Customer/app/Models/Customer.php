@@ -91,19 +91,19 @@ class Customer extends Model
 
     public function setAttribute($key, $value)
     {
-        // if (in_array($key, $this->encryptable) && !empty($value)) {
-        //     $value = Crypt::encryptString($value);
-        // }
-        // return parent::setAttribute($key, $value);
+        if (in_array($key, $this->encryptable) && !empty($value)) {
+            $value = Crypt::encryptString($value);
+        }
+        return parent::setAttribute($key, $value);
     }
 
     public function getAttribute($key)
     {
-        // $value = parent::getAttribute($key);
-        // if (in_array($key, $this->encryptable) && !empty($value)) {
-        //     return Crypt::decryptString($value);
-        // }
-        // return $value;
+        $value = parent::getAttribute($key);
+        if (in_array($key, $this->encryptable) && !empty($value)) {
+            return Crypt::decryptString($value);
+        }
+        return $value;
     }
 
     protected $keyType = 'string';

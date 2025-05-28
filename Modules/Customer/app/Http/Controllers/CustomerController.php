@@ -167,14 +167,14 @@ class CustomerController extends Controller
             }
 
             $validate->customer_id = generate_uuid();
-            echo 1;
+            // echo 1;
             $where = [
                 'customer_email' => $request->customer_email,
                 'user_id' => auth()->id()
             ];
 
             $cust = Customer::where($where)->count();
-            echo 2;
+            // echo 2;
             if ($cust > 0) {
                 $validator = Validator::make([], []); // Create an empty validator instance
                 $validator->errors()->add('customer_email', 'Customer email already exists.');
@@ -190,15 +190,15 @@ class CustomerController extends Controller
             $customer->customer_phone = $request->customer_phone;
             $customer->customer_status = 'active';
             $customer->customer_country = $request->customer_country;
-            echo 3;
+            // echo 3;
             if ($customer->save()) {
-                echo 4;
+                // echo 4;
                 return get_success_response($customer, 201);
             } else {
-                echo 5;
+                // echo 5;
                 return get_error_response(['error' => 'Failed to create customer.']);
             }
-            echo 6;
+            // echo 6;
         } catch (\Throwable $th) {
             echo 7;
             if(env('APP_ENV') == 'local') {
