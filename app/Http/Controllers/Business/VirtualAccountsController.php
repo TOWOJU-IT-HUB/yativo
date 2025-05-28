@@ -157,6 +157,8 @@ class VirtualAccountsController extends Controller
                     break;
 
                 case 'USD':
+                case 'MXN_USD':
+                case 'EUR':
                     $record = $this->createUSDVirtualAccount($request);
                     break;
 

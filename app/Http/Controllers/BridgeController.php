@@ -437,11 +437,16 @@ class BridgeController extends Controller
             return ["error" => $data['error'] ?? $data];
         }
 
+        $currency = request()->currency;
+        if(!in_array($currency, ['USD', 'MXN_USD', 'EUR'])) {
+            return['error' => 'Invalid currency provided'];
+        }
+
         if (isset($data['source_deposit_instructions']['bank_account_number'])) {
             return VirtualAccount::create([
                 "account_id" => $data['id'],
                 "user_id" => active_user(),
-                "currency" => "USD",
+                "currency" => $currency,
                 "request_object" => $request->all(),
                 "customer_id" => $this->customer->customer_id ?? null,
                 "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
