@@ -127,12 +127,6 @@ class CryptoWalletsController extends Controller
     {
         Log::channel('deposit_error')->info('Coinpayment webhook received', [$request->all()]);
 
-        // Verify the webhook signature (if provided by CoinPayments)
-        if (!$this->coinpayment->ipn($request)) {
-            Log::channel('deposit_error')->info('Invalid Signature');
-            return response()->json(['error' => 'Invalid signature'], 403);
-        }
-
         // Check if the webhook indicates an error
         if ($request->status < 0 || $request->status == 'error') {
             Log::channel('deposit_error')->error('Coinpayment webhook error', [$request->all()]);
@@ -171,7 +165,7 @@ class CryptoWalletsController extends Controller
             // Get the wallet for the specified currency
             $wallet = $user->getWallet('usd');
 
-            if ($wallet && $wallet->deposit($request->amount)) {
+            if ($wallet && $wallet->deposit($request->amount * 100)) {
             }
 
             $webhook_url = Webhook::whereUserId($user->id)->first();
@@ -193,67 +187,81 @@ class CryptoWalletsController extends Controller
 
     public function walletWebhook(Request $request, $userId, $currency)
     {
-        Log::channel('deposit_error')->info('Coinpayment webhook received', [
+        Log::channel('deposit_error')->info('New deposit webhook received', [
             'incoming_request' => $request->all(),
             'url' => $request->url(),
         ]);
 
-        // Verify the webhook signature (if provided by CoinPayments)
-        if (!$this->coinpayment->ipn($request)) {
-            Log::channel('deposit_error')->info('Invalid Signature');
-            return response()->json(['error' => 'Invalid signature'], 403);
-        }
-
-        // Process the deposit
         try {
-            // Find the user's wallet
-            $wallet = CryptoWallets::where('user_id', $userId)
-                ->where('wallet_currency', $currency)
-                ->where('wallet_address', $request->address)
-                ->firstOrFail();
+            $data = $request->input('event_data');
+            $transactionId = $data['transaction_hash'] ?? null;
+            $toAddress = $data['to_address'] ?? null;
+            $amount = (float) $data['amount'] ?? 0;
+            $fee = (float) $data['fee_amount'] ?? 0;
+            $tokenType = $data['token_type'] ?? 'USDC_SOL';
+            $status = $data['transaction_status'] ?? 'pending';
 
-            // Check if the transaction already exists
-            if (CryptoDeposit::where('transaction_id', $request->txn_id)->exists()) {
-                return response()->json(['message' => 'Transaction already processed'], 200);
+            if (!$transactionId || !$toAddress) {
+                return response()->json(['error' => 'Invalid data received'], 422);
             }
 
-            // Create a new deposit record
+            // Cache check: skip if already cached (processed)
+            $cacheKey = 'processed_tx_' . $transactionId;
+            if (Cache::has($cacheKey)) {
+                return response()->json(['message' => 'Transaction already processed (cached)'], 200);
+            }
+
+            // Find the receiving wallet by address and currency
+            $wallet = CryptoWallets::where('user_id', $userId)
+                ->where('wallet_currency', $currency)
+                ->where('wallet_address', $toAddress)
+                ->firstOrFail();
+
+            // Check if the transaction already exists in DB
+            if (CryptoDeposit::where('transaction_id', $transactionId)->exists()) {
+                // Cache it anyway to prevent reprocessing on future hooks
+                Cache::put($cacheKey, true, now()->addHours(6));
+                return response()->json(['message' => 'Transaction already processed (database)'], 200);
+            }
+
+            // Create a new deposit
             $deposit = CryptoDeposit::create([
                 'user_id' => $userId,
                 'currency' => $currency,
-                'amount' => $request->amount,
-                'address' => $request->address,
-                'transaction_id' => $request->txn_id,
-                'status' => 'success',
+                'amount' => $amount,
+                'address' => $toAddress,
+                'transaction_id' => $transactionId,
+                'status' => $status,
                 'payload' => $request->all(),
             ]);
 
-            // Update wallet balance
             $user = User::findOrFail($wallet->user_id);
-            // Get the wallet for the specified currency
             $walletInstance = $user->getWallet('usd');
 
             if ($walletInstance) {
-                $coinFee = $request->fee ?? 0;
-                $zeeFee = $coinFee * 0.30;
-                $fee = $coinFee + $zeeFee;
-                $creditAmount = $request->amount - $fee;
+                $zeeFee = $fee * 0.30;
+                $totalFee = $fee + $zeeFee;
+                $creditAmount = $amount - $totalFee;
 
-                // Credit the user's wallet
                 $walletInstance->deposit(($creditAmount * 100), $deposit->toArray());
             } else {
-                throw new \Exception('Wallet not found for the specified currency');
+                Log::error("User wallet not found");
             }
 
-            $webhook_url = Webhook::whereUserId($userId)->first();
-            // Send a webhook notification if available
+            // Trigger webhook if user has set one
             if ($webhook = Webhook::whereUserId($userId)->first()) {
-                WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])
+                WebhookCall::create()->meta(['_uid' => $webhook->user_id])
                     ->url($webhook->url)
                     ->useSecret($webhook->secret)
-                    ->payload(['event.type' => 'crypto_deposit', 'payload' => $deposit->toArray()])
+                    ->payload([
+                        'event.type' => 'crypto_deposit',
+                        'payload' => $deposit->toArray()
+                    ])
                     ->dispatchSync();
             }
+
+            // Cache this transaction as processed
+            Cache::put($cacheKey, true, now()->addHours(6));
 
             return response()->json(['message' => 'Deposit processed successfully'], 200);
         } catch (\Exception $e) {
@@ -261,7 +269,6 @@ class CryptoWalletsController extends Controller
             return response()->json(['error' => 'Error processing deposit'], 500);
         }
     }
-
 
     public function getWallets()
     {
