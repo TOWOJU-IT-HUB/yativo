@@ -73,7 +73,7 @@ class CustomerVirtualCardsController extends Controller
 
             $cust = Customer::whereCustomerId($request->customer_id)->first();
 
-            return response()->json($cust);
+            // return response()->json($cust);
 
             if (!$cust) {
                 return get_error_response(['error' => "Customer not found!"]);
@@ -83,6 +83,40 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response([
                     "error" => "Customer already enrolled and activated"
                 ], 421);
+            }
+
+            // Define required fields
+            $requiredFields = [
+                'address' => ['country', 'city', 'state', 'zipcode', 'street', 'number'],
+                'customer_idFront',
+                'customer_idNumber'
+            ];
+
+            // Check for missing fields
+            $missingFields = [];
+
+            if (!$cust->customer_address || !is_array($cust->customer_address)) {
+                $missingFields[] = "customer_address";
+            } else {
+                foreach ($requiredFields['address'] as $field) {
+                    if (empty($cust->customer_address[$field])) {
+                        $missingFields[] = "customer_address.$field";
+                    }
+                }
+            }
+
+            // Check top-level fields
+            foreach (['customer_idFront', 'customer_idNumber'] as $field) {
+                if (empty($cust->$field)) {
+                    $missingFields[] = $field;
+                }
+            }
+
+            if (!empty($missingFields)) {
+                return get_error_response([
+                    'error' => 'Missing required customer data.',
+                    'missing_fields' => $missingFields
+                ]);
             }
 
             $validatedData = $validate->validated();
