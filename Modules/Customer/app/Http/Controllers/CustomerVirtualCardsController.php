@@ -113,10 +113,7 @@ class CustomerVirtualCardsController extends Controller
             }
 
             if (!empty($missingFields)) {
-                return get_error_response([
-                    'error' => 'Missing required customer data.',
-                    'missing_fields' => $missingFields
-                ]);
+                return get_error_response($missingFields, 422, "Missing required customer data.");
             }
 
             $validatedData = $validate->validated();
