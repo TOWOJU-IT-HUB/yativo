@@ -72,6 +72,9 @@ class CustomerVirtualCardsController extends Controller
             }
 
             $cust = Customer::whereCustomerId($request->customer_id)->first();
+
+            return response()->json($cust);
+
             if (!$cust) {
                 return get_error_response(['error' => "Customer not found!"]);
             }
@@ -84,35 +87,6 @@ class CustomerVirtualCardsController extends Controller
 
             $validatedData = $validate->validated();
             $validatedData['date_of_birth'] = $validatedData['dateOfBirth'];
-            $requiredFields = [
-                'customer_email',
-                'customer_phone',
-                'country',
-                'city',
-                'state',
-                'zipcode',
-                'street',
-                'customer_idFront',
-                'number',
-                'customer_idNumber'
-            ];
-
-            $missingFields = [];
-
-            foreach ($requiredFields as $field) {
-                if (!isset($cust->$field) && !isset($cust->customer_address[$field]) && !isset($validatedData[$field])) {
-                    $missingFields[] = $field;
-                }
-            }
-
-            if (!empty($missingFields)) {
-                return get_error_response([
-                    "error" => [
-                        'message' => 'Customer data Missing required fields: ' . implode(', ', $missingFields),
-                        "customer_object" => $cust
-                    ]
-                ]);
-            }
 
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
