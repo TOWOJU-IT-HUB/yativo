@@ -183,7 +183,7 @@ class VirtualAccountsController extends Controller
     private function validateRequest($request)
     {
         return Validator::make($request->all(), [
-            "currency" => "required|string|in:MXN,BRL,USD, EUR, MXN_USD",
+            "currency" => "required|string|in:MXN,BRL,USD,EUR,MXN_USD",
             "customer_id" => "required_if:currency,USD|string|exists:customers,customer_id",
             // 'beneficiary.document.id' => 'required_if:currency,MXN,ARS',
             // 'beneficiary.document.type' => 'required_if:currency,MXN,ARS',
