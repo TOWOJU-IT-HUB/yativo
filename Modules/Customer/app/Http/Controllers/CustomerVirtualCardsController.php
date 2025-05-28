@@ -134,7 +134,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["line1"] = $address['street'];
             $validatedData["houseNumber"] = $address['number'];
             $validatedData["idType"] = "NATIONAL_ID";
-            $validatedData["idNumber"] = decryptCustomerData($cust->customer_idNumber);
+            $validatedData["idNumber"] = $cust->customer_idNumber;
 
             // Call card API
             $req = $this->card->regUser($validatedData);
