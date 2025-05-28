@@ -131,6 +131,12 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["idType"] = "NATIONAL_ID";
             $validatedData["idNumber"] = decryptCustomerData($cust->customer_idNumber);
 
+            $cust->update([
+                "customer_address" => $request->customer_address,
+                "customer_idFront" => $request->customer_idFront,
+                "customer_idNumber" => $request->customer_idNumber
+            ]);
+
             // return response()->json($validatedData); exit;
 
             $req = $this->card->regUser($validatedData);
