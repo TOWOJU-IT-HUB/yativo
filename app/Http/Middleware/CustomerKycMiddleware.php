@@ -32,9 +32,9 @@ class CustomerKycMiddleware
             }
     
             // Check if customer is suspended
-            if ($customer->customer_status !== 'active') {
-                return get_error_response(['message' => 'Customer is suspended'], 403);
-            }
+            // if ($customer->customer_status !== 'active') {
+            //     return get_error_response(['message' => 'Customer is suspended'], 403);
+            // }
     
             // Validate KYC status or bridge ID
             if (in_array($customer->customer_kyc_status, ['active', 'approved', 'completed']) || !empty($customer->bridge_customer_id)) {
