@@ -75,79 +75,79 @@ class CustomerController extends Controller
      */
     public function storeV1(Request $request)
     {
-        try {
-            // Validation rules
-            $rules = [
-                'customer_name' => 'required',
-                'customer_email' => 'required|email',
-                'customer_phone' => 'required',
-                // 'customer_country' => 'required',
-                // 'customer_address' => 'required|array',
-                // 'customer_idType' => 'required',
-                // 'customer_idNumber' => 'required',
-                // 'customer_idCountry' => 'required',
-                // 'customer_idExpiration' => 'required',
-                // 'customer_idFront' => 'required', // Base64 image
-                // 'customer_idBack' => 'required',  // Base64 image
-            ];
+        // try {
+        //     // Validation rules
+        //     $rules = [
+        //         'customer_name' => 'required',
+        //         'customer_email' => 'required|email',
+        //         'customer_phone' => 'required',
+        //         // 'customer_country' => 'required',
+        //         // 'customer_address' => 'required|array',
+        //         // 'customer_idType' => 'required',
+        //         // 'customer_idNumber' => 'required',
+        //         // 'customer_idCountry' => 'required',
+        //         // 'customer_idExpiration' => 'required',
+        //         // 'customer_idFront' => 'required', // Base64 image
+        //         // 'customer_idBack' => 'required',  // Base64 image
+        //     ];
 
-            // Validate request
-            $validator = Validator::make($request->all(), $rules);
+        //     // Validate request
+        //     $validator = Validator::make($request->all(), $rules);
 
-            if ($validator->fails()) {
-                return get_error_response(['error' => $validator->errors()->toArray()]);
-            }
+        //     if ($validator->fails()) {
+        //         return get_error_response(['error' => $validator->errors()->toArray()]);
+        //     }
 
-            // Check if the customer email already exists for the authenticated user
-            $emailExists = Customer::where([
-                'customer_email' => $request->customer_email,
-                'user_id' => auth()->id(),
-            ])->exists();
+        //     // Check if the customer email already exists for the authenticated user
+        //     $emailExists = Customer::where([
+        //         'customer_email' => $request->customer_email,
+        //         'user_id' => auth()->id(),
+        //     ])->exists();
 
-            if ($emailExists) {
-                return get_error_response(['error' => ['customer_email' => 'Customer email already exists.']], 422);
-            }
+        //     if ($emailExists) {
+        //         return get_error_response(['error' => ['customer_email' => 'Customer email already exists.']], 422);
+        //     }
 
-            // make a request to bridge to get KYC link for customer
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'Api-Key' => env('BRIDGE_API_KEY'),
-                'Idempotency-Key' => generate_uuid()
-            ])->post(env('BRIDGE_BASE_URL') . 'v0/kyc_links', [
-                        'full_name' => $request->customer_name,
-                        'email' => $request->customer_email,
-                        'type' => 'individual',
-                        'endorsements' => ['sepa'],
-                        'redirect_uri' => $request->redirect_uri ?? env('WEB_URL'),
-                    ]);
+        //     // make a request to bridge to get KYC link for customer
+        //     $response = Http::withHeaders([
+        //         'Content-Type' => 'application/json',
+        //         'Api-Key' => env('BRIDGE_API_KEY'),
+        //         'Idempotency-Key' => generate_uuid()
+        //     ])->post(env('BRIDGE_BASE_URL') . 'v0/kyc_links', [
+        //                 'full_name' => $request->customer_name,
+        //                 'email' => $request->customer_email,
+        //                 'type' => 'individual',
+        //                 'endorsements' => ['sepa'],
+        //                 'redirect_uri' => $request->redirect_uri ?? env('WEB_URL'),
+        //             ]);
 
-            if ($response->failed()) {
-                return get_error_response(['error' => $response->json()]);
-            }
+        //     if ($response->failed()) {
+        //         return get_error_response(['error' => $response->json()]);
+        //     }
 
-            $customer = new Customer();
-            $customer->customer_name = $request->customer_name;
-            $customer->customer_email = $request->customer_email;
-            $customer->customer_phone = $request->customer_phone;
-            // if ($customer->customer_phone) {
-            //     $customer->customer_phone = $this->formatPhoneNumber($customer->customer_phone);
-            // }
+        //     $customer = new Customer();
+        //     $customer->customer_name = $request->customer_name;
+        //     $customer->customer_email = $request->customer_email;
+        //     $customer->customer_phone = $request->customer_phone;
+        //     // if ($customer->customer_phone) {
+        //     //     $customer->customer_phone = $this->formatPhoneNumber($customer->customer_phone);
+        //     // }
 
-            if ($customer->save()) {
-                $customer->customer_kyc_status = 'pending';
-                $customer->customer_kyc_link = $response->json()['kyc_link'];
-                $customer->customer_kyc_link_id = $response->json()['id'];
-                $customer->save();
-            }
+        //     if ($customer->save()) {
+        //         $customer->customer_kyc_status = 'pending';
+        //         $customer->customer_kyc_link = $response->json()['kyc_link'];
+        //         $customer->customer_kyc_link_id = $response->json()['id'];
+        //         $customer->save();
+        //     }
 
-            return get_success_response($response->json());
+        //     return get_success_response($response->json());
 
-        } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
-        }
+        // } catch (\Throwable $th) {
+        //     if(env('APP_ENV') == 'local') {
+        //         return get_error_response(['error' => $th->getMessage()]);
+        //     }
+        //     return get_error_response(['error' => 'Something went wrong, please try again later']);
+        // }
     }
 
     public function store(Request $request)
@@ -167,14 +167,14 @@ class CustomerController extends Controller
             }
 
             $validate->customer_id = generate_uuid();
-
+            echo 1;
             $where = [
                 'customer_email' => $request->customer_email,
                 'user_id' => auth()->id()
             ];
 
             $cust = Customer::where($where)->count();
-
+            echo 2;
             if ($cust > 0) {
                 $validator = Validator::make([], []); // Create an empty validator instance
                 $validator->errors()->add('customer_email', 'Customer email already exists.');
@@ -190,13 +190,17 @@ class CustomerController extends Controller
             $customer->customer_phone = $request->customer_phone;
             $customer->customer_status = 'active';
             $customer->customer_country = $request->customer_country;
-            
+            echo 3;
             if ($customer->save()) {
+                echo 4;
                 return get_success_response($customer, 201);
             } else {
+                echo 5;
                 return get_error_response(['error' => 'Failed to create customer.']);
             }
+            echo 6;
         } catch (\Throwable $th) {
+            echo 7;
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
