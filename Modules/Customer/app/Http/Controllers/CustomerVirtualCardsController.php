@@ -126,7 +126,7 @@ class CustomerVirtualCardsController extends Controller
 
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
-            $validatedData["idImage"] = convertToBase64ImageUrl(decryptCustomerData($cust->customer_idFront));
+            $validatedData["idImage"] = $cust->customer_idFront;
             $validatedData["country"] = $cust->customer_country;
             $validatedData["city"] = $address['city'];
             $validatedData["state"] = $address['state'];
