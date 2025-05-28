@@ -393,7 +393,7 @@ class BridgeController extends Controller
         $request = request();
         
         $customer = Customer::where('customer_id', $customerId)->first();
-        
+
         // var_dump($customer); exit;
         if(!$customer) {
             return ['error' => "Customer with ID: {$customerId} not found!."];
@@ -441,6 +441,9 @@ class BridgeController extends Controller
         $currency = request()->currency;
         if(!in_array($currency, ['USD', 'MXN_USD', 'EUR'])) {
             return['error' => 'Invalid currency provided'];
+        }
+        if ($currency == "MXN_USD") {
+            $currency = "MXN";
         }
 
         if (isset($data['source_deposit_instructions']['bank_account_number'])) {
