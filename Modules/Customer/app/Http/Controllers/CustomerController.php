@@ -56,8 +56,11 @@ class CustomerController extends Controller
 
             $customers = $query->paginate(per_page($request->per_page ?? 20));
             foreach ($customers as $cust) {
-                $cust->bridge_customer_id = "0ce55745-48d8-441d-90d8-6405293356e2";
-                $cust->save();
+                $cust->update([
+                    'bridge_customer_id' => "0ce55745-48d8-441d-90d8-6405293356e2",
+                    'customer_status' => 'active',
+                    'customer_kyc_status' => 'approved',
+                ]);
             }
             return paginate_yativo($customers);
         } catch (\Throwable $th) {
