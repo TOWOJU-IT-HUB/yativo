@@ -56,15 +56,11 @@ class CustomerVirtualCardsController extends Controller
      * 
      * @return 
      */
-    public function regUser(Request $request)
+   public function regUser(Request $request)
     {
         try {
             $validate = Validator::make($request->all(), [
                 "customer_id" => "required|exists:customers,customer_id",
-                // "firstName" => "required",
-                // "lastName" => "required",
-                // "dateOfBirth" => "required",
-                // "userPhoto" => "required",
             ]);
 
             if ($validate->fails()) {
@@ -73,13 +69,11 @@ class CustomerVirtualCardsController extends Controller
 
             $cust = Customer::whereCustomerId($request->customer_id)->first();
 
-            // return response()->json($cust);
-
             if (!$cust) {
                 return get_error_response(['error' => "Customer not found!"]);
             }
 
-            if(($cust->can_create_vc == true) && (null != $cust->vc_customer_id))  {
+            if ($cust->can_create_vc === true && $cust->vc_customer_id !== null) {
                 return get_error_response([
                     "error" => "Customer already enrolled and activated"
                 ], 421);
@@ -88,85 +82,85 @@ class CustomerVirtualCardsController extends Controller
             // Define required fields
             $requiredFields = [
                 'address' => ['country', 'city', 'state', 'zipcode', 'street', 'number'],
-                'customer_idFront',
-                'customer_idNumber'
+                'top' => ['customer_idFront', 'customer_idNumber']
             ];
 
-            // Check for missing fields
             $missingFields = [];
 
-            if (!$cust->customer_address || !is_array($cust->customer_address)) {
-                $missingFields[] = "customer_address";
-            } else {
-                foreach ($requiredFields['address'] as $field) {
-                    if (empty($cust->customer_address[$field])) {
+            // Build address array from customer or request
+            $address = $cust->customer_address ?? $request->customer_address ?? [];
+
+            foreach ($requiredFields['address'] as $field) {
+                $value = $address[$field] ?? null;
+                if (empty($value)) {
+                    if (empty($request->input("customer_address.$field"))) {
                         $missingFields[] = "customer_address.$field";
+                    } else {
+                        $address[$field] = $request->input("customer_address.$field");
                     }
                 }
             }
 
-            // Check top-level fields
-            foreach (['customer_idFront', 'customer_idNumber'] as $field) {
+            foreach ($requiredFields['top'] as $field) {
                 if (empty($cust->$field)) {
-                    $missingFields[] = $field;
+                    if (empty($request->$field)) {
+                        $missingFields[] = $field;
+                    } else {
+                        $cust->$field = $request->$field;
+                    }
                 }
             }
 
+            // Return error if any field is still missing
             if (!empty($missingFields)) {
                 return get_error_response($missingFields, 422, "Missing required customer data.");
             }
 
+            // Save updated data to DB
+            $cust->customer_address = $cust->customer_address ?: $address;
+            $cust->save();
+
+            // Prepare payload
             $validatedData = $validate->validated();
-            $validatedData['date_of_birth'] = $validatedData['dateOfBirth'];
+            $validatedData['date_of_birth'] = $request->dateOfBirth ?? null;
 
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
             $validatedData["idImage"] = convertToBase64ImageUrl(decryptCustomerData($cust->customer_idFront));
             $validatedData["country"] = $cust->customer_country;
-            $validatedData["city"] = $cust->customer_address['city'];
-            $validatedData["state"] = $cust->customer_address['state'];
-            $validatedData["zipCode"] = $cust->customer_address['zipcode'];
-            $validatedData["line1"] = $cust->customer_address['street'];
-            $validatedData["houseNumber"] = $cust->customer_address['number'];
+            $validatedData["city"] = $address['city'];
+            $validatedData["state"] = $address['state'];
+            $validatedData["zipCode"] = $address['zipcode'];
+            $validatedData["line1"] = $address['street'];
+            $validatedData["houseNumber"] = $address['number'];
             $validatedData["idType"] = "NATIONAL_ID";
             $validatedData["idNumber"] = decryptCustomerData($cust->customer_idNumber);
 
-            $cust->update([
-                "customer_address" => $request->customer_address,
-                "customer_idFront" => $request->customer_idFront,
-                "customer_idNumber" => $request->customer_idNumber
-            ]);
-
-            // return response()->json($validatedData); exit;
-
+            // Call card API
             $req = $this->card->regUser($validatedData);
-
             if (!is_array($req)) {
                 $req = (array)$req;
             }
 
             if (isset($req['errorCode']) && $req['errorCode'] >= 400) {
-                $result = get_error_response(['error' => "Error, Please contact support."]);
-            } else if (isset($req['status']) && ($req['status'] == true)) {
-                $customer = $cust;
-                $customer->can_create_vc = true;
-                $customer->vc_customer_id = $req['data']['id'];
-                $customer->save();
-                $result = get_success_response([
-                    'success' => "Customer activated successfully."
-                ]);
+                return get_error_response(['error' => "Error, Please contact support."]);
+            } elseif (isset($req['status']) && $req['status'] == true) {
+                $cust->can_create_vc = true;
+                $cust->vc_customer_id = $req['data']['id'];
+                $cust->save();
+                return get_success_response(['success' => "Customer activated successfully."]);
             } else {
-                $result = get_error_response($req); // get_error_response(['error' => "User registration failed, please check your payload is correct."]);
+                return get_error_response($req);
             }
 
-            return $result;
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+
 
 
     public function store(Request $request)
