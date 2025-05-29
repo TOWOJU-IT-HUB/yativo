@@ -123,7 +123,8 @@ class CustomerVirtualCardsController extends Controller
             // Prepare payload
             $customerName = explode(" ", $cust->customer_name);
             $validatedData = $validate->validated();
-            $validatedData['date_of_birth'] = $request->dateOfBirth ?? null;
+            $validatedData['date_of_birth'] = $request->dateOfBirth ?? $request->date_of_birth;
+            $validatedData['dateOfBirth'] = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['firstName'] = $customerName[0];
             $validatedData['lastName'] = $customerName[1] ?? $customerName[0];
             $validatedData["customerEmail"] = $cust->customer_email;
