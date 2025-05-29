@@ -39,9 +39,9 @@ class CheckoutController extends Controller
             }
 
             // Check if already used
-            if ($checkout->checkout_status === 'used') {
-                abort(403, 'This checkout has already been used.');
-            }
+            // if ($checkout->checkout_status === 'used') {
+            //     abort(403, 'This checkout has already been used.');
+            // }
 
             // Mark as used
             $checkout->update(['checkout_status' => 'used']);

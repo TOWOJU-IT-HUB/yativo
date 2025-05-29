@@ -92,6 +92,9 @@ class Customer extends Model
     public function setAttribute($key, $value)
     {
         if (in_array($key, $this->encryptable) && !empty($value)) {
+            if(is_array($value)) {
+                $value = json_encode($value);
+            }
             $value = Crypt::encryptString($value);
         }
         return parent::setAttribute($key, $value);
@@ -101,6 +104,9 @@ class Customer extends Model
     {
         $value = parent::getAttribute($key);
         if (in_array($key, $this->encryptable) && !empty($value)) {
+            if(is_array($value)) {
+                $value = json_encode($value);
+            }
             return Crypt::decryptString($value);
         }
         return $value;

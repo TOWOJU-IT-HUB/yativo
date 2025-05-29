@@ -130,7 +130,6 @@ class DepositController extends Controller
                 }
             }
 
-
             // Get user plan and charges
             $user_plan = 1;
             if (!$user->hasActiveSubscription()) {

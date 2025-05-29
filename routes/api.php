@@ -78,9 +78,7 @@ Route::group(['prefix' => 'v1/auth'], function () {
 
 
 Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->prefix('v1')->name('api.')->group(function () {
-
     Route::post('verify-document', [MiscController::class, 'validateDocument']);
-    
     Route::get('generate-secret', [AuthController::class, 'generateAppSecret']);
 
     // Route::prefix('epay')->group(function () {
@@ -90,6 +88,12 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
     //     Route::post('withdraw', [MantecaController::class, 'withdraw']);
     //     Route::get('customers', [MantecaController::class, 'mantecaCustomer']);
     // });
+
+    Route::prefix('off-ramp-payout')->group(function () {
+        Route::post('create-quote', [BitnobOffRampController::class, 'createQuote']);
+        Route::post('initialize-payout', [BitnobOffRampController::class, 'initializePayout']);
+        Route::post('finalize-payout', [BitnobOffRampController::class, 'finalizePayout']);
+    });
 
     Route::prefix('crypto')->group(function () {
         Route::post('create-wallet', [CryptoWalletsController::class, 'createWallet']);
@@ -149,9 +153,7 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
             Route::get('/', [DepositController::class, 'index']);
             Route::post('new', [DepositController::class, 'store']);
         });
-
         Route::post('yativo-transfer', [WalletController::class, 'yativoTransfer'])->middleware('chargeWallet')->name('wallet.yativotransfer');
-
         Route::get('payouts', [WalletController::class, 'index']);
         Route::post('payout', [WithdrawalConntroller::class, 'store'])->middleware('chargeWallet')->name('wallet.payout');
         Route::get('payout/{id}', [WithdrawalConntroller::class, 'show']);

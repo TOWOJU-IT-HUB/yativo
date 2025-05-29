@@ -185,8 +185,10 @@ class CryptoWalletsController extends Controller
         }
     }
 
-    public function walletWebhook(Request $request, $userId, $currency)
+    public function walletWebhook()
     {
+        $request = request();
+        
         Log::channel('deposit_error')->info('New deposit webhook received', [
             'incoming_request' => $request->all(),
             'url' => $request->url(),
@@ -212,10 +214,10 @@ class CryptoWalletsController extends Controller
             }
 
             // Find the receiving wallet by address and currency
-            $wallet = CryptoWallets::where('user_id', $userId)
-                ->where('wallet_currency', $currency)
-                ->where('wallet_address', $toAddress)
-                ->firstOrFail();
+            $wallet = CryptoWallets::where('wallet_address', $toAddress)->firstOrFail();
+            
+            $userId = $wallet->user_id;
+            $currency = $wallet->currency ?? $tokenType;
 
             // Check if the transaction already exists in DB
             if (CryptoDeposit::where('transaction_id', $transactionId)->exists()) {
