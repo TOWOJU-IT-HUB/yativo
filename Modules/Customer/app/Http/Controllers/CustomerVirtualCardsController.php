@@ -235,7 +235,7 @@ class CustomerVirtualCardsController extends Controller
             $bitnob = new Bitnob();
             $cards = $bitnob->cards();
             $create = $cards->create($data);
-            var_dump($create); exit;
+            // var_dump($create); exit;
             if(!is_array($create)) {
                 $create = (array)$create;
             }
@@ -258,7 +258,7 @@ class CustomerVirtualCardsController extends Controller
                     $virtualCard->raw_data = json_encode($card);
 
                     if ($virtualCard->save()) {
-                        return get_success_response($virtualCard);
+                        return get_success_response($virtualCard->toArray());
                     }
                 }
 
