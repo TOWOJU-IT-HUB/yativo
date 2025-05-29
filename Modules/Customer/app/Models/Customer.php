@@ -89,28 +89,28 @@ class Customer extends Model
         'customer_idBack'
     ];
 
-    public function setAttribute($key, $value)
-    {
-        if (in_array($key, $this->encryptable) && !empty($value)) {
-            if(is_array($value)) {
-                $value = json_encode($value);
-            }
-            $value = Crypt::encryptString($value);
-        }
-        return parent::setAttribute($key, $value);
-    }
+    // public function setAttribute($key, $value)
+    // {
+    //     if (in_array($key, $this->encryptable) && !empty($value)) {
+    //         if(is_array($value)) {
+    //             $value = json_encode($value);
+    //         }
+    //         $value = Crypt::encryptString($value);
+    //     }
+    //     return parent::setAttribute($key, $value);
+    // }
 
-    public function getAttribute($key)
-    {
-        $value = parent::getAttribute($key);
-        if (in_array($key, $this->encryptable) && !empty($value)) {
-            if(is_array($value)) {
-                $value = json_encode($value);
-            }
-            return Crypt::decryptString($value);
-        }
-        return $value;
-    }
+    // public function getAttribute($key)
+    // {
+    //     $value = parent::getAttribute($key);
+    //     if (in_array($key, $this->encryptable) && !empty($value)) {
+    //         if(is_array($value)) {
+    //             $value = json_encode($value);
+    //         }
+    //         return Crypt::decryptString($value);
+    //     }
+    //     return $value;
+    // }
 
     protected $keyType = 'string';
 
