@@ -126,7 +126,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData['date_of_birth'] = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['dateOfBirth'] = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['firstName'] = $customerName[0];
-            $validatedData['lastName'] = $customerName[1] ?? $customerName[0];
+            // $validatedData['lastName'] = $customerName[1] ?? $customerName[0];
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
             $validatedData["idImage"] = $cust->customer_idFront;
@@ -138,6 +138,14 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["houseNumber"] = $address['number'];
             $validatedData["idType"] = "NATIONAL_ID";
             $validatedData["idNumber"] = $cust->customer_idNumber;
+            if (isset($customerName[1]) && strlen($customerName[1]) >= 3) {
+                $validatedData['lastName'] = $customerName[1];
+            } elseif (isset($customerName[2]) && strlen($customerName[2]) >= 3) {
+                $validatedData['lastName'] = $customerName[2];
+            } else {
+                $validatedData['lastName'] = $customerName[0];
+            }
+
 
             var_dump($validatedData); exit;
 
