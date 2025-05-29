@@ -13,6 +13,7 @@ use Modules\CoinPayments\app\Services\CoinpaymentServices;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Http;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 
@@ -188,7 +189,7 @@ class CryptoWalletsController extends Controller
     public function walletWebhook()
     {
         $request = request();
-        
+
         Log::channel('deposit_error')->info('New deposit webhook received', [
             'incoming_request' => $request->all(),
             'url' => $request->url(),

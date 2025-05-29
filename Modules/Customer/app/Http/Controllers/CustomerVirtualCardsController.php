@@ -235,7 +235,7 @@ class CustomerVirtualCardsController extends Controller
             $bitnob = new Bitnob();
             $cards = $bitnob->cards();
             $create = $cards->create($data);
-
+            var_dump($create); exit;
             if(!is_array($create)) {
                 $create = (array)$create;
             }
