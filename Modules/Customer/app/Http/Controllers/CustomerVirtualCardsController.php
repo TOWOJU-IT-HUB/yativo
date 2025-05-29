@@ -61,6 +61,7 @@ class CustomerVirtualCardsController extends Controller
         try {
             $validate = Validator::make($request->all(), [
                 "customer_id" => "required|exists:customers,customer_id",
+                "userPhoto" => "required"
             ]);
 
             if ($validate->fails()) {
