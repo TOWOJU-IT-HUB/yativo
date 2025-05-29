@@ -121,9 +121,11 @@ class CustomerVirtualCardsController extends Controller
             $cust->save();
 
             // Prepare payload
+            $customerName = explode($cust->customer_name);
             $validatedData = $validate->validated();
             $validatedData['date_of_birth'] = $request->dateOfBirth ?? null;
-
+            $validatedData['firstName'] = $customerName[0];
+            $validatedData['lastName'] = $customerName[1] ?? $customerName[0];
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
             $validatedData["idImage"] = $cust->customer_idFront;
@@ -136,7 +138,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["idType"] = "NATIONAL_ID";
             $validatedData["idNumber"] = $cust->customer_idNumber;
 
-            var_dump($validatedData); exit;
+            // var_dump($validatedData); exit;
 
             // Call card API
             $req = $this->card->regUser($validatedData);
