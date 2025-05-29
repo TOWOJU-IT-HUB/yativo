@@ -147,7 +147,7 @@ class CustomerVirtualCardsController extends Controller
             }
 
 
-            var_dump($validatedData); exit;
+            // var_dump($validatedData); exit;
 
             // Call card API
             $req = $this->card->regUser($validatedData);
