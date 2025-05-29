@@ -139,7 +139,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["idType"] = "NATIONAL_ID";
             $validatedData["idNumber"] = $cust->customer_idNumber;
 
-            // var_dump($validatedData); exit;
+            var_dump($validatedData); exit;
 
             // Call card API
             $req = $this->card->regUser($validatedData);
