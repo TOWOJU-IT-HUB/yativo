@@ -145,6 +145,7 @@ class CustomerVirtualCardsController extends Controller
             } else {
                 $validatedData['lastName'] = $customerName[0];
             }
+            $validatedData['userPhoto'] = $request->user_photo;
 
 
             // var_dump($validatedData); exit;
