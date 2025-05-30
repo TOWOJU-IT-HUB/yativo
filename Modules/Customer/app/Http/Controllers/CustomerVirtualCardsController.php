@@ -305,6 +305,10 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => "Card not found!"], 404);
             }
 
+            if(!is_array($card)) {
+                $card = (array)$card;
+            }
+
             // Define the keys to be removed from the card data
             $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
