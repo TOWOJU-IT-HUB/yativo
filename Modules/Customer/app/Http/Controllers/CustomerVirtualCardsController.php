@@ -306,7 +306,7 @@ class CustomerVirtualCardsController extends Controller
 
             $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
-
+            return response()->json($card);
             if (isset($card['data'])) {
                 $arrData = $card['data'];
 
@@ -324,7 +324,8 @@ class CustomerVirtualCardsController extends Controller
         } catch (\Exception $e) {
             return $arrOnly
                 ? null
-                : get_error_response(['error' => env('APP_ENV') === 'local' ? $e->getMessage() : 'Something went wrong, please try again later']);
+                : get_error_response(['error' => env('APP_ENV') === 'local' 
+                ? $e->getMessage() : 'Something went wrong, please try again later']);
         }
     }
 
