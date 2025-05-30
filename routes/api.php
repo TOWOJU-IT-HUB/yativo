@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BeneficiaryFoemsController;
+use App\Http\Controllers\BitnobOffRampController;
 use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\PlansController;
 use App\Http\Controllers\Business\VirtualAccountsController;
@@ -184,6 +185,11 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
         Route::post('batch', [WithdrawalController::class, 'bulkPayout'])->middleware('chargeWallet');
         Route::get('get', [WithdrawalController::class, 'getPayouts']);
         Route::get('fetch/{payout_id}', [WithdrawalController::class, 'getPayout']);
+
+        // off-ramp payout 
+        Route::post('createQuote', [BitnobOffRampController::class, "createQuote"]);
+        Route::post('initializePayout', [BitnobOffRampController::class, "initializePayout"]);
+        Route::post('finalizePayout', [BitnobOffRampController::class, "finalizePayout"]);
     });
 
     Route::prefix('otp')->group(function () {
