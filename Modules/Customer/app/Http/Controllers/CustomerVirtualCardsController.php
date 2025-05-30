@@ -244,21 +244,8 @@ class CustomerVirtualCardsController extends Controller
                 $cardId = $create['data']['id'];
                 $getCard = self::show($cardId, true);
 
-                if ($getCard) {
-                    $card = $getCard;
-                    $virtualCard = new CustomerVirtualCards();
-                    $virtualCard->business_id = get_business_id(auth()->id());
-                    $virtualCard->customer_id = $request->customer_id;
-                    $virtualCard->customer_card_id = $cardId;
-                    $virtualCard->card_number = $card['cardNumber'];
-                    $virtualCard->expiry_date = $card['valid'];
-                    $virtualCard->cvv = $card['cvv2'];
-                    $virtualCard->card_id = $cardId;
-                    $virtualCard->raw_data = json_encode($card);
-
-                    if ($virtualCard->save()) {
-                        return get_success_response($virtualCard->toArray());
-                    }
+                if ($getCard && $save = $this->saveVirtualCard($getCard, $cardId, $request)) {
+                    return get_success_response($save);
                 }
 
                 // Data to be returned
@@ -288,6 +275,23 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
+        }
+    }
+
+    public function saveVirtualCard($card, $cardId, $request)
+    {
+        $virtualCard = new CustomerVirtualCards();
+        $virtualCard->business_id = get_business_id(auth()->id());
+        $virtualCard->customer_id = $request->customer_id;
+        $virtualCard->customer_card_id = $cardId;
+        $virtualCard->card_number = $card['cardNumber'];
+        $virtualCard->expiry_date = $card['valid'];
+        $virtualCard->cvv = $card['cvv2'];
+        $virtualCard->card_id = $cardId;
+        $virtualCard->raw_data = json_encode($card);
+
+        if ($virtualCard->save()) {
+            return $virtualCard->toArray();
         }
     }
 
@@ -322,7 +326,6 @@ class CustomerVirtualCardsController extends Controller
 
             return $arrOnly ? $arrData : get_success_response($arrData);
         } catch (\Exception $e) {
-            return response()->json($e->getTrace());
             return $arrOnly
                 ? null
                 : get_error_response(['error' => env('APP_ENV') === 'local' 
