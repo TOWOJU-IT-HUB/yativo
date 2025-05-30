@@ -243,6 +243,7 @@ class CustomerVirtualCardsController extends Controller
                 // Save card details into DB, call get card to retrieve card details
                 $cardId = $create['data']['id'];
                 $getCard = self::show($cardId, true);
+                Log::error("this is the card details: ", $getCard);
 
                 if ($getCard && $save = $this->saveVirtualCard($getCard, $cardId, $request)) {
                     return get_success_response($save);
