@@ -296,57 +296,40 @@ class CustomerVirtualCardsController extends Controller
     public function show($cardId, $arrOnly = false)
     {
         try {
-            // Fetch the card data based on the provided cardId
             $card = $this->card->getCard($cardId);
 
-            // var_dump($card);exit;
-
-            if(empty($card)) {
-                return get_error_response(['error' => "Card not found!"], 404);
+            if (empty($card)) {
+                return $arrOnly ? null : get_error_response(['error' => "Card not found!"], 404);
             }
 
-            if(!is_array($card)) {
-                $card = (array)$card;
+            if (!is_array($card)) {
+                $card = (array) $card;
             }
 
-            // Define the keys to be removed from the card data
             $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
 
-            // Check if the card data exists
             if (isset($card['data'])) {
                 $arrData = $card['data'];
 
-                // Remove the specified keys from the card data
                 foreach ($arr as $key) {
-                    if (isset($arrData[$key])) {
-                        unset($arrData[$key]);
-                    }
+                    unset($arrData[$key]);
+                }
+
+                // handle error cases inside the data block
+                if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int)$arrData['statusCode'] === 500)) {
+                    return $arrOnly ? null : get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
                 }
             }
 
-            // If only the array data is requested, return it
-            
-            if ($arrOnly) {
-                return $arrData;
-            }
-
-            // return response()->json($arrData);
-
-            if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int)$arrData['statusCode'] === 500)) {
-                return get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
-            }
-
-            // Return the success response with the original card data
-            return get_success_response($arrData);
+            return $arrOnly ? $arrData : get_success_response($arrData);
         } catch (\Exception $e) {
-            // Return the error response with the exception message
-            if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $e->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
+            return $arrOnly
+                ? null
+                : get_error_response(['error' => env('APP_ENV') === 'local' ? $e->getMessage() : 'Something went wrong, please try again later']);
         }
     }
+
 
     public function update(Request $request, $cardId)
     {
