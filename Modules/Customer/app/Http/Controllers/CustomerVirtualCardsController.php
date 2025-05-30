@@ -177,7 +177,6 @@ class CustomerVirtualCardsController extends Controller
     }
 
 
-
     public function store(Request $request)
     {
         try {
@@ -291,7 +290,6 @@ class CustomerVirtualCardsController extends Controller
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-
 
     public function show($cardId, $arrOnly = false)
     {
