@@ -70,27 +70,28 @@ class AuthController extends Controller
     */
     public function login(Request $request)
     {
-        // if (!Schema::hasColumn('admins', 'ip_address')) {
-        //     Schema::table('deposits', function (Blueprint $table) {
-        //         $table->string('ip_address')->nullable();
-        //         $table->string('user_agent')->nullable();
-        //     });
-        // }
-        
-        $this->validate($request, [
-            'email' => 'required|email',
-            'password' => 'required|min:6',
-        ]);
-
-        if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->get('remember'))) {
-            $user = auth('admin')->user();
-            $user->update([
-                "last_login" => now()
+        try {
+            $this->validate($request, [
+                'email' => 'required|email',
+                'password' => 'required|min:6',
             ]);
-            
-            return redirect()->to(route('admin.dashboard'));
-        }
 
-        return redirect()->to(route('admin.login'))->withInput($request->only('email', 'remember'));
+            if (Auth::guard('admin')->attempt(['email' => $request->email, 'password' => $request->password], $request->get('remember'))) {
+                $user = auth('admin')->user();
+                $user->update([
+                    "last_login" => now()
+                ]);
+                
+                return redirect()->to(route('admin.dashboard'));
+            }
+
+            return redirect()->to(route('admin.login'))->withInput($request->only('email', 'remember'));
+        } catch (\Throwable $th) {
+            if(auth('admin')->check()){
+                return redirect()->to(route('admin.dashboard'));
+            }
+            Session::flush();
+            return redirect()->to(route('admin.login'))->withInput($request->only('email', 'remember'));
+        }
     }
 }
