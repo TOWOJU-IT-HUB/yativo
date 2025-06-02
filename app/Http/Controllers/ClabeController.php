@@ -63,4 +63,13 @@ class ClabeController extends Controller
         return $data['amount'] <= 0 || !in_array($data['type'], ['SPEI']);
     }
 
+
+    public function createPayOutOrder(Request $request)
+    {
+        try {
+            $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
+    }
 }

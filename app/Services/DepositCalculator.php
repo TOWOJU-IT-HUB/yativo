@@ -32,7 +32,7 @@ class DepositCalculator
 
         $rawRate = (float) $response[$currency];
         $adjustedRate = $rawRate * (1 + ($floatMarkup / 100));
-
+        
         return round($adjustedRate, 4);
     }
 
@@ -49,18 +49,29 @@ class DepositCalculator
         $percentageFee = $depositAmount * floatval($floatChargeRate / 100);
         $fixedFeeInQuote = $fixedChargeUSD * $adjustedRate;
         $totalFees = $percentageFee + $fixedFeeInQuote;
-        $creditedAmount = $depositAmount - $totalFees;
+
+        // Enforce min/max boundaries
+        $totalFee = $totalFees;
+        if (isset($this->gateway['minimum_charge']) && $totalFee < $this->gateway['minimum_charge']) {
+            $totalFee = $this->gateway['minimum_charge'];
+        }
+        if (isset($this->gateway['maximum_charge']) && $totalFee > $this->gateway['maximum_charge']) {
+            $totalFee = $this->gateway['maximum_charge'];
+        }
+
+        $creditedAmount = $depositAmount - $totalFee;
 
         return [
             'deposit_amount' => round($depositAmount, 2),
-            'fixed_fee' => $fixedFeeInQuote,
-            'float_fee' => $percentageFee,
+            'fixed_fee' => round($fixedFeeInQuote, 2),
+            'float_fee' => round($percentageFee, 2),
             'exchange_rate' => $adjustedRate,
             'percentage_fee' => round($percentageFee, 2),
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
-            'total_fees' => round($totalFees, 2),
-            'credited_amount' => round($creditedAmount, 2)
+            'total_fees' => round($totalFee, 2),
+            'credited_amount' => round($creditedAmount, 2),
         ];
     }
+
 
 }

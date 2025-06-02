@@ -99,13 +99,6 @@
                     @endif
                 </div>
                 <div class="flex justify-between items-center">
-                    <form action="{{ route('admin.business.manage.user.wallet', $user->id) }}" method="post" class="flex items-center gap-2" id="plansForm">
-                        @csrf
-                        <input type="number" name="amount" step="any value="" class="py-2 px-3 w-full bg-black text-white">
-                        <button class="p-2 bg-blue-600 text-white rounded-md">Debit</button>
-                    </form>
-                </div>
-                <div class="flex justify-between items-center">
                     <form action="{{ route('admin.plan.upgrade') }}" method="post" id="plansForm">
                         @csrf
                         <input type="hidden" name="user_id" value="{{$user->id}}">
@@ -742,7 +735,44 @@
                                 @endforelse
                             </tbody>                                
                         </table>                                                                        
-                    </div>                                                                              
+                    </div>  
+                    
+                    <!-- // charge user balance -->
+                    <div class="flex justify-between items-center">
+                        <form action="{{ route('admin.business.manage.user.wallet', $user->id) }}" method="POST" id="walletForm" class="space-y-4 bg-gray-900 p-6 rounded-lg text-white">
+                            @csrf
+
+                            <!-- Amount -->
+                            <div>
+                                <label for="amount" class="block text-sm font-medium mb-1">Amount</label>
+                                <input type="number" name="amount" id="amount" step="any" required class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+
+                            <!-- Select Wallet -->
+                            <div>
+                                <label for="wallet" class="block text-sm font-medium mb-1">Select Wallet</label>
+                                <select name="currency" id="wallet" required class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">  
+                                    <option value="" disabled selected>Select Wallet</option>
+                                    @foreach($wallets as $index => $wallet)  
+                                        <option value="{{ $wallet->slug }}">{{ $wallet->slug }} (${{ number_format($wallet->balance/100, 2) }}) </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <!-- Narration -->
+                            <div>
+                                <label for="narration" class="block text-sm font-medium mb-1">Narration</label>
+                                <textarea name="narration" id="narration" rows="3" class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+
+                            <!-- Submit -->
+                            <div class="text-right">
+                                <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-semibold transition duration-200">
+                                    Submit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 

@@ -209,8 +209,9 @@ class BusinessController extends Controller
     {
         // Validate request input
         $validator = Validator::make($request->all(), [
-            'currency' => 'sometimes|string',
             'amount' => 'required|numeric|min:0.01',
+            'currency' => 'sometimes|string',
+            'narration' => 'sometimes|string',
         ]);
 
         if ($validator->fails()) {
@@ -249,7 +250,7 @@ class BusinessController extends Controller
                 'transaction_currency' => $currency,
                 'base_currency' => $currency,
                 'secondary_currency' => $currency,
-                'transaction_purpose' => 'SERVICE_CHARGE',
+                'transaction_purpose' => $request->narration ?? 'SERVICE_CHARGE',
                 'transaction_payin_details' => null,
                 'transaction_payout_details' => null,
             ]);
