@@ -738,20 +738,20 @@
                     </div>  
                     
                     <!-- // charge user balance -->
-                    <div class="flex justify-between items-center">
+                    <div class="grid lg:grid-cols-2">
                         <form action="{{ route('admin.business.manage.user.wallet', $user->id) }}" method="POST" id="walletForm" class="space-y-4 bg-gray-900 p-6 rounded-lg text-white">
                             @csrf
 
                             <!-- Amount -->
                             <div>
                                 <label for="amount" class="block text-sm font-medium mb-1">Amount</label>
-                                <input type="number" name="amount" id="amount" step="any" required class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="number" name="amount" id="amount" step="any" required class="w-full px-4 py-2 rounded-md bg-transparent border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             </div>
 
                             <!-- Select Wallet -->
                             <div>
                                 <label for="wallet" class="block text-sm font-medium mb-1">Select Wallet</label>
-                                <select name="currency" id="wallet" required class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">  
+                                <select name="currency" id="wallet" required class="w-full px-4 py-2 rounded-md bg-transparent border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">  
                                     <option value="" disabled selected>Select Wallet</option>
                                     @foreach($wallets as $index => $wallet)  
                                         <option value="{{ $wallet->slug }}">{{ $wallet->slug }} (${{ number_format($wallet->balance/100, 2) }}) </option>
@@ -762,7 +762,7 @@
                             <!-- Narration -->
                             <div>
                                 <label for="narration" class="block text-sm font-medium mb-1">Narration</label>
-                                <textarea name="narration" id="narration" rows="3" class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                <textarea name="narration" id="narration" rows="3" class="w-full px-4 py-2 rounded-md bg-transparent border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                             </div>
 
                             <!-- Submit -->
