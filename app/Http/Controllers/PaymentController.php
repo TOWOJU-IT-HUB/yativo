@@ -66,7 +66,7 @@ class PaymentController extends Controller
             throw new \Exception('Failed to load private key');
         }
 
-        $originalString = '||' .
+        echo $originalString = '||' .
             $data['institucionContraparte'] . '|' .
             $data['empresa'] . '|||' .
             $data['claveRastreo'] . '|' .
