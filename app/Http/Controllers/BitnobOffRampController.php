@@ -15,8 +15,8 @@ class BitnobOffRampController extends Controller
 
     public function __construct()
     {
-        $this->baseUrl = config('services.bitnob.base_url');
-        $this->secretKey = config('services.bitnob.secret_key');
+        $this->baseUrl = env("BITNOB_BASE_URL");
+        $this->secretKey = env("BITNOB_API_KEY");
     }
 
     public function createQuote(Request $request)
@@ -31,7 +31,7 @@ class BitnobOffRampController extends Controller
 
         try {
             $response = Http::withToken($this->secretKey)
-                ->post("{$this->baseUrl}/api/v1/payouts/quotes", $validated);
+                ->post("{$this->baseUrl}/payouts/quotes", $validated);
 
             if ($response->successful()) {
                 return get_success_response($response->json('data'));
@@ -65,7 +65,7 @@ class BitnobOffRampController extends Controller
 
         try {
             $response = Http::withToken($this->secretKey)
-                ->post("{$this->baseUrl}/api/v1/payouts/initialize", $validated);
+                ->post("{$this->baseUrl}/payouts/initialize", $validated);
 
             if ($response->successful()) {
                 return get_success_response($response->json('data'));
@@ -88,7 +88,7 @@ class BitnobOffRampController extends Controller
 
         try {
             $response = Http::withToken($this->secretKey)
-                ->post("{$this->baseUrl}/api/v1/payouts/finalize", $validated);
+                ->post("{$this->baseUrl}/payouts/finalize", $validated);
 
             if ($response->successful()) {
                 return get_success_response($response->json('data'));

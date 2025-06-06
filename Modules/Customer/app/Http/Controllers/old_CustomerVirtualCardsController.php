@@ -14,7 +14,7 @@ use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
 use Towoju5\Bitnob\Bitnob;
 
-class CustomerVirtualCardsController extends Controller
+class old_CustomerVirtualCardsController extends Controller
 {
     public $card;
     public function __construct()
@@ -165,6 +165,9 @@ class CustomerVirtualCardsController extends Controller
             }
             $validatedData['userPhoto'] = $request->user_photo;
 
+
+            // var_dump($validatedData); exit;
+
             // Call card API
             $req = $this->card->regUser($validatedData);
             if (!is_array($req)) {
@@ -203,6 +206,7 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
+
             $where = [
                 'customer_id' => $request->customer_id,
                 'user_id' => auth()->id()
@@ -214,8 +218,12 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => "Customer with the provided ID not found!"]);
             }
 
+            // if ((bool)$cust->can_create_vc === false || $cust->vc_customer_id == null) {
+            //     return get_error_response(['error' => "Customer not approved for this service"]);
+            // }
+
             // debit user for card creation
-            debit_user_wallet(3, "USD", "Virtual Card Creation");
+            debit_user_wallet(settings('virtual_card_creation', 5), "USD", "Virtual Card Creation");
 
             // Ensure the customer_email field is available and correctly fetched
             if (!$cust->customer_email) {
@@ -358,6 +366,7 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => $validate->errors()->toArray()]);
             }
 
+
             $card = $this->card->action($request->action, $cardId);
             return get_success_response(['action' => $card['message']]);
         } catch (\Exception $e) {
@@ -413,10 +422,6 @@ class CustomerVirtualCardsController extends Controller
                 'amount' => floatval($request->amount * 100),
             ];
 
-            // Calculate top-up fee
-            $topUpFee = max(1, $request->amount * 0.01); // 1% with a minimum fee of $1
-            debit_user_wallet($topUpFee, "USD", "Top Up Fee");
-
             // make request to bitnob to topup card
             $bitnob = $this->card->topup($data);
 
@@ -437,9 +442,6 @@ class CustomerVirtualCardsController extends Controller
         }
     }
 
-    /**
-     * Virtual card Transaction
-     */
     public function transactions($cardId)
     {
         try {
@@ -448,146 +450,6 @@ class CustomerVirtualCardsController extends Controller
         } catch (\Exception $e) {
             if(env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $e->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
-        }
-    }
-
-    /**
-     * Terminate a specified virtual card
-     */
-    public function terminateCard(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                "cardId" => "required",
-            ]);
-
-            if ($validator->fails()) {
-                return get_error_response($validator->errors()->toArray());
-            }
-
-            $card = CustomerVirtualCards::where('customer_card_id', $request->cardId)
-                ->where('business_id', get_business_id(auth()->id()))
-                ->first();
-
-            if (!$card) {
-                return get_error_response(['error' => 'Card not found!']);
-            }
-
-            // Charge termination fee
-            debit_user_wallet(1, "USD", "Card Termination Fee");
-
-            // Call Bitnob API to terminate the card
-            $bitnob = new Bitnob();
-            $response = $bitnob->cards()->terminate($request->cardId);
-
-            if (isset($response['status']) && $response['status'] === true) {
-                // Return remaining balance to user's Yativo USD balance
-                $remainingBalance = $card->balance; // Assuming balance is stored in the card model
-                credit_user_wallet($remainingBalance, "USD", "Card Termination Refund");
-
-                // Delete the card from the database
-                $card->delete();
-
-                return get_success_response(['message' => 'Card terminated successfully.']);
-            }
-
-            return get_error_response($response);
-        } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
-        }
-    }
-
-    public function handleChargeback(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                "cardId" => "required",
-            ]);
-
-            if ($validator->fails()) {
-                return get_error_response($validator->errors()->toArray());
-            }
-
-            $card = CustomerVirtualCards::where('customer_card_id', $request->cardId)
-                ->where('business_id', get_business_id(auth()->id()))
-                ->first();
-
-            if (!$card) {
-                return get_error_response(['error' => 'Card not found!']);
-            }
-
-            // Charge chargeback fee
-            debit_user_wallet(60, "USD", "Chargeback Fee");
-
-            // Call Bitnob API to handle the chargeback
-            $bitnob = new Bitnob();
-            $response = $bitnob->cards()->chargeback($request->cardId);
-
-            if (isset($response['status']) && $response['status'] === true) {
-                return get_success_response(['message' => 'Chargeback handled successfully.']);
-            }
-
-            return get_error_response($response);
-        } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
-        }
-    }
-
-    public function handleCardDeclined(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                "cardId" => "required",
-            ]);
-
-            if ($validator->fails()) {
-                return get_error_response($validator->errors()->toArray());
-            }
-
-            $card = CustomerVirtualCards::where('customer_card_id', $request->cardId)
-                ->where('business_id', get_business_id(auth()->id()))
-                ->first();
-
-            if (!$card) {
-                return get_error_response(['error' => 'Card not found!']);
-            }
-
-            // Check if this is the third failed transaction
-            $failedTransactions = $card->failed_transactions; // Assuming this is stored in the card model
-            if ($failedTransactions >= 3) {
-                // Charge termination fee
-                debit_user_wallet(1, "USD", "Card Declined Termination Fee");
-
-                // Call Bitnob API to terminate the card
-                $bitnob = new Bitnob();
-                $response = $bitnob->cards()->terminate($request->cardId);
-
-                if (isset($response['status']) && $response['status'] === true) {
-                    // Delete the card from the database
-                    $card->delete();
-
-                    return get_success_response(['message' => 'Card terminated due to multiple failed transactions.']);
-                }
-
-                return get_error_response($response);
-            }
-
-            // Increment failed transaction count
-            $card->failed_transactions = $failedTransactions + 1;
-            $card->save();
-
-            return get_success_response(['message' => 'Failed transaction recorded.']);
-        } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }

@@ -208,7 +208,6 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
     });
 
     Route::prefix('business')->group(function () {
-
         Route::get('transactions/all', [TransactionRecordController::class, 'index']);
         Route::get('transaction/show/{transactionId}', [TransactionRecordController::class, 'show']);
         Route::get('transaction/by-currency', [TransactionRecordController::class, 'byCurrency']);
