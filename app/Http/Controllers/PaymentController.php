@@ -44,7 +44,7 @@ class PaymentController extends Controller
 
         // Prepare final request payload
         $requestData = array_merge($data, ['firma' => $signature]);
-        // return response()->json($requestData); 
+
         // Make API call
         $client = new Client();
         $response = $client->put('https://prod.stpmex.com/speiws/rest/ordenPago/registra', [
@@ -55,7 +55,7 @@ class PaymentController extends Controller
             'json' => $requestData,
         ]);
 
-        return response()->json(["response" => $response->json(), "payload" => $requestData], $response->getStatusCode());
+        return response()->json(json_decode($response->getBody(), true), $response->getStatusCode());
     }
 
     private function generateSignature(array $data, string $privateKeyPath, string $passphrase): string
@@ -85,8 +85,6 @@ class PaymentController extends Controller
             $data['referenciaNumerica'] . '||||||||||';
 
         $binarySignature = '';
-
-        // echo $originalString."<hr> \n";
         $success = openssl_sign($originalString, $binarySignature, $privateKey, OPENSSL_ALGO_SHA256);
         openssl_free_key($privateKey);
 
