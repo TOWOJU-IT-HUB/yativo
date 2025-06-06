@@ -11,6 +11,7 @@ use App\Http\Controllers\DepositController;
 use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\PaxosController;
+use App\Http\Controllers\PaymentController;
 use App\Models\BeneficiaryFoems as BeneficiaryForms;
 use App\Models\CustomPricing;
 use App\Models\PayinMethods;
