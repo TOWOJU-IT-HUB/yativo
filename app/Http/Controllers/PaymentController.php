@@ -38,8 +38,15 @@ class PaymentController extends Controller
         $data = $validator->validated();
 
         // Generate the signature
-        $privateKeyPath = storage_path('app/yativo.pem');
-        $passphrase = '1234567890';
+        if(env('IS_DEMO_STP') || env('IS_DEMO')) {
+            $privateKeyPath = storage_path('app/keys/stp_demo.pem');
+            $passphrase = '12345678';
+            $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
+        } else {
+            $privateKeyPath = storage_path('app/yativo.pem');
+            $passphrase = '1234567890';
+            $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
+        }
         $signature = $this->generateSignature($data, $privateKeyPath, $passphrase);
 
         // Prepare final request payload
@@ -47,7 +54,7 @@ class PaymentController extends Controller
 
         // Make API call
         $client = new Client();
-        $response = $client->put('https://prod.stpmex.com/speiws/rest/ordenPago/registra', [
+        $response = $client->put($url, [
             'headers' => [
                 'Content-Type' => 'application/json',
                 'Encoding' => 'UTF-8',
