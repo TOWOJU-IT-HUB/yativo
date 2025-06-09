@@ -500,7 +500,7 @@ class DepositController extends Controller
             return get_error_response(['error' => "Unable to process deposit"]);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
+            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()]);
         }
     }
 
