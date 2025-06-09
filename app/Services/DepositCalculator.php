@@ -14,119 +14,96 @@ class DepositCalculator
     }
 
     /**
-     * Get adjusted exchange rate from FROM → TO currency, with markup
+     * Get adjusted exchange rate from $fromCurrency to $toCurrency with markup
      */
     public function getAdjustedExchangeRate(string $fromCurrency, string $toCurrency): float
     {
-        // If same currency, rate is 1
-        if ($fromCurrency === $toCurrency) {
-            return 1.0;
-        }
-
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
         $response = Http::get('https://min-api.cryptocompare.com/data/price', [
-            'fsym' => $fromCurrency,
-            'tsyms' => $toCurrency
+            'fsym' => strtoupper($fromCurrency),
+            'tsyms' => strtoupper($toCurrency)
         ]);
 
         if (!$response->ok() || !isset($response[$toCurrency])) {
-            throw new \Exception("Unable to retrieve exchange rate.");
+            throw new \Exception("Unable to retrieve exchange rate from $fromCurrency to $toCurrency.");
         }
 
         $rawRate = (float) $response[$toCurrency];
         $adjustedRate = $rawRate * (1 + ($floatMarkup / 100));
 
-        return round($adjustedRate, 6); // higher precision is safer
+        return round($adjustedRate, 6); // keep precision
     }
 
     /**
-     * Calculate deposit breakdown
+     * Calculate deposit fees and credited amounts.
+     *
+     * @param float $depositAmount Amount user is paying in payin currency
+     * @return array
      */
     public function calculate(float $depositAmount): array
     {
-        // Define currencies
-        $payinCurrency = request('currency'); // e.g. 'CLP'
-        $walletCurrency = $this->gateway['currency']; // e.g. 'USD'
+        $payinCurrency = strtoupper(request('currency'));         // e.g. 'USD' or 'CLP'
+        $walletCurrency = strtoupper($this->gateway['currency']); // e.g. 'CLP' or 'USD'
 
-        // Get correct exchange rates
+        // Exchange rates
         $payinToWalletRate = $this->getAdjustedExchangeRate($payinCurrency, $walletCurrency);
-
-        // Convert deposit amount to wallet currency (USD for example)
-        $depositAmountInWallet = $depositAmount * $payinToWalletRate;
-
-        // Load fee settings
-        $floatChargeRate = $this->gateway['float_charge'] ?? 0;          // % fee
-        $fixedChargeUSD = $this->gateway['fixed_charge'] ?? 0;           // fixed fee in USD
-        $minChargeUSD    = $this->gateway['minimum_charge'] ?? null;     // min fee in USD
-        $maxChargeUSD    = $this->gateway['maximum_charge'] ?? null;     // max fee in USD
-
-        // Calculate fees (in wallet currency, i.e. USD)
-        $percentageFeeUSD = $depositAmountInWallet * ($floatChargeRate / 100);
-        $fixedFeeUSD      = $fixedChargeUSD;
-
-        $totalFeeUSD = $percentageFeeUSD + $fixedFeeUSD;
-
-        // Apply min/max fee boundaries (all in USD)
-        if ($minChargeUSD !== null && $totalFeeUSD < $minChargeUSD) {
-            $totalFeeUSD = $minChargeUSD;
-        }
-        if ($maxChargeUSD !== null && $totalFeeUSD > $maxChargeUSD) {
-            $totalFeeUSD = $maxChargeUSD;
-        }
-
-        // Calculate credited amount in wallet currency (USD)
-        $creditedAmountUSD = $depositAmountInWallet - $totalFeeUSD;
-
-        // For display: if needed, convert total fee back to payin currency (CLP) for user to see
         $walletToPayinRate = $this->getAdjustedExchangeRate($walletCurrency, $payinCurrency);
-        $totalFeeInPayinCurrency = $totalFeeUSD * $walletToPayinRate;
 
-        // return [
-        //     'payin_currency'  => $payinCurrency,
-        //     'wallet_currency' => $walletCurrency,
+        // Fees from gateway config (fixed, min, max) are in USD
+        $fixedFeeUSD = $this->gateway['fixed_charge'] ?? 0;
+        $minChargeUSD = $this->gateway['minimum_charge'] ?? null;
+        $maxChargeUSD = $this->gateway['maximum_charge'] ?? null;
+        $floatChargeRate = $this->gateway['float_charge'] ?? 0; // percentage fee
 
-        //     'deposit_amount' => round($depositAmount, 2), // original payin currency
-        //     'deposit_amount_in_wallet_currency' => round($depositAmountInWallet, 2), // converted to wallet currency
+        // Convert fixed/min/max fees USD → payin currency (because fees deducted from depositAmount in payin currency)
+        $fixedFeeInPayin = $fixedFeeUSD * $walletToPayinRate;
+        $minChargeInPayin = $minChargeUSD !== null ? $minChargeUSD * $walletToPayinRate : null;
+        $maxChargeInPayin = $maxChargeUSD !== null ? $maxChargeUSD * $walletToPayinRate : null;
 
-        //     'fixed_fee_usd'     => round($fixedFeeUSD, 2),
-        //     'float_fee_usd'     => round($percentageFeeUSD, 2),
-        //     'total_fees_usd'    => round($totalFeeUSD, 2),
-        //     'total_fees_in_payin_currency' => round($totalFeeInPayinCurrency, 2), // optional for showing to user
+        // Percentage fee based on deposit amount in payin currency
+        $percentageFee = $depositAmount * ($floatChargeRate / 100);
 
-        //     'credited_amount_usd' => round($creditedAmountUSD, 2), // credited in wallet currency
+        // Calculate total fees in payin currency
+        $totalFee = $fixedFeeInPayin + $percentageFee;
 
-        //     'exchange_rate_payin_to_wallet' => $payinToWalletRate,
-        //     'exchange_rate_wallet_to_payin' => $walletToPayinRate,
-        // ];
+        // Enforce min/max fee boundaries
+        if ($minChargeInPayin !== null && $totalFee < $minChargeInPayin) {
+            $totalFee = $minChargeInPayin;
+        }
+        if ($maxChargeInPayin !== null && $totalFee > $maxChargeInPayin) {
+            $totalFee = $maxChargeInPayin;
+        }
+
+        // Amount credited to wallet in payin currency (after fees)
+        $creditedAmountInPayin = $depositAmount - $totalFee;
+
+        // Convert amounts to wallet currency
+        $depositAmountInWallet = $depositAmount * $payinToWalletRate;
+        $creditedAmountInWallet = $creditedAmountInPayin * $payinToWalletRate;
+
         return [
             'payin_currency'  => $payinCurrency,
             'wallet_currency' => $walletCurrency,
 
-            'deposit_amount' => round($depositAmount, 2), // original payin currency
-            'deposit_amount_in_wallet_currency' => round($depositAmountInWallet, 2), // converted to wallet currency
+            'deposit_amount' => round($depositAmount, 2),                      // payin currency
+            'deposit_amount_in_wallet_currency' => round($depositAmountInWallet, 2),
 
-            'fixed_fee'      => round($fixedFeeUSD, 2),  // match your old 'fixed_fee'
-            'float_fee'      => round($percentageFeeUSD, 2), // match your old 'float_fee'
+            'fixed_fee' => round($fixedFeeInPayin, 2),                         // payin currency
+            'float_fee' => round($percentageFee, 2),                           // payin currency
+            'total_fees' => round($totalFee, 2),                               // payin currency
 
-            'fixed_fee_usd'  => round($fixedFeeUSD, 2),
-            'float_fee_usd'  => round($percentageFeeUSD, 2),
+            'credited_amount' => round($creditedAmountInPayin, 2),             // payin currency
+            'credited_amount_in_wallet_currency' => round($creditedAmountInWallet, 2),
 
-            'total_fees'     => round($totalFeeUSD, 2),  // match your old 'total_fees'
-            'total_fees_usd' => round($totalFeeUSD, 2),
-            'total_fees_in_payin_currency' => round($totalFeeInPayinCurrency, 2),
+            'exchange_rate' => round($payinToWalletRate, 6),
 
-            'percentage_fee' => round($percentageFeeUSD, 2), // match your old 'percentage_fee'
-
-            'credited_amount'     => round($creditedAmountUSD, 2), // match your old 'credited_amount'
-            'credited_amount_usd' => round($creditedAmountUSD, 2),
-
-            'exchange_rate' => $payinToWalletRate, // match your old 'exchange_rate'
-            'exchange_rate_payin_to_wallet' => $payinToWalletRate,
-            'exchange_rate_wallet_to_payin' => $walletToPayinRate,
+            // Extra detailed fields for clarity (optional)
+            'fixed_fee_usd' => round($fixedFeeUSD, 2),
+            'minimum_charge_usd' => $minChargeUSD !== null ? round($minChargeUSD, 2) : null,
+            'maximum_charge_usd' => $maxChargeUSD !== null ? round($maxChargeUSD, 2) : null,
+            'percentage_fee_rate' => round($floatChargeRate, 2), // percentage
         ];
-
-
     }
 }
 
