@@ -223,6 +223,7 @@ class CronDepositController extends Controller
 
     public function bitso()
     {
+        return true;
         $ids = $this->getGatewayPayinMethods('bitso');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $bitsoService = new BitsoServices();

@@ -50,7 +50,7 @@ class CronController extends Controller
         $deposit->vitawallet();
         $deposit->transfi();
         $deposit->onramp();
-        $deposit->bitso();
+        // $deposit->bitso();
 
 
         $payout = new CronController();
