@@ -350,7 +350,7 @@ class DepositController extends Controller
             $validate = Validator::make($request->all(), [
                 'gateway' => 'required',
                 'amount' => 'required|numeric|min:0',
-                'currency' => 'required',
+                'currency' => 'required', // wallet/credit currency
             ]);
 
             if ($validate->fails()) {
@@ -360,30 +360,31 @@ class DepositController extends Controller
             $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
 
             $user = $request->user();
-            $deposit_currency = strtoupper($request->currency);
+            $walletCurrency = strtoupper($request->currency); // user credit wallet currency
+            $paymentCurrency = strtoupper($gateway->currency); // gateway payment currency
 
-            if (!$user->hasWallet($deposit_currency)) {
+            if (!$user->hasWallet($walletCurrency)) {
                 return get_error_response(['error' => "Invalid credit wallet selected"], 400);
             }
 
-            // Validate allowed debit currencies
+            // Validate allowed debit/payment currencies (gateway base currencies)
             $allowedCurrencies = array_map('strtoupper', explode(',', $gateway->base_currency));
-            if (!in_array($deposit_currency, $allowedCurrencies)) {
+            if (!in_array($walletCurrency, $allowedCurrencies)) {
                 return get_error_response([
                     'error' => "Supported deposit wallets are: " . implode(', ', $allowedCurrencies)
                 ], 400);
             }
 
-            // Validate deposit amount against gateway min/max limits (assumed in gateway currency)
+            // Validate deposit amount against gateway min/max limits (in wallet currency)
             if ($gateway->minimum_deposit && $request->amount < $gateway->minimum_deposit) {
                 return get_error_response([
-                    'error' => "Minimum deposit amount is {$gateway->minimum_deposit} {$gateway->currency}"
+                    'error' => "Minimum deposit amount is {$gateway->minimum_deposit} {$walletCurrency}"
                 ], 400);
             }
 
             if ($gateway->maximum_deposit && $request->amount > $gateway->maximum_deposit) {
                 return get_error_response([
-                    'error' => "Maximum deposit amount is {$gateway->maximum_deposit} {$gateway->currency}"
+                    'error' => "Maximum deposit amount is {$gateway->maximum_deposit} {$walletCurrency}"
                 ], 400);
             }
 
@@ -443,7 +444,7 @@ class DepositController extends Controller
                 'method_name'         => $gateway->method_name,
                 'gateway'             => $gateway->gateway,
                 'country'             => $gateway->country,
-                'currency'            => strtoupper($gateway->currency),  // wallet currency
+                'currency'            => $paymentCurrency,  // payment currency (gateway currency)
                 'charges_type'        => 'combined',
                 'fixed_charge'        => $fixed_charge,
                 'float_charge'        => $float_charge,
@@ -460,35 +461,43 @@ class DepositController extends Controller
             }
 
             $calculator = new DepositCalculator($gatewayConfig);
+
+            // Calculate fees and amounts: amount is in wallet currency (user’s credit currency)
             $calc = $calculator->calculate($request->amount);
 
             // Save deposit
             $deposit = new Deposit();
-            $deposit->currency = $gatewayConfig['currency'];        // wallet currency (e.g., CLP)
-            $deposit->deposit_currency = $deposit_currency;         // payin currency (e.g., USD)
+            $deposit->currency = $walletCurrency;             // wallet currency user credits
+            $deposit->deposit_currency = $paymentCurrency;    // payment currency user pays
             $deposit->user_id = active_user();
-            $deposit->amount = $request->amount;                     // amount in payin currency
+            $deposit->amount = $request->amount;               // amount in wallet currency (user deposits)
             $deposit->gateway = $request->gateway;
-            $deposit->receive_amount = floor($calc['credited_amount_in_wallet_currency']); // credited amount in wallet currency
+
+            // credited amount returned by calculator is in payment currency, convert to wallet currency:
+            // Actually, our DepositCalculator returns credited_amount in payment currency, 
+            // so convert to wallet currency here with inverse exchange rate:
+            $exchangeRate = $calc['exchange_rate'];  // paymentCurrency to walletCurrency rate
+            $creditedAmountWallet = $calc['credited_amount'] / $exchangeRate;
+
+            $deposit->receive_amount = floor($creditedAmountWallet);
             $deposit->customer_id = $request->customer_id ?? null;
 
-            // totalAmount: sum of credited amount and fees in wallet currency
-            // Fees are in payin currency, so convert total fees to wallet currency
-            $totalFeesInWallet = ($calc['total_fees'] ?? 0) * $calc['exchange_rate'];
-            $totalAmount = $deposit->receive_amount + floor($totalFeesInWallet);
+            // total fees are in payment currency, convert to wallet currency for total amount due
+            $totalFeesWallet = $calc['total_fees'] / $exchangeRate;
+            $totalAmount = $deposit->receive_amount + floor($totalFeesWallet);
 
             if ($deposit->save()) {
                 $arr['payment_info'] = [
-                    "send_amount" => round($request->amount, 4) . " " . $deposit_currency,
-                    "receive_amount" => floor($calc['credited_amount_in_wallet_currency']) . " " . $gatewayConfig['currency'],
-                    "exchange_rate" => "1 {$deposit_currency} = " . round($calc['exchange_rate'], 8) . " {$gatewayConfig['currency']}",
-                    "transaction_fee" => round($totalFeesInWallet, 4) . " " . $gatewayConfig['currency'],
+                    "send_amount" => round($request->amount, 4) . " " . $walletCurrency,
+                    "receive_amount" => floor($creditedAmountWallet) . " " . $walletCurrency,
+                    "exchange_rate" => "1 {$paymentCurrency} = " . round($exchangeRate, 8) . " {$walletCurrency}",
+                    "transaction_fee" => round($totalFeesWallet, 4) . " " . $walletCurrency,
                     "payment_method" => $gateway->method_name,
                     "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
-                    "total_amount_due" => round($totalAmount, 4) . " " . $gatewayConfig['currency'],
+                    "total_amount_due" => round($totalAmount, 4) . " " . $walletCurrency,
                     'calc' => $calc
                 ];
-                $process = $this->process_store($request->gateway, $gatewayConfig['currency'], $totalAmount, $deposit->toArray());
+                $process = $this->process_store($request->gateway, $walletCurrency, $totalAmount, $deposit->toArray());
 
                 if (isset($process['error'])) {
                     return get_error_response($process);
@@ -500,9 +509,10 @@ class DepositController extends Controller
             return get_error_response(['error' => "Unable to process deposit"]);
 
         } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()]);
+            return get_error_response(['error' => $th->getMessage()]);
         }
     }
+
 
 
 
