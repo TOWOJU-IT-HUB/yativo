@@ -16,12 +16,8 @@ class DepositCalculator
     /**
      * Get adjusted USD to quote currency rate with markup
      */
-    public function getAdjustedExchangeRate($fromCurrency, $toCurrency): float
+    public function getAdjustedExchangeRate(): float
     {
-        if($fromCurrency == $toCurrency) {
-            return round(1, 6); // keep precision
-        }
-
         $currency = $this->gateway['currency'];
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
@@ -45,7 +41,7 @@ class DepositCalculator
      */
     public function calculate(float $depositAmount): array
     {
-        $adjustedRate = $this->getAdjustedExchangeRate(request('currency'), $this->gateway['currency']);
+        $adjustedRate = $this->getAdjustedExchangeRate();
 
         $floatChargeRate = $this->gateway['float_charge'] ?? 0;
         $fixedChargeUSD = $this->gateway['fixed_charge'] ?? 0;
