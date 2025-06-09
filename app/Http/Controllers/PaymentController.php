@@ -60,12 +60,16 @@ class PaymentController extends Controller
                 'json' => $requestData,
             ]);
 
-            return get_success_response($response->getBody(), $response->getStatusCode());
+            $body = (string) $response->getBody(); // convert stream to string
+            $status = $response->getStatusCode();
+
+            return get_success_response($body, $status);
         } catch (\Exception $e) {
             return get_error_response([
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
+
     }
 
     public function payout($data)
@@ -112,7 +116,6 @@ class PaymentController extends Controller
 
         $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
         $client = new Client();
-
         try {
             $response = $client->put($url, [
                 'headers' => [
@@ -122,9 +125,15 @@ class PaymentController extends Controller
                 'json' => $requestData,
             ]);
 
-            return get_success_response((array) $response->getBody(), $response->getStatusCode());
+            $body = (string) $response->getBody(); // convert stream to string
+            $status = $response->getStatusCode();
+
+            return get_success_response($body, $status);
         } catch (\Exception $e) {
-            return get_error_response(['error' => $e->getMessage()], 500);
+            return get_error_response([
+                'error' => $e->getMessage(),
+            ], 500);
         }
+
     }
 }
