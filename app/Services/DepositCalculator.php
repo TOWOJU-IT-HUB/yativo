@@ -82,6 +82,23 @@ class DepositCalculator
         $walletToPayinRate = $this->getAdjustedExchangeRate($walletCurrency, $payinCurrency);
         $totalFeeInPayinCurrency = $totalFeeUSD * $walletToPayinRate;
 
+        // return [
+        //     'payin_currency'  => $payinCurrency,
+        //     'wallet_currency' => $walletCurrency,
+
+        //     'deposit_amount' => round($depositAmount, 2), // original payin currency
+        //     'deposit_amount_in_wallet_currency' => round($depositAmountInWallet, 2), // converted to wallet currency
+
+        //     'fixed_fee_usd'     => round($fixedFeeUSD, 2),
+        //     'float_fee_usd'     => round($percentageFeeUSD, 2),
+        //     'total_fees_usd'    => round($totalFeeUSD, 2),
+        //     'total_fees_in_payin_currency' => round($totalFeeInPayinCurrency, 2), // optional for showing to user
+
+        //     'credited_amount_usd' => round($creditedAmountUSD, 2), // credited in wallet currency
+
+        //     'exchange_rate_payin_to_wallet' => $payinToWalletRate,
+        //     'exchange_rate_wallet_to_payin' => $walletToPayinRate,
+        // ];
         return [
             'payin_currency'  => $payinCurrency,
             'wallet_currency' => $walletCurrency,
@@ -92,13 +109,15 @@ class DepositCalculator
             'fixed_fee_usd'     => round($fixedFeeUSD, 2),
             'float_fee_usd'     => round($percentageFeeUSD, 2),
             'total_fees_usd'    => round($totalFeeUSD, 2),
-            'total_fees_in_payin_currency' => round($totalFeeInPayinCurrency, 2), // optional for showing to user
+            'total_fees_in_payin_currency' => round($totalFeeInPayinCurrency, 2),
 
-            'credited_amount_usd' => round($creditedAmountUSD, 2), // credited in wallet currency
+            'credited_amount_usd' => round($creditedAmountUSD, 2),
+            'credited_amount'     => round($creditedAmountUSD, 2), // add this for compatibility
 
             'exchange_rate_payin_to_wallet' => $payinToWalletRate,
             'exchange_rate_wallet_to_payin' => $walletToPayinRate,
         ];
+
     }
 }
 
