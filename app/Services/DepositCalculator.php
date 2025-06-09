@@ -17,32 +17,52 @@ class DepositCalculator
     /**
      * Get adjusted USD to quote currency rate with markup
      */
-    public function getAdjustedExchangeRate(): float
+    // public function getAdjustedExchangeRate(): float
+    // {
+    //     $currency = $this->gateway['currency'];
+    //     $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
+
+    //     $response = Http::get('https://min-api.cryptocompare.com/data/price', [
+    //         'fsym' => 'USD',
+    //         'tsyms' => $currency
+    //     ]);
+
+    //     if (!$response->ok() || !isset($response[$currency])) {
+    //         throw new \Exception("Unable to retrieve exchange rate.");
+    //     }
+
+    //     $rawRate = (float) $response[$currency];
+    //     $adjustedRate = $rawRate * (1 + ($floatMarkup / 100));
+        
+    //     return round($adjustedRate, 4);
+    // }
+
+    public function getAdjustedExchangeRate(string $fromCurrency, string $toCurrency): float
     {
-        $currency = $this->gateway['currency'];
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
         $response = Http::get('https://min-api.cryptocompare.com/data/price', [
-            'fsym' => 'USD',
-            'tsyms' => $currency
+            'fsym' => $fromCurrency,
+            'tsyms' => $toCurrency
         ]);
 
-        if (!$response->ok() || !isset($response[$currency])) {
+        if (!$response->ok() || !isset($response[$toCurrency])) {
             throw new \Exception("Unable to retrieve exchange rate.");
         }
 
-        $rawRate = (float) $response[$currency];
+        $rawRate = (float) $response[$toCurrency];
         $adjustedRate = $rawRate * (1 + ($floatMarkup / 100));
         
-        return round($adjustedRate, 4);
+        return round($adjustedRate, 6); // Higher precision is better here
     }
+
 
     /**
      * Calculate deposit breakdown
      */
     public function calculate(float $depositAmount): array
     {
-        $adjustedRate = $this->getAdjustedExchangeRate();
+        $adjustedRate = $this->getAdjustedExchangeRate($this->gateway['currency'], request('currency'));
 
         $floatChargeRate = $this->gateway['float_charge'] ?? 0;
         $fixedChargeUSD = $this->gateway['fixed_charge'] ?? 0;
