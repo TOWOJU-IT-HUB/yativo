@@ -342,7 +342,7 @@ class DepositController extends Controller
     //         return ['error' => $th->getMessage()];
     //     }
     // }
-    public function store(Request $request)
+    public function process_store(Request $request)
     {
         try {
             $validate = Validator::make($request->all(), [
