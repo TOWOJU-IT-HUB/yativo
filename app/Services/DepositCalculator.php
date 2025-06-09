@@ -106,17 +106,26 @@ class DepositCalculator
             'deposit_amount' => round($depositAmount, 2), // original payin currency
             'deposit_amount_in_wallet_currency' => round($depositAmountInWallet, 2), // converted to wallet currency
 
-            'fixed_fee_usd'     => round($fixedFeeUSD, 2),
-            'float_fee_usd'     => round($percentageFeeUSD, 2),
-            'total_fees_usd'    => round($totalFeeUSD, 2),
+            'fixed_fee'      => round($fixedFeeUSD, 2),  // match your old 'fixed_fee'
+            'float_fee'      => round($percentageFeeUSD, 2), // match your old 'float_fee'
+
+            'fixed_fee_usd'  => round($fixedFeeUSD, 2),
+            'float_fee_usd'  => round($percentageFeeUSD, 2),
+
+            'total_fees'     => round($totalFeeUSD, 2),  // match your old 'total_fees'
+            'total_fees_usd' => round($totalFeeUSD, 2),
             'total_fees_in_payin_currency' => round($totalFeeInPayinCurrency, 2),
 
-            'credited_amount_usd' => round($creditedAmountUSD, 2),
-            'credited_amount'     => round($creditedAmountUSD, 2), // add this for compatibility
+            'percentage_fee' => round($percentageFeeUSD, 2), // match your old 'percentage_fee'
 
+            'credited_amount'     => round($creditedAmountUSD, 2), // match your old 'credited_amount'
+            'credited_amount_usd' => round($creditedAmountUSD, 2),
+
+            'exchange_rate' => $payinToWalletRate, // match your old 'exchange_rate'
             'exchange_rate_payin_to_wallet' => $payinToWalletRate,
             'exchange_rate_wallet_to_payin' => $walletToPayinRate,
         ];
+
 
     }
 }
