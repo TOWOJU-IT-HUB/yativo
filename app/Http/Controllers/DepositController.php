@@ -109,6 +109,8 @@ class DepositController extends Controller
                 return get_error_response($validate->errors()->toArray());
             }
 
+            $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
+
             $user = $request->user();
             $deposit_currency = $request->currency;
 
@@ -116,13 +118,24 @@ class DepositController extends Controller
                 return get_error_response(['error' => "Invalid credit wallet selected"], 400);
             }
 
-            $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
-
             // Validate allowed debit currencies
             $allowedCurrencies = explode(',', $gateway->base_currency);
             if (!in_array($request->currency, $allowedCurrencies)) {
                 return get_error_response([
                     'error' => "Supported deposit wallets are: " . implode(', ', $allowedCurrencies)
+                ], 400);
+            }
+            
+            // Validate deposit amount against gateway min/max limits
+            if ($gateway->minimum_deposit && $request->amount < $gateway->minimum_deposit) {
+                return get_error_response([
+                    'error' => "Minimum deposit amount is {$gateway->minimum_deposit} {$gateway->currency}"
+                ], 400);
+            }
+
+            if ($gateway->maximum_deposit && $request->amount > $gateway->maximum_deposit) {
+                return get_error_response([
+                    'error' => "Maximum deposit amount is {$gateway->maximum_deposit} {$gateway->currency}"
                 ], 400);
             }
 
