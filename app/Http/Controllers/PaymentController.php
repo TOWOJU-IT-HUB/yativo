@@ -60,9 +60,9 @@ class PaymentController extends Controller
                 'json' => $requestData,
             ]);
 
-            return response()->json($response->getBody(), $response->getStatusCode());
+            return get_success_response($response->getBody(), $response->getStatusCode());
         } catch (\Exception $e) {
-            return response()->json([
+            return get_error_response([
                 'error'   => $e->getMessage(),
             ], 500);
         }
