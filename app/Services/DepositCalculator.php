@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 class DepositCalculator
 {
     protected $gateway;
+
     public function __construct(array $gateway)
     {
         $this->gateway = $gateway;
@@ -50,13 +51,17 @@ class DepositCalculator
         $fixedFeeInQuote = $fixedChargeUSD * $adjustedRate;
         $totalFees = $percentageFee + $fixedFeeInQuote;
 
-        // Enforce min/max boundaries
+        // Convert min and max charges from USD to quote currency
+        $minChargeInQuote = isset($this->gateway['minimum_charge']) ? $this->gateway['minimum_charge'] * $adjustedRate : null;
+        $maxChargeInQuote = isset($this->gateway['maximum_charge']) ? $this->gateway['maximum_charge'] * $adjustedRate : null;
+
+        // Enforce min/max boundaries in quote currency
         $totalFee = $totalFees;
-        if (isset($this->gateway['minimum_charge']) && $totalFee < $this->gateway['minimum_charge']) {
-            $totalFee = $this->gateway['minimum_charge'];
+        if ($minChargeInQuote !== null && $totalFee < $minChargeInQuote) {
+            $totalFee = $minChargeInQuote;
         }
-        if (isset($this->gateway['maximum_charge']) && $totalFee > $this->gateway['maximum_charge']) {
-            $totalFee = $this->gateway['maximum_charge'];
+        if ($maxChargeInQuote !== null && $totalFee > $maxChargeInQuote) {
+            $totalFee = $maxChargeInQuote;
         }
 
         $creditedAmount = $depositAmount - $totalFee;
@@ -72,6 +77,4 @@ class DepositCalculator
             'credited_amount' => round($creditedAmount, 2),
         ];
     }
-
-
 }
