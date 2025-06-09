@@ -196,12 +196,19 @@ class CryptoWalletsController extends Controller
         ]);
 
         try {
-            $data = $request->input('event_data');
+            $eventType = $request->input('event_type');
+            if ($eventType !== 'deposit.confirmed') {
+                // Ignore non-matching event types
+                return response()->json(['message' => 'Event ignored'], 200);
+            }
+
+            $data = $request->input('data');
             $transactionId = $data['transaction_hash'] ?? null;
             $toAddress = $data['to_address'] ?? null;
-            $amount = (float) $data['amount'] ?? 0;
-            $fee = (float) $data['fee_amount'] ?? 0;
-            $tokenType = $data['token_type'] ?? 'USDC_SOL';
+            $amountRaw = $data['amount'] ?? '0';
+            $amount = (float) bcdiv($amountRaw, pow(10, $data['tokenInfo']['decimals'] ?? 6), 6); // Normalize token decimals
+            $fee = 0; // No fee provided in new payload
+            $tokenType = $request->input('token_type', 'USDC_SOL');
             $status = $data['transaction_status'] ?? 'pending';
 
             if (!$transactionId || !$toAddress) {
@@ -216,7 +223,7 @@ class CryptoWalletsController extends Controller
 
             // Find the receiving wallet by address and currency
             $wallet = CryptoWallets::where('wallet_address', $toAddress)->firstOrFail();
-            
+
             $userId = $wallet->user_id;
             $currency = $wallet->currency ?? $tokenType;
 
@@ -272,6 +279,7 @@ class CryptoWalletsController extends Controller
             return response()->json(['error' => 'Error processing deposit'], 500);
         }
     }
+
 
     public function getWallets()
     {
