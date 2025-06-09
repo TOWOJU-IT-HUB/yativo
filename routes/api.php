@@ -9,6 +9,7 @@ use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\Business\WithdrawalController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\ChartsController;
+use App\Http\Controllers\ClabeController;
 use App\Http\Controllers\CryptoWalletsController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\EventsController;
@@ -89,6 +90,10 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
     //     Route::post('withdraw', [MantecaController::class, 'withdraw']);
     //     Route::get('customers', [MantecaController::class, 'mantecaCustomer']);
     // });
+
+    Route::group(["prefix" => "clabe"], function(){
+        Route::get('generate', [ClabeController::class, 'generateClabes']);
+    });
 
     Route::prefix('off-ramp-payout')->group(function () {
         Route::post('create-quote', [BitnobOffRampController::class, 'createQuote']);
