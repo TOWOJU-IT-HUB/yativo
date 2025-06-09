@@ -96,163 +96,163 @@ class DepositController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return 
      */
-    // public function store(Request $request)
-    // {
-    //     try {
-    //         $validate = Validator::make($request->all(), [
-    //             'gateway' => 'required',
-    //             'amount' => 'required|numeric|min:0',
-    //             'currency' => 'required',
-    //         ]);
+    public function store(Request $request)
+    {
+        try {
+            $validate = Validator::make($request->all(), [
+                'gateway' => 'required',
+                'amount' => 'required|numeric|min:0',
+                'currency' => 'required',
+            ]);
 
-    //         if ($validate->fails()) {
-    //             return get_error_response($validate->errors()->toArray());
-    //         }
+            if ($validate->fails()) {
+                return get_error_response($validate->errors()->toArray());
+            }
 
-    //         $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
+            $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
 
-    //         $user = $request->user();
-    //         $deposit_currency = $request->currency;
+            $user = $request->user();
+            $deposit_currency = $request->currency;
 
-    //         if (!$user->hasWallet($deposit_currency)) {
-    //             return get_error_response(['error' => "Invalid credit wallet selected"], 400);
-    //         }
+            if (!$user->hasWallet($deposit_currency)) {
+                return get_error_response(['error' => "Invalid credit wallet selected"], 400);
+            }
 
-    //         // Validate allowed debit currencies
-    //         $allowedCurrencies = explode(',', $gateway->base_currency);
-    //         if (!in_array($request->currency, $allowedCurrencies)) {
-    //             return get_error_response([
-    //                 'error' => "Supported deposit wallets are: " . implode(', ', $allowedCurrencies)
-    //             ], 400);
-    //         }
+            // Validate allowed debit currencies
+            $allowedCurrencies = explode(',', $gateway->base_currency);
+            if (!in_array($request->currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' => "Supported deposit wallets are: " . implode(', ', $allowedCurrencies)
+                ], 400);
+            }
+            
+            // Validate deposit amount against gateway min/max limits
+            if ($gateway->minimum_deposit && $request->amount < $gateway->minimum_deposit) {
+                return get_error_response([
+                    'error' => "Minimum deposit amount is {$gateway->minimum_deposit} {$gateway->currency}"
+                ], 400);
+            }
 
-    //         // Validate deposit amount against gateway min/max limits
-    //         if ($gateway->minimum_deposit && $request->amount < $gateway->minimum_deposit) {
-    //             return get_error_response([
-    //                 'error' => "Minimum deposit amount is {$gateway->minimum_deposit} {$gateway->currency}"
-    //             ], 400);
-    //         }
-
-    //         if ($gateway->maximum_deposit && $request->amount > $gateway->maximum_deposit) {
-    //             return get_error_response([
-    //                 'error' => "Maximum deposit amount is {$gateway->maximum_deposit} {$gateway->currency}"
-    //             ], 400);
-    //         }
+            if ($gateway->maximum_deposit && $request->amount > $gateway->maximum_deposit) {
+                return get_error_response([
+                    'error' => "Maximum deposit amount is {$gateway->maximum_deposit} {$gateway->currency}"
+                ], 400);
+            }
 
 
-    //         if($gateway->gateway == "bitso") {
-    //             $validate = Validator::make($request->all(), [
-    //                 'cellphone' => 'required',
-    //                 'documentType' => 'required',
-    //                 'documentNumber' => 'required',
-    //             ]);
+            if($gateway->gateway == "bitso") {
+                $validate = Validator::make($request->all(), [
+                    'cellphone' => 'required',
+                    'documentType' => 'required',
+                    'documentNumber' => 'required',
+                ]);
 
-    //             if ($validate->fails()) {
-    //                 return get_error_response($validate->errors()->toArray());
-    //             }
-    //         }
+                if ($validate->fails()) {
+                    return get_error_response($validate->errors()->toArray());
+                }
+            }
 
-    //         // Get user plan and charges
-    //         $user_plan = 1;
-    //         if (!$user->hasActiveSubscription()) {
-    //             $plan = PlanModel::where('price', 0)->latest()->first();
-    //             if ($plan) {
-    //                 $user->subscribeTo($plan, 30, true);
-    //             }
-    //         }
+            // Get user plan and charges
+            $user_plan = 1;
+            if (!$user->hasActiveSubscription()) {
+                $plan = PlanModel::where('price', 0)->latest()->first();
+                if ($plan) {
+                    $user->subscribeTo($plan, 30, true);
+                }
+            }
 
-    //         $subscription = $user->activeSubscription();
-    //         if ($subscription) {
-    //             $user_plan = (int) $subscription->plan_id;
-    //         }
+            $subscription = $user->activeSubscription();
+            if ($subscription) {
+                $user_plan = (int) $subscription->plan_id;
+            }
 
-    //         $fixed_charge = $float_charge = 0;
+            $fixed_charge = $float_charge = 0;
 
-    //         if ($user_plan === 3) {
-    //             $customPricing = CustomPricing::where('user_id', $user->id)
-    //                 ->where([
-    //                     'gateway_id' => $gateway->id,
-    //                     'gateway_type' => 'payin',
-    //                 ])->first();
+            if ($user_plan === 3) {
+                $customPricing = CustomPricing::where('user_id', $user->id)
+                    ->where([
+                        'gateway_id' => $gateway->id,
+                        'gateway_type' => 'payin',
+                    ])->first();
 
-    //             if ($customPricing) {
-    //                 $fixed_charge = $customPricing->fixed_charge;
-    //                 $float_charge = $customPricing->float_charge;
-    //             } else {
-    //                 $user_plan = 2;
-    //             }
-    //         }
+                if ($customPricing) {
+                    $fixed_charge = $customPricing->fixed_charge;
+                    $float_charge = $customPricing->float_charge;
+                } else {
+                    $user_plan = 2;
+                }
+            }
 
-    //         if ($user_plan === 1) {
-    //             $fixed_charge = $gateway->fixed_charge;
-    //             $float_charge = $gateway->float_charge;
-    //         } elseif ($user_plan === 2) {
-    //             $fixed_charge = $gateway->pro_fixed_charge;
-    //             $float_charge = $gateway->pro_float_charge;
-    //         }
+            if ($user_plan === 1) {
+                $fixed_charge = $gateway->fixed_charge;
+                $float_charge = $gateway->float_charge;
+            } elseif ($user_plan === 2) {
+                $fixed_charge = $gateway->pro_fixed_charge;
+                $float_charge = $gateway->pro_float_charge;
+            }
 
-    //         // Prepare gateway config for calculator
-    //         $gatewayConfig = [
-    //             'method_name'         => $gateway->method_name,
-    //             'gateway'             => $gateway->gateway,
-    //             'country'             => $gateway->country,
-    //             'currency'            => $gateway->currency,
-    //             'charges_type'        => 'combined',
-    //             'fixed_charge'        => $fixed_charge,
-    //             'float_charge'        => $float_charge,
-    //             'exchange_rate_float' => $gateway->exchange_rate_float ?? 0,
-    //             'minimum_charge'      => $gateway->minimum_charge ?? 0,
-    //             'maximum_charge'      => $gateway->maximum_charge ?? 0,
-    //         ];
+            // Prepare gateway config for calculator
+            $gatewayConfig = [
+                'method_name'         => $gateway->method_name,
+                'gateway'             => $gateway->gateway,
+                'country'             => $gateway->country,
+                'currency'            => $gateway->currency,
+                'charges_type'        => 'combined',
+                'fixed_charge'        => $fixed_charge,
+                'float_charge'        => $float_charge,
+                'exchange_rate_float' => $gateway->exchange_rate_float ?? 0,
+                'minimum_charge'      => $gateway->minimum_charge ?? 0,
+                'maximum_charge'      => $gateway->maximum_charge ?? 0,
+            ];
 
-    //         if(env('IS_DEMO') === true) {
-    //             $demo = new DemoModel();
-    //             $demoResponse = $demo->response(request());
-    //             // dispatch(new DemoDepositWebhookJob($deposit));
-    //             return get_success_response($demoResponse);
-    //         }                
+            if(env('IS_DEMO') === true) {
+                $demo = new DemoModel();
+                $demoResponse = $demo->response(request());
+                // dispatch(new DemoDepositWebhookJob($deposit));
+                return get_success_response($demoResponse);
+            }                
 
-    //         $calculator = new DepositCalculator($gatewayConfig);
-    //         $calc = $calculator->calculate($request->amount);
+            $calculator = new DepositCalculator($gatewayConfig);
+            $calc = $calculator->calculate($request->amount);
 
-    //         // Save deposit
-    //         $deposit = new Deposit();
-    //         $deposit->currency = $gateway->currency;
-    //         $deposit->deposit_currency = $deposit_currency;
-    //         $deposit->user_id = active_user();
-    //         $deposit->amount = $request->amount;
-    //         $deposit->gateway = $request->gateway;
-    //         $deposit->receive_amount = floor($calc['credited_amount']);
-    //         $deposit->customer_id = $request->customer_id ?? null;
+            // Save deposit
+            $deposit = new Deposit();
+            $deposit->currency = $gateway->currency;
+            $deposit->deposit_currency = $deposit_currency;
+            $deposit->user_id = active_user();
+            $deposit->amount = $request->amount;
+            $deposit->gateway = $request->gateway;
+            $deposit->receive_amount = floor($calc['credited_amount']);
+            $deposit->customer_id = $request->customer_id ?? null;
 
-    //         $totalAmount = $calc['credited_amount'] + $calc['total_fees'];
+            $totalAmount = $calc['credited_amount'] + $calc['total_fees'];
 
-    //         if ($deposit->save()) {
-    //             $arr['payment_info'] = [
-    //                 "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway->currency),
-    //                 "receive_amount" => floor($calc['credited_amount']) . " " . strtoupper($deposit_currency),
-    //                 "exchange_rate" => "1 " . strtoupper($deposit_currency) . " = " . round($calc['exchange_rate'], 8) . " " . strtoupper($gateway->currency),
-    //                 "transaction_fee" => round($calc['total_fees'], 4) . " " . strtoupper($gateway->currency),
-    //                 "payment_method" => $gateway->method_name,
-    //                 "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
-    //                 "total_amount_due" => round($totalAmount, 4) . " " . strtoupper($gateway->currency),
-    //                 'calc' => $calc
-    //             ];
-    //             $process = $this->process_store($request->gateway, $gateway->currency, $totalAmount, $deposit->toArray());
+            if ($deposit->save()) {
+                $arr['payment_info'] = [
+                    "send_amount" => round($request->amount, 4) . " " . strtoupper($gateway->currency),
+                    "receive_amount" => floor($calc['credited_amount']) . " " . strtoupper($deposit_currency),
+                    "exchange_rate" => "1 " . strtoupper($deposit_currency) . " = " . round($calc['exchange_rate'], 8) . " " . strtoupper($gateway->currency),
+                    "transaction_fee" => round($calc['total_fees'], 4) . " " . strtoupper($gateway->currency),
+                    "payment_method" => $gateway->method_name,
+                    "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
+                    "total_amount_due" => round($totalAmount, 4) . " " . strtoupper($gateway->currency),
+                    'calc' => $calc
+                ];
+                $process = $this->process_store($request->gateway, $gateway->currency, $totalAmount, $deposit->toArray());
 
-    //             if (isset($process['error'])) {
-    //                 return get_error_response($process);
-    //             }
+                if (isset($process['error'])) {
+                    return get_error_response($process);
+                }
 
-    //             return get_success_response(array_merge($process, $arr));
-    //         }
+                return get_success_response(array_merge($process, $arr));
+            }
 
-    //         return get_error_response(['error' => "Unable to process deposit"]);
+            return get_error_response(['error' => "Unable to process deposit"]);
 
-    //     } catch (\Throwable $th) {
-    //         return get_error_response(['error' => $th->getMessage()]);
-    //     }
-    // }
+        } catch (\Throwable $th) {
+            return get_error_response(['error' => $th->getMessage()]);
+        }
+    }
 
     
     /**
@@ -342,178 +342,6 @@ class DepositController extends Controller
             return ['error' => $th->getMessage()];
         }
     }
-
-
-    public function store(Request $request)
-    {
-        try {
-            $validate = Validator::make($request->all(), [
-                'gateway' => 'required',
-                'amount' => 'required|numeric|min:0',
-                'currency' => 'required', // wallet/credit currency
-            ]);
-
-            if ($validate->fails()) {
-                return get_error_response($validate->errors()->toArray());
-            }
-
-            $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
-
-            $user = $request->user();
-            $walletCurrency = strtoupper($request->currency); // user credit wallet currency
-            $paymentCurrency = strtoupper($gateway->currency); // gateway payment currency
-
-            if (!$user->hasWallet($walletCurrency)) {
-                return get_error_response(['error' => "Invalid credit wallet selected"], 400);
-            }
-
-            // Validate allowed debit/payment currencies (gateway base currencies)
-            $allowedCurrencies = array_map('strtoupper', explode(',', $gateway->base_currency));
-            if (!in_array($walletCurrency, $allowedCurrencies)) {
-                return get_error_response([
-                    'error' => "Supported deposit wallets are: " . implode(', ', $allowedCurrencies)
-                ], 400);
-            }
-
-            // Validate deposit amount against gateway min/max limits (in wallet currency)
-            if ($gateway->minimum_deposit && $request->amount < $gateway->minimum_deposit) {
-                return get_error_response([
-                    'error' => "Minimum deposit amount is {$gateway->minimum_deposit} {$walletCurrency}"
-                ], 400);
-            }
-
-            if ($gateway->maximum_deposit && $request->amount > $gateway->maximum_deposit) {
-                return get_error_response([
-                    'error' => "Maximum deposit amount is {$gateway->maximum_deposit} {$walletCurrency}"
-                ], 400);
-            }
-
-            if ($gateway->gateway == "bitso") {
-                $validate = Validator::make($request->all(), [
-                    'cellphone' => 'required',
-                    'documentType' => 'required',
-                    'documentNumber' => 'required',
-                ]);
-
-                if ($validate->fails()) {
-                    return get_error_response($validate->errors()->toArray());
-                }
-            }
-
-            // Get user plan and charges
-            $user_plan = 1;
-            if (!$user->hasActiveSubscription()) {
-                $plan = PlanModel::where('price', 0)->latest()->first();
-                if ($plan) {
-                    $user->subscribeTo($plan, 30, true);
-                }
-            }
-
-            $subscription = $user->activeSubscription();
-            if ($subscription) {
-                $user_plan = (int) $subscription->plan_id;
-            }
-
-            $fixed_charge = $float_charge = 0;
-
-            if ($user_plan === 3) {
-                $customPricing = CustomPricing::where('user_id', $user->id)
-                    ->where([
-                        'gateway_id' => $gateway->id,
-                        'gateway_type' => 'payin',
-                    ])->first();
-
-                if ($customPricing) {
-                    $fixed_charge = $customPricing->fixed_charge;
-                    $float_charge = $customPricing->float_charge;
-                } else {
-                    $user_plan = 2;
-                }
-            }
-
-            if ($user_plan === 1) {
-                $fixed_charge = $gateway->fixed_charge;
-                $float_charge = $gateway->float_charge;
-            } elseif ($user_plan === 2) {
-                $fixed_charge = $gateway->pro_fixed_charge;
-                $float_charge = $gateway->pro_float_charge;
-            }
-
-            // Prepare gateway config for calculator
-            $gatewayConfig = [
-                'method_name'         => $gateway->method_name,
-                'gateway'             => $gateway->gateway,
-                'country'             => $gateway->country,
-                'currency'            => $paymentCurrency,  // payment currency (gateway currency)
-                'charges_type'        => 'combined',
-                'fixed_charge'        => $fixed_charge,
-                'float_charge'        => $float_charge,
-                'exchange_rate_float' => $gateway->exchange_rate_float ?? 0,
-                'minimum_charge'      => $gateway->minimum_charge ?? null,
-                'maximum_charge'      => $gateway->maximum_charge ?? null,
-            ];
-
-            if (env('IS_DEMO') === true) {
-                $demo = new DemoModel();
-                $demoResponse = $demo->response(request());
-                // dispatch(new DemoDepositWebhookJob($deposit));
-                return get_success_response($demoResponse);
-            }
-
-            $calculator = new DepositCalculator($gatewayConfig);
-
-            // Calculate fees and amounts: amount is in wallet currency (user’s credit currency)
-            $calc = $calculator->calculate($request->amount);
-
-            // Save deposit
-            $deposit = new Deposit();
-            $deposit->currency = $walletCurrency;             // wallet currency user credits
-            $deposit->deposit_currency = $paymentCurrency;    // payment currency user pays
-            $deposit->user_id = active_user();
-            $deposit->amount = $request->amount;               // amount in wallet currency (user deposits)
-            $deposit->gateway = $request->gateway;
-
-            // credited amount returned by calculator is in payment currency, convert to wallet currency:
-            // Actually, our DepositCalculator returns credited_amount in payment currency, 
-            // so convert to wallet currency here with inverse exchange rate:
-            $exchangeRate = $calc['exchange_rate'];  // paymentCurrency to walletCurrency rate
-            $creditedAmountWallet = $calc['credited_amount'] / $exchangeRate;
-
-            $deposit->receive_amount = floor($creditedAmountWallet);
-            $deposit->customer_id = $request->customer_id ?? null;
-
-            // total fees are in payment currency, convert to wallet currency for total amount due
-            $totalFeesWallet = $calc['total_fees'] / $exchangeRate;
-            $totalAmount = $deposit->receive_amount + floor($totalFeesWallet);
-
-            if ($deposit->save()) {
-                $arr['payment_info'] = [
-                    "send_amount" => round($request->amount, 4) . " " . $walletCurrency,
-                    "receive_amount" => floor($creditedAmountWallet) . " " . $walletCurrency,
-                    "exchange_rate" => "1 {$paymentCurrency} = " . round($exchangeRate, 8) . " {$walletCurrency}",
-                    "transaction_fee" => round($totalFeesWallet, 4) . " " . $walletCurrency,
-                    "payment_method" => $gateway->method_name,
-                    "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
-                    "total_amount_due" => round($totalAmount, 4) . " " . $walletCurrency,
-                    'calc' => $calc
-                ];
-                $process = $this->process_store($request->gateway, $walletCurrency, $totalAmount, $deposit->toArray());
-
-                if (isset($process['error'])) {
-                    return get_error_response($process);
-                }
-
-                return get_success_response(array_merge($process, $arr));
-            }
-
-            return get_error_response(['error' => "Unable to process deposit"]);
-
-        } catch (\Throwable $th) {
-            return get_error_response(['error' => $th->getMessage()]);
-        }
-    }
-
-
 
 
     /**
