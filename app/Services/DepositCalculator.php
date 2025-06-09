@@ -27,7 +27,7 @@ class DepositCalculator
             'tsyms' => $currency
         ]);
 
-        Log::info("Exchange rate response", [$response]);
+        \Log::info("Exchange rate response", [$response]);
 
         if (!$response->ok() || !isset($response[$currency])) {
             throw new \Exception("Unable to retrieve exchange rate.");
