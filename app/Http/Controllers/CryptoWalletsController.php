@@ -209,7 +209,7 @@ class CryptoWalletsController extends Controller
             $amount = (float) bcdiv($amountRaw, pow(10, $data['tokenInfo']['decimals'] ?? 6), 6); // Normalize token decimals
             $fee = 0; // No fee provided in new payload
             $tokenType = $request->input('token_type', 'USDC_SOL');
-            $status = $data['transaction_status'] ?? 'pending';
+            $status = $data['transaction_status'] ?? 'processing';
 
             if (!$transactionId || !$toAddress) {
                 return response()->json(['error' => 'Invalid data received'], 422);
