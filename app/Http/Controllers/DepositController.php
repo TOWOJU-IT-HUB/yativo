@@ -118,6 +118,15 @@ class DepositController extends Controller
 
             $gateway = PayinMethods::whereId($request->gateway)->firstOrFail();
 
+            // Validate allowed debit currencies
+            $allowedCurrencies = explode(',', $gateway->base_currency);
+            if (!in_array($request->currency, $allowedCurrencies)) {
+                return get_error_response([
+                    'error' => "Supported deposit wallets are: " . implode(', ', $allowedCurrencies)
+                ], 400);
+            }
+
+
             if($gateway->gateway == "bitso") {
                 $validate = Validator::make($request->all(), [
                     'cellphone' => 'required',
