@@ -6,6 +6,7 @@ use App\Services\STPSign;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
 
 class PaymentController extends Controller
 {
@@ -49,21 +50,20 @@ class PaymentController extends Controller
         $requestData = array_merge($data, ['firma' => $signature]);
 
         $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
-        $client = new Client();
 
         try {
-            $response = $client->put($url, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Encoding'     => 'UTF-8',
-                ],
-                'json' => $requestData,
-            ]);
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Encoding'     => 'UTF-8',
+            ])->put($url, $requestData);
 
-            $body = (string) $response->getBody(); // convert stream to string
-            $status = $response->getStatusCode();
+            // Get response JSON as array (Laravel parses JSON automatically)
+            $responseData = $response->json();
 
-            return get_success_response($body, $status);
+            // Get HTTP status code
+            $status = $response->status();
+
+            return get_success_response($responseData, $status);
         } catch (\Exception $e) {
             return get_error_response([
                 'error' => $e->getMessage(),
@@ -115,20 +115,20 @@ class PaymentController extends Controller
         $requestData = array_merge($data, ['firma' => $signature]);
 
         $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
-        $client = new Client();
+
         try {
-            $response = $client->put($url, [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    'Encoding'     => 'UTF-8',
-                ],
-                'json' => $requestData,
-            ]);
+            $response = Http::withHeaders([
+                'Content-Type' => 'application/json',
+                'Encoding'     => 'UTF-8',
+            ])->put($url, $requestData);
 
-            $body = (string) $response->getBody(); // convert stream to string
-            $status = $response->getStatusCode();
+            // Get response JSON as array (Laravel parses JSON automatically)
+            $responseData = $response->json();
 
-            return get_success_response($body, $status);
+            // Get HTTP status code
+            $status = $response->status();
+
+            return get_success_response($responseData, $status);
         } catch (\Exception $e) {
             return get_error_response([
                 'error' => $e->getMessage(),
