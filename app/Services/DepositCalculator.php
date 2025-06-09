@@ -19,13 +19,15 @@ class DepositCalculator
      */
     public function getAdjustedExchangeRate($fromCurrency, $toCurrency): float
     {
-        $currency = $this->gateway['currency'];
+        $currency = $toCurrency ?? $this->gateway['currency'];
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
         $response = Http::get('https://min-api.cryptocompare.com/data/price', [
             'fsym' => $fromCurrency ?? 'USD',
-            'tsyms' => $toCurrency ?? $currency
+            'tsyms' => $currency
         ]);
+
+        Log::info("Exchange rate response", [$response]);
 
         if (!$response->ok() || !isset($response[$currency])) {
             throw new \Exception("Unable to retrieve exchange rate.");
