@@ -2,104 +2,135 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\STPSign;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use GuzzleHttp\Client;
 
 class PaymentController extends Controller
 {
+    private $isDemo;
+
+    public function __construct()
+    {
+        $this->isDemo = env('IS_STP_DEMO', true);
+    }
+
     public function registerPayment(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'claveRastreo' => 'required|string|max:30',
-            'conceptoPago' => 'required|string|max:40',
-            'cuentaOrdenante' => 'required|string|max:20',
-            'cuentaBeneficiario' => 'required|string|max:20',
-            'empresa' => 'required|string|max:15',
-            'institucionContraparte' => 'required|string|max:5',
-            'institucionOperante' => 'required|string|max:5',
-            'monto' => 'required|numeric|max:999999999999.99',
-            'nombreBeneficiario' => 'required|string|max:40',
-            'nombreOrdenante' => 'required|string|max:40',
-            'referenciaNumerica' => 'required|string|max:7',
-            'rfcCurpBeneficiario' => 'required|string|max:18',
-            'rfcCurpOrdenante' => 'required|string|max:18',
-            'tipoCuentaBeneficiario' => 'required|string|max:2',
-            'tipoCuentaOrdenante' => 'required|string|max:2',
-            'tipoPago' => 'required|string|max:2',
-            'latitud' => 'required|string|max:30',
-            'longitud' => 'required|string|max:30',
-        ]);
+        $data = [
+            "claveRastreo"           => "Pruebayativo" . mt_rand(0, 9999),
+            "conceptoPago"           => "Prueba REST",
+            "cuentaOrdenante"        => "646180610900000007",
+            "cuentaBeneficiario"     => "646180209100000001",
+            "empresa"                => "YATIVO",
+            "institucionContraparte" => "90646",
+            "institucionOperante"    => "90646",
+            "monto"                  => "0.01",
+            "nombreBeneficiario"     => "S.A. de C.V.",
+            "nombreOrdenante"        => "S.A. de C.V.",
+            "referenciaNumerica"     => "123456",
+            "rfcCurpBeneficiario"    => "ND",
+            "rfcCurpOrdenante"       => "ND",
+            "tipoCuentaBeneficiario" => "40",
+            "tipoCuentaOrdenante"    => "40",
+            "tipoPago"               => "1",
+            "latitud"                => "19.370312",
+            "longitud"               => "-99.180617",
+        ];
+
+        $privateKeyPath = storage_path('app/keys/stp_demo.pem'); 
+        $passphrase = '12345678';
+
+        $stp = new STPSign($data, $privateKeyPath, $passphrase);
+
+        $originalString = $stp->getCadenaOriginal();
+        $signature = $stp->getSign();
+        $requestData = array_merge($data, ['firma' => $signature]);
+
+        $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
+        $client = new Client();
+
+        try {
+            $response = $client->put($url, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Encoding'     => 'UTF-8',
+                ],
+                'json' => $requestData,
+            ]);
+
+            return response()->json([
+                'response'  => (string) $response->getBody(),
+                'signature' => $signature,
+                'string'    => $originalString,
+                'data'      => $requestData,
+            ], $response->getStatusCode());
+        } catch (\Exception $e) {
+            return response()->json([
+                'error'   => 'HTTP Request Failed',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function payout(Request $request)
+    {
+        $rules = [
+            'cuentaOrdenante'        => 'required',
+            'nombreOrdenante'        => 'required',
+            'rfcCurpOrdenante'       => 'required',
+            'tipoCuentaOrdenante'    => 'required',
+            'cuentaBeneficiario'     => 'required',
+            'nombreBeneficiario'     => 'required',
+            'rfcCurpBeneficiario'    => 'required',
+            'tipoCuentaBeneficiario' => 'required',
+            'institucionContraparte' => 'required',
+            'empresa'                => 'required',
+            'claveRastreo'           => 'required',
+            'institucionOperante'    => 'required',
+            'monto'                  => 'required|numeric|min:0.01',
+            'tipoPago'               => 'required',
+            'conceptoPago'           => 'required',
+            'referenciaNumerica'     => 'required',
+            'latitud'                => 'nullable|numeric',
+            'longitud'               => 'nullable|numeric',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
 
-        // Generate the signature
-        if(env('IS_DEMO_STP') || env('IS_DEMO')) {
-            $privateKeyPath = storage_path('app/keys/stp_demo.pem');
-            $passphrase = '12345678';
-            $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
-        } else {
-            $privateKeyPath = storage_path('app/yativo.pem');
-            $passphrase = '1234567890';
-            $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
-        }
-        $signature = $this->generateSignature($data, $privateKeyPath, $passphrase);
+        $privateKeyPath = storage_path('app/keys/yativo.pem');
+        $passphrase = '1234567890';
 
-        // Prepare final request payload
+        $stp = new STPSign($data, $privateKeyPath, $passphrase);
+
+        $originalString = $stp->getCadenaOriginal();
+        $signature = $stp->getSign();
         $requestData = array_merge($data, ['firma' => $signature]);
 
-        // Make API call
+        $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
         $client = new Client();
-        $response = $client->put($url, [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'Encoding' => 'UTF-8',
-            ],
-            'json' => $requestData,
-        ]);
 
-        return response()->json(json_decode($response->getBody(), true), $response->getStatusCode());
-    }
+        try {
+            $response = $client->put($url, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Encoding'     => 'UTF-8',
+                ],
+                'json' => $requestData,
+            ]);
 
-    private function generateSignature(array $data, string $privateKeyPath, string $passphrase): string
-    {
-        $privateKey = openssl_pkey_get_private(file_get_contents($privateKeyPath), $passphrase);
-
-        if (!$privateKey) {
-            throw new \Exception('Failed to load private key');
+            return get_success_response((array) $response->getBody(), $response->getStatusCode());
+        } catch (\Exception $e) {
+            return get_error_response(['error' => $e->getMessage()], 500);
         }
-
-        $originalString = '||' .
-            $data['institucionContraparte'] . '|' .
-            $data['empresa'] . '|||' .
-            $data['claveRastreo'] . '|' .
-            $data['institucionOperante'] . '|' .
-            number_format($data['monto'], 2, '.', '') . '|' .
-            $data['tipoPago'] . '|' .
-            $data['tipoCuentaOrdenante'] . '|' .
-            $data['nombreOrdenante'] . '|' .
-            $data['cuentaOrdenante'] . '|' .
-            $data['rfcCurpOrdenante'] . '|' .
-            $data['tipoCuentaBeneficiario'] . '|' .
-            $data['nombreBeneficiario'] . '|' .
-            $data['cuentaBeneficiario'] . '|' .
-            $data['rfcCurpBeneficiario'] . '||||||' .
-            $data['conceptoPago'] . '||||||' .
-            $data['referenciaNumerica'] . '||||||||||';
-
-        $binarySignature = '';
-        $success = openssl_sign($originalString, $binarySignature, $privateKey, OPENSSL_ALGO_SHA256);
-        openssl_free_key($privateKey);
-
-        if (!$success) {
-            throw new \Exception('Failed to generate digital signature');
-        }
-
-        return base64_encode($binarySignature);
     }
-
 }
