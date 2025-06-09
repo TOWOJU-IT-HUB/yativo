@@ -60,21 +60,15 @@ class PaymentController extends Controller
                 'json' => $requestData,
             ]);
 
-            return response()->json([
-                'response'  => (string) $response->getBody(),
-                'signature' => $signature,
-                'string'    => $originalString,
-                'data'      => $requestData,
-            ], $response->getStatusCode());
+            return response()->json($response->getBody(), $response->getStatusCode());
         } catch (\Exception $e) {
             return response()->json([
-                'error'   => 'HTTP Request Failed',
-                'message' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function payout(Request $request)
+    public function payout($data)
     {
         $rules = [
             'cuentaOrdenante'        => 'required',
@@ -97,12 +91,12 @@ class PaymentController extends Controller
             'longitud'               => 'nullable|numeric',
         ];
 
-        $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($data, $rules);
 
         if ($validator->fails()) {
-            return response()->json([
+            return [
                 'errors' => $validator->errors()
-            ], 422);
+            ];
         }
 
         $data = $validator->validated();

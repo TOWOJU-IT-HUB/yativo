@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Http\Controllers\BridgeController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TransFiController;
 use App\Models\Bridge;
 use App\Models\Country;
@@ -286,6 +287,49 @@ class PayoutService
             ]);
             $brla = new BrlaDigitalService();
             $process = $brla->createPayOutOrder($payload);
+            return $process;
+        } catch (\Throwable $th) {
+            Log::error('VitaWallet payout error: ' . $th->getMessage());
+            return ['error' => $th->getMessage()];
+        }
+    }
+
+    public function stp($quoteId, $currency, $payoutObject)
+    {
+        $request = request();
+        try {
+            $amount = $payoutObject->customer_receive_amount;
+            $beneficiaryId = $request->payment_method_id;
+            $model = new PaymentController();
+            $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+
+            if (!$beneficiary) {
+                return ['error' => 'Beneficiary not found'];
+            }
+            $gateway = payoutMethods::whereId($beneficiary->gateway_id)->first();
+            if (!$gateway) {
+                return ['error' => 'Gateway not found'];
+            }
+
+            $country = Country::where('currency_code', $gateway->currency)->where('iso3', $gateway->country)->first();
+            if (!$country) {
+                return ['error' => 'Currency not supported'];
+            }
+
+            $formArray = (array) $beneficiary->payment_data;
+
+            $payload = array_filter([
+                'pixKey' => $formArray['pixKey'] ?? null,
+                'taxId' => $formArray['taxId'] ?? null,
+                'amount' => $amount,
+                'externalId' => $quoteId,
+                'name' => $formArray['name'] ?? null,
+                'ispb' => $formArray['ispb'] ?? null,
+                'branchCode' => $formArray['branchCode'] ?? null,
+                'accountNumber' => $formArray['accountNumber'] ?? null,
+            ]);
+            $brla = new PaymentController();
+            $process = $brla->payout($payload);
             return $process;
         } catch (\Throwable $th) {
             Log::error('VitaWallet payout error: ' . $th->getMessage());
