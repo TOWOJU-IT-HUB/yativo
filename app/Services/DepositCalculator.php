@@ -19,7 +19,8 @@ class DepositCalculator
      */
     public function getAdjustedExchangeRate($fromCurrency, $toCurrency): float
     {
-        $currency = $toCurrency ?? $this->gateway['currency'];
+        Log::info("from currency is: {$fromCurrency} and to currency is {$toCurrency}");
+        $currency = $this->gateway['currency'];
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
         $response = Http::get('https://min-api.cryptocompare.com/data/price', [
