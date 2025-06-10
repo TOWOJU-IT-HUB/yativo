@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PayinMethods;
 use Illuminate\Support\Facades\Http;
+use Log;
 
 class DepositCalculator
 {
