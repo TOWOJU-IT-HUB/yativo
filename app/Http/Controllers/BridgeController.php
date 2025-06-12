@@ -856,8 +856,8 @@ class BridgeController extends Controller
             [
                 'user_id' => $user->id,
                 'amount' => $deposit_amount,
-                'currency' => "usd", //strtoupper($payload['currency']),
-                'deposit_currency' => "USD", //strtoupper($payload['currency']),
+                'currency' => strtoupper($payload['currency']),
+                'deposit_currency' => strtoupper($payload['currency']),
                 'gateway' => 99999999,
                 'status' => $vc_status,
                 'receive_amount' => floatval($deposit_amount),
