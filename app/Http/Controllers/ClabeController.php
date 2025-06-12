@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ClabeService;
+use Log;
 
 class ClabeController extends Controller
 {
@@ -60,6 +61,9 @@ class ClabeController extends Controller
 
     private function isSuspicious($data)
     {
+        if(!isset($data) || !isset($data['type']) || $data['type'] !== "SPEI") {
+            return true;
+        }
         return $data['amount'] <= 0 || !in_array($data['type'], ['SPEI']);
     }
 
