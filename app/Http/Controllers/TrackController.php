@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Track;
+use App\Models\TransactionRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -32,13 +33,19 @@ class TrackController extends Controller
             return get_error_response($validator->errors()->toArray(), 411, "Validation error");
         }
 
+        // if($request->txn_type == "deposit") {
+        //     $txn_type = "deposit";
+        // } else if($request->txn_type == "deposit") {
+        //     $txn_type = "";
+        // }
+
         $where = [
             "quote_id" => $request->txn_id,
             "transaction_type" => $request->txn_type
         ];
 
         try {
-            $datas = Track::where($where)->latest()->first();
+            $datas = TransactionRecord::where($where)->latest()->first();
 
             if (!$datas) {
                 return get_error_response(['error' => "Transaction not found!"], 404, "Transaction not found!");

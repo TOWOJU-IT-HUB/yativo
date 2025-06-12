@@ -425,7 +425,7 @@ class BridgeController extends Controller
         $payload = [
             "developer_fee_percent" => "0",
             "source" => [
-                "currency" => $currency
+                "currency" => strtolower($currency)
             ],
             "destination" => [
                 "currency" => "usdc",
