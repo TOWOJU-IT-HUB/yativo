@@ -61,11 +61,12 @@ class ClabeController extends Controller
 
     private function isSuspicious($data)
     {
-        if(!isset($data)) {
-            return true;
-        }
+        return false;
+        // if(!isset($data)) {
+        //     return true;
+        // }
         
-        return $data['monto'] <= 0;
+        // return $data['monto'] <= 0;
     }
 
 
