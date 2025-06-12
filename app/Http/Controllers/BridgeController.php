@@ -447,28 +447,76 @@ class BridgeController extends Controller
         if (isset($data['error']) || (isset($data['status']) && $data['status'] < 200)) {
             return ["error" => $data['error'] ?? $data];
         }
+        
+        $deposit = $data['source_deposit_instructions'] ?? [];
 
-        if (isset($data['source_deposit_instructions']['bank_account_number'])) {
+        if ($request_currency === 'usd' && isset($deposit['bank_account_number'])) {
+            // Handle USD
             return VirtualAccount::create([
                 "account_id" => $data['id'],
                 "user_id" => active_user(),
                 "currency" => $request_currency,
                 "request_object" => $request->all(),
                 "customer_id" => $this->customer->customer_id ?? null,
-                "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
+                "account_number" => $deposit['bank_account_number'],
                 "account_info" => [
                     "country" => $request->country,
                     "currency" => $request_currency,
                     "account_type" => "checking",
                     "bank_address" => "1801 Main Street, Kansas City, MO 64108",
-                    "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
-                    "bank_name" => $data['source_deposit_instructions']['bank_name'] ?? null,
-                    "routing_number" => $data['source_deposit_instructions']['bank_routing_number'] ?? null,
+                    "account_number" => $deposit['bank_account_number'],
+                    "bank_name" => $deposit['bank_name'] ?? null,
+                    "routing_number" => $deposit['bank_routing_number'] ?? null,
                     "account_name" => $customer->customer_name,
                 ],
                 "extra_data" => $data
             ]);
+
+        } elseif ($request_currency === 'mxn' && isset($deposit['clabe'])) {
+            // Handle MXN
+            return VirtualAccount::create([
+                "account_id" => $data['id'],
+                "user_id" => active_user(),
+                "currency" => $request_currency,
+                "request_object" => $request->all(),
+                "customer_id" => $this->customer->customer_id ?? null,
+                "account_number" => $deposit['clabe'],
+                "account_info" => [
+                    "country" => $request->country,
+                    "currency" => $request_currency,
+                    "account_type" => "clabe",
+                    "bank_address" => null,
+                    "account_number" => $deposit['clabe'],
+                    "bank_name" => null,
+                    "routing_number" => null,
+                    "account_name" => $deposit['account_holder_name'] ?? null,
+                ],
+                "extra_data" => $data
+            ]);
+
+        } elseif ($request_currency === 'eur' && isset($deposit['iban'])) {
+            // Handle EUR
+            return VirtualAccount::create([
+                "account_id" => $data['id'],
+                "user_id" => active_user(),
+                "currency" => $request_currency,
+                "request_object" => $request->all(),
+                "customer_id" => $this->customer->customer_id ?? null,
+                "account_number" => $deposit['iban'],
+                "account_info" => [
+                    "country" => $request->country,
+                    "currency" => $request_currency,
+                    "account_type" => "iban",
+                    "bank_address" => $deposit['bank_address'] ?? null,
+                    "account_number" => $deposit['iban'],
+                    "bank_name" => $deposit['bank_name'] ?? null,
+                    "routing_number" => $deposit['bic'] ?? null,
+                    "account_name" => $deposit['account_holder_name'] ?? null,
+                ],
+                "extra_data" => $data
+            ]);
         }
+
     }
 
     public function getVirtualAccount($virtual_account_id)
