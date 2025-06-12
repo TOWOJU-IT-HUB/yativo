@@ -64,7 +64,7 @@ class ClabeController extends Controller
         if(!isset($data) || !isset($data['type']) || $data['type'] !== "SPEI") {
             return true;
         }
-        return $data['amount'] <= 0 || !in_array($data['type'], ['SPEI']);
+        return $data['monto'] <= 0 || !in_array($data['type'], ['SPEI']);
     }
 
 
