@@ -61,7 +61,7 @@ class ClabeController extends Controller
 
     private function isSuspicious($data)
     {
-        if(!isset($data) || $data["empresa"] !== "YATIVO") {
+        if(!isset($data)) {
             return true;
         }
         
