@@ -101,8 +101,8 @@ class CryptoYativoController extends Controller
             }
 
             $payload = [
-                "ticker_name" => $request->currency, 
-                "asset_name" => $request->currency, // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
+                "ticker_name" => $request->currency ?? "USDC_SOL", 
+                "asset_name" => $request->currency ?? "USDC_SOL", // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
                 "customer_id" => $customer->yativo_customer_id,
             ];
 
