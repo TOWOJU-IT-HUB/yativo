@@ -736,7 +736,11 @@ class BridgeController extends Controller
     }
 
     public function BridgeWebhook(Request $request)
-    {        
+    {  
+        // Validate signature first
+        if (!$this->processEvent($request)) {
+            return response()->json(['message' => 'Invalid webhook signature.'], 403);
+        }      
         $payload = $request->all();
         Log::info("Incoming data: ", ['bridge_webhook' => $payload]);
         if(isset($payload['data'])) {
@@ -755,6 +759,13 @@ class BridgeController extends Controller
     private function _processWebhook($event){
         $eventType = $event['event_type'];
         $eventData = $event['event_object'];
+
+        // if event created_at date is greater than today then ignore the event
+        if(!$this->processEvent(request())) {
+            return response()->json(["message" => "received and processed"]);
+        }
+        // calculate and check event signature
+        $privateKeyPath = storage_path("app/keys/bridge.pem");
 
         switch ($eventType) {
             case 'virtual_account.activity.updated':

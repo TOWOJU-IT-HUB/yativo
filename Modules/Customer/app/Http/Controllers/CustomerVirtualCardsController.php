@@ -215,7 +215,7 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // debit user for card creation
-            debit_user_wallet(3, "USD", "Virtual Card Creation");
+            debit_user_wallet(3 * 100, "USD", "Virtual Card Creation");
 
             // Ensure the customer_email field is available and correctly fetched
             if (!$cust->customer_email) {
@@ -227,10 +227,11 @@ class CustomerVirtualCardsController extends Controller
                 'cardBrand' => 'visa',
                 'cardType' => 'virtual',
                 'reference' => generate_uuid(),
-                'amount' => $request->amount,
+                'amount' => $request->amount * 100, // amount should be passed in cents
             ];
 
-            // Check how many cards the customer has; max of 3 is allowed per customer
+            // Check how many cards the customer has; 
+            // max of 3 is allowed per customer
             $cardCount = CustomerVirtualCards::where([
                 'customer_id' => $request->customer_id,
                 'business_id' => get_business_id(auth()->id())
