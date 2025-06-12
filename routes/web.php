@@ -4,6 +4,7 @@ use App\Http\Controllers\BitsoController;
 use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\Business\VirtualAccountsController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ClabeController;
 use App\Http\Controllers\CronController;
 use App\Http\Controllers\CronDepositController;
 use App\Http\Controllers\CryptoWalletsController;
@@ -133,8 +134,8 @@ Route::group([], function () {
     Route::any('callback/webhook/floid', [FlowController::class, 'callback'])->name('floid.callback.success');
     Route::any('callback/webhook/floid-redirect', [FlowController::class, 'callback'])->name('floid.callback.redirect');
 
-    Route::any('callback/webhook/stp-payout', [FlowController::class, 'callback'])->name('floid.callback.success');
-    Route::any('callback/webhook/stp-payin', [FlowController::class, 'callback'])->name('floid.callback.redirect');
+    Route::any('callback/webhook/stp-payout', [ClabeController::class, 'handlePayout'])->name('stp.callback.payout');
+    Route::any('callback/webhook/stp-payin', [ClabeController::class, 'handleDeposit'])->name('stp.callback.deposit');
 
     Route::post("callback/webhook/virtual-account-webhook", [VirtualAccountsController::class, 'virtualAccountWebhook'])->name('business.virtual-account.virtualAccountWebhook');
     Route::any('callback/wallet/webhook/yativo/crypto', [CryptoWalletsController::class, 'walletWebhook'])->name('crypto.wallet.address.callback');
