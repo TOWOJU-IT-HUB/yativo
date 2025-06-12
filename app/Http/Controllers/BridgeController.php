@@ -414,6 +414,14 @@ class BridgeController extends Controller
             return ["error"=> "Unable to generate virtual account"];
         }
 
+        $currency = $request_currency = request()->currency;
+        if(!in_array($currency, ['USD', 'MXN_USD', 'EUR'])) {
+            return['error' => 'Invalid currency provided'];
+        }
+        if ($currency == "MXN_USD") {
+            $currency = "MXN";
+        }
+
         $payload = [
             "developer_fee_percent" => "0",
             "source" => [
@@ -440,25 +448,17 @@ class BridgeController extends Controller
             return ["error" => $data['error'] ?? $data];
         }
 
-        $currency = request()->currency;
-        if(!in_array($currency, ['USD', 'MXN_USD', 'EUR'])) {
-            return['error' => 'Invalid currency provided'];
-        }
-        if ($currency == "MXN_USD") {
-            $currency = "MXN";
-        }
-
         if (isset($data['source_deposit_instructions']['bank_account_number'])) {
             return VirtualAccount::create([
                 "account_id" => $data['id'],
                 "user_id" => active_user(),
-                "currency" => $currency,
+                "currency" => $request_currency,
                 "request_object" => $request->all(),
                 "customer_id" => $this->customer->customer_id ?? null,
                 "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
                 "account_info" => [
                     "country" => $request->country,
-                    "currency" => "USD",
+                    "currency" => $request_currency,
                     "account_type" => "checking",
                     "bank_address" => "1801 Main Street, Kansas City, MO 64108",
                     "account_number" => $data['source_deposit_instructions']['bank_account_number'] ?? null,
