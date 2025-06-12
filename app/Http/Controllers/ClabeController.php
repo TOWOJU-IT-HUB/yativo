@@ -65,7 +65,7 @@ class ClabeController extends Controller
             return true;
         }
         
-        return $data['monto'] <= 0 || !in_array($data['type'], ['SPEI']);
+        return $data['monto'] <= 0;
     }
 
 
