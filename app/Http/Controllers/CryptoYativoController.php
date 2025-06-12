@@ -106,6 +106,8 @@ class CryptoYativoController extends Controller
                 "customer_id" => $customer->yativo_customer_id,
             ];
 
+            Log::debug("my request payload is: ", ['payload' => $payload]);
+
             // if(null === $payload['asset_id']) {
             //     return ['error' => 'Invalid asset provided'];
             // }
