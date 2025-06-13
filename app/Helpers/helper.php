@@ -1482,3 +1482,26 @@ if (!function_exists('calculate_exchange_rate')) {
         return round($final_exchange_rate, 8); // Keep up to 8 decimal places
     }
 }
+
+
+if (!function_exists('get_custom_pricing')) {
+    /**
+     * @param int|string pricingType
+     * @param mixed $default
+     * 
+     * @return Model|bool|string|int
+     */
+    function get_custom_pricing($pricingType, $default) 
+    {
+        $where = [
+            "user_id" => auth()->id(),
+            "gateway_id" => $pricingType
+        ];
+
+        $pricing = CustomPricing::where($where)->first();
+        if($pricing) {
+            return $pricing;
+        }
+        return $default ?? false;
+    }
+}

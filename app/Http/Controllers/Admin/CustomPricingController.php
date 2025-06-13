@@ -25,30 +25,34 @@ class CustomPricingController extends Controller
         $payoutGateways = payoutMethods::all();
         return view('admin.custom-pricing.create', compact('users', 'payinGateways', 'payoutGateways'));
     }
-
+    
     public function store(Request $request)
     {
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'gateway_type' => 'required|in:payin,payout',
-            'gateway_id' => 'required|integer', // Will be dynamically handled based on gateway type
+            'gateway_type' => 'required|in:payin,payout,virtual_card,virtual_account',
+            'gateway_id' => 'required',
             'fixed_charge' => 'required|numeric',
             'float_charge' => 'required|numeric',
         ]);
 
-        // If gateway type is 'payout', ensure gateway_id exists in PayoutMethods
+        // Handle gateway_id validation based on gateway_type
         if ($validated['gateway_type'] === 'payout') {
-            $validated['gateway_id'] = payoutMethods::findOrFail($validated['gateway_id'])->id;
-        } else {
-            // If gateway type is 'payin', ensure gateway_id exists in PayinMethods
+            $validated['gateway_id'] = PayoutMethods::findOrFail($validated['gateway_id'])->id;
+        } elseif ($validated['gateway_type'] === 'payin') {
             $validated['gateway_id'] = PayinMethods::findOrFail($validated['gateway_id'])->id;
+        } elseif (in_array($validated['gateway_type'], ['virtual_card', 'virtual_account'])) {
+            if ($validated['gateway_id'] !== $validated['gateway_type']) {
+                return redirect()->back()->withErrors(['gateway_id' => 'Invalid gateway ID for selected gateway type.']);
+            }
         }
 
-        // Create the custom pricing
+        // Create pricing
         CustomPricing::create($validated);
 
         return redirect()->route('admin.custom-pricing.index')->with('success', 'Custom pricing added successfully.');
     }
+
 
     public function destroy(CustomPricing $customPricing)
     {
