@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\PayinMethods;
 use Illuminate\Support\Facades\Http;
-use Log;
 
 class DepositCalculator
 {
@@ -16,26 +15,23 @@ class DepositCalculator
     }
 
     /**
-     * Get adjusted exchange rate with markup
+     * Get adjusted USD to quote currency rate with markup
      */
-    public function getAdjustedExchangeRate($fromCurrency, $toCurrency): float
+    public function getAdjustedExchangeRate(): float
     {
+        $currency = $this->gateway['currency'];
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
-        Log::info("From currency is: {$fromCurrency} and to currency is {$toCurrency}");
-
         $response = Http::get('https://min-api.cryptocompare.com/data/price', [
-            'fsym' => $fromCurrency,
-            'tsyms' => $toCurrency
+            'fsym' => 'USD',
+            'tsyms' => $currency
         ]);
 
-        Log::info("Exchange rate response", [$response]);
-
-        if (!$response->ok() || !isset($response[$toCurrency])) {
+        if (!$response->ok() || !isset($response[$currency])) {
             throw new \Exception("Unable to retrieve exchange rate.");
         }
 
-        $rawRate = (float) $response[$toCurrency];
+        $rawRate = (float) $response[$currency];
         $adjustedRate = $rawRate * (1 + ($floatMarkup / 100));
         
         return round($adjustedRate, 4);
@@ -44,47 +40,44 @@ class DepositCalculator
     /**
      * Calculate deposit breakdown
      */
-    public function calculate(float $depositAmount, $requestCurrency): array
+    public function calculate(float $depositAmount): array
     {
-        $gatewayCurrency = $this->gateway['currency'];
-        $fixedChargeUSD = $this->gateway['fixed_charge'] ?? 0;
+        $adjustedRate = $this->getAdjustedExchangeRate();
+
         $floatChargeRate = $this->gateway['float_charge'] ?? 0;
+        $fixedChargeUSD = $this->gateway['fixed_charge'] ?? 0;
 
-        // If the request currency is the same as the gateway currency
-        if ($requestCurrency === $gatewayCurrency) {
-            $exchangeRate = 1;
-            $fixedFeeInQuote = $fixedChargeUSD;
-        } else {
-            // Get the adjusted exchange rate
-            $exchangeRate = $this->getAdjustedExchangeRate($requestCurrency, $gatewayCurrency);
-            $fixedFeeInQuote = $fixedChargeUSD * $exchangeRate;
-        }
-
-        $percentageFee = $depositAmount * ($floatChargeRate / 100);
+        $percentageFee = $depositAmount * floatval($floatChargeRate / 100);
+        $fixedFeeInQuote = $fixedChargeUSD * $adjustedRate;
         $totalFees = $percentageFee + $fixedFeeInQuote;
 
         // Convert min and max charges from USD to quote currency
-        $minChargeInQuote = isset($this->gateway['minimum_charge']) ? $this->gateway['minimum_charge'] * $exchangeRate : null;
-        $maxChargeInQuote = isset($this->gateway['maximum_charge']) ? $this->gateway['maximum_charge'] * $exchangeRate : null;
+        $minChargeInQuote = isset($this->gateway['minimum_charge']) ? $this->gateway['minimum_charge'] * $adjustedRate : null;
+        $maxChargeInQuote = isset($this->gateway['maximum_charge']) ? $this->gateway['maximum_charge'] * $adjustedRate : null;
 
         // Enforce min/max boundaries in quote currency
-        if ($minChargeInQuote !== null && $totalFees < $minChargeInQuote) {
-            $totalFees = $minChargeInQuote;
+        $totalFee = $totalFees;
+        if ($minChargeInQuote !== null && $totalFee < $minChargeInQuote) {
+            $totalFee = $minChargeInQuote;
         }
-        if ($maxChargeInQuote !== null && $totalFees > $maxChargeInQuote) {
-            $totalFees = $maxChargeInQuote;
+        if ($maxChargeInQuote !== null && $totalFee > $maxChargeInQuote) {
+            $totalFee = $maxChargeInQuote;
         }
 
-        $creditedAmount = $depositAmount - $totalFees;
+        $creditedAmount = $depositAmount - $totalFee;
+
+        if(strtolower(request()->currency) !== strtolower($this->gateway['currency'])) {
+            $creditedAmount = $creditedAmount / $adjustedRate;
+        }
 
         return [
             'deposit_amount' => round($depositAmount, 2),
             'fixed_fee' => round($fixedFeeInQuote, 2),
             'float_fee' => round($percentageFee, 2),
-            'exchange_rate' => $exchangeRate,
+            'exchange_rate' => $adjustedRate,
             'percentage_fee' => round($percentageFee, 2),
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
-            'total_fees' => round($totalFees, 2),
+            'total_fees' => round($totalFee, 2),
             'credited_amount' => round($creditedAmount, 2),
         ];
     }

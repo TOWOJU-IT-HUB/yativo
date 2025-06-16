@@ -213,7 +213,7 @@ class DepositController extends Controller
             }                
 
             $calculator = new DepositCalculator($gatewayConfig);
-            $calc = $calculator->calculate($request->amount, $request->currency);
+            $calc = $calculator->calculate($request->amount);
 
             // Save deposit
             $deposit = new Deposit();
