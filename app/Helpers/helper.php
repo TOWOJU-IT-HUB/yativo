@@ -1483,25 +1483,42 @@ if (!function_exists('calculate_exchange_rate')) {
     }
 }
 
-
 if (!function_exists('get_custom_pricing')) {
     /**
-     * @param int|string pricingType
-     * @param mixed $default
+     * Get custom pricing for a user and gateway.
+     *
+     * @param int|string $pricingType - The gateway ID
+     * @param mixed $default - Default value to return if pricing is not found
+     * @param string|null $column - The gateway type (e.g., 'virtual_card', 'virtual_account')
      * 
-     * @return Model|bool|string|int
+     * @return array - ['float_fee' => float, 'fixed_fee' => float]
      */
-    function get_custom_pricing($pricingType, $default) 
+    function get_custom_pricing($pricingType, $default, $column = null) 
     {
         $where = [
             "user_id" => auth()->id(),
             "gateway_id" => $pricingType
         ];
 
-        $pricing = CustomPricing::where($where)->first();
-        if($pricing) {
-            return $pricing;
+        $query = CustomPricing::where($where);
+
+        if (!empty($column)) {
+            $query->where('gateway_type', $column);
         }
-        return $default ?? false;
+
+        $pricing = $query->first();
+
+        if ($pricing) {
+            return [
+                "float_fee" => floatval($pricing->float_charge),
+                "fixed_fee" => floatval($pricing->fixed_charge)
+            ];
+        }
+
+        // Fallback to default float and fixed fees
+        return [
+            "float_fee" => 0,
+            "fixed_fee" => floatval($default)
+        ];
     }
 }

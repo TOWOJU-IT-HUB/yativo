@@ -10,8 +10,18 @@ use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use Illuminate\Http\Request;
 
+
 class CustomPricingController extends Controller
 {
+    public function __construct()
+    {
+        if(!Schema::hasColumn('custom_pricings', 'gateway_type')) {
+            Schema::table('custom_pricings', function(Blueprint $table) {
+                $table->string('gateway_type')->nullable();
+            });
+        }
+    }
+
     public function index()
     {
         $customPricings = CustomPricing::with('user')->paginate(per_page())->withQueryString();
@@ -29,29 +39,43 @@ class CustomPricingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'gateway_type' => 'required|in:payin,payout,virtual_card,virtual_account',
-            'gateway_id' => 'required',
-            'fixed_charge' => 'required|numeric',
-            'float_charge' => 'required|numeric',
+            'user_id' => 'required|exists:users,user_id',
+            'gateway_type' => 'required',
+            'gateway_id' => [
+                'required',
+                function ($attribute, $value, $fail) use ($request) {
+                    $type = $request->gateway_type;
+
+                    if ($type === 'virtual_card') {
+                        $valid = ['card_creation', 'topup', 'charge_back', 'card_termination', 'card_decline'];
+                        if (!in_array($value, $valid)) {
+                            return $fail("The selected $attribute is invalid for virtual card.");
+                        }
+                    } elseif ($type === 'virtual_account') {
+                        $valid = ['mxn_usd', 'usd', 'eur', 'mxn', 'brl'];
+                        if (!in_array($value, $valid)) {
+                            return $fail("The selected $attribute is invalid for virtual account.");
+                        }
+                    } elseif (in_array($type, ['payin', 'payout'])) {
+                        if ($validated['gateway_type'] === 'payout') {
+                            $validated['gateway_id'] = PayoutMethods::findOrFail($validated['gateway_id'])->id;
+                        } elseif ($validated['gateway_type'] === 'payin') {
+                            $validated['gateway_id'] = PayinMethods::findOrFail($validated['gateway_id'])->id;
+                        }
+                    }
+                }
+            ],
+            'fixed_charge' => 'required|numeric|min:0',
+            'float_charge' => 'required|numeric|min:0|max:100',
         ]);
 
-        // Handle gateway_id validation based on gateway_type
-        if ($validated['gateway_type'] === 'payout') {
-            $validated['gateway_id'] = PayoutMethods::findOrFail($validated['gateway_id'])->id;
-        } elseif ($validated['gateway_type'] === 'payin') {
-            $validated['gateway_id'] = PayinMethods::findOrFail($validated['gateway_id'])->id;
-        } elseif (in_array($validated['gateway_type'], ['virtual_card', 'virtual_account'])) {
-            if ($validated['gateway_id'] !== $validated['gateway_type']) {
-                return redirect()->back()->withErrors(['gateway_id' => 'Invalid gateway ID for selected gateway type.']);
-            }
-        }
-
+       
         // Create pricing
         CustomPricing::create($validated);
 
         return redirect()->route('admin.custom-pricing.index')->with('success', 'Custom pricing added successfully.');
     }
+
 
 
     public function destroy(CustomPricing $customPricing)

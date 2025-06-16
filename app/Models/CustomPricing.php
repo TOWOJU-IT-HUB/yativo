@@ -12,6 +12,7 @@ class CustomPricing extends Model
     protected $fillable = [
         'user_id',
         'gateway_id',
+        'gateway_type',
         'fixed_charge',
         'float_charge',
     ];

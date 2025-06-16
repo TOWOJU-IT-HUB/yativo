@@ -215,7 +215,20 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // debit user for card creation
-            debit_user_wallet(3 * 100, "USD", "Virtual Card Creation");
+            // Step 1: Get custom pricing (returns float_fee and fixed_fee)
+            $pricing = get_custom_pricing('card_creation', 3, 'virtual_card');
+
+            // Step 2: Get amount from request
+            $amount = floatval($request->amount);
+
+            // Step 3: Calculate the total fee using float % and fixed fee
+            $floatCharge = $amount * ($pricing['float_fee'] / 100);
+            $fee = $floatCharge + $pricing['fixed_fee'];
+
+            // Step 4: Debit user's wallet (convert to cents)
+            if (!debit_user_wallet(intval($fee * 100), "USD", "Virtual Card Creation")) {
+                return get_error_response(['error' => 'Error while charging for card creation']);
+            }
 
             // Ensure the customer_email field is available and correctly fetched
             if (!$cust->customer_email) {
@@ -415,8 +428,31 @@ class CustomerVirtualCardsController extends Controller
             ];
 
             // Calculate top-up fee
-            $topUpFee = max(1, $request->amount * 0.01); // 1% with a minimum fee of $1
-            debit_user_wallet($topUpFee, "USD", "Top Up Fee");
+            // Calculate top-up fee using custom pricing
+            $getFee = get_custom_pricing('card_creation', 3, 'virtual_card');
+
+            // Ensure $request->amount is a float
+            $amount = floatval($request->amount);
+
+            // Apply float and fixed fees
+            $floatCharge = $amount * ($getFee['float_fee'] / 100); // e.g., 1.5% => 0.015
+            $topUpFee = $floatCharge + $getFee['fixed_fee'];
+
+            // Enforce a minimum fee of $1
+            $topUpFee = max(1, $topUpFee);
+
+            // Debit the user's wallet
+            if (!debit_user_wallet(floatval($topUpFee * 100), "USD", "Virtual Card Creation")) {
+                return get_error_response(['error' => 'Error while charging for card creation']);
+            }
+
+
+            // Proceed with card creation logic...
+            // e.g., call card provider API or create local card record
+
+            return get_success_response(['message' => 'Card created successfully', 'charged_fee' => $topUpFee]);
+
+
 
             // make request to bitnob to topup card
             $bitnob = $this->card->topup($data);
@@ -477,7 +513,24 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // Charge termination fee
-            debit_user_wallet(1, "USD", "Card Termination Fee");
+            // 1️⃣  Look up custom pricing (fallback fixed‑fee = $1 if none found)
+            $pricing = get_custom_pricing('card_termination', 1, 'virtual_card');  
+
+            // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
+            $floatCharge = 0;                            // most cases: 0 %
+            if ($pricing['float_fee'] > 0) {
+                // If you do want a % of something (e.g. remaining balance), set $baseAmount accordingly
+                $baseAmount  = 0;                        // change to your own logic if needed
+                $floatCharge = $baseAmount * ($pricing['float_fee'] / 100);
+            }
+
+            $fee = $floatCharge + $pricing['fixed_fee'];
+
+            // 4️⃣  Debit the user’s wallet (convert dollars ➔ cents)
+            if (!debit_user_wallet(intval($fee * 100), 'USD', 'Card Termination Fee')) {
+                return get_error_response(['error' => 'Error while charging for card termination']);
+            }
+
 
             // Call Bitnob API to terminate the card
             $bitnob = new Bitnob();
@@ -485,8 +538,8 @@ class CustomerVirtualCardsController extends Controller
 
             if (isset($response['status']) && $response['status'] === true) {
                 // Return remaining balance to user's Yativo USD balance
-                $remainingBalance = $card->balance; // Assuming balance is stored in the card model
-                credit_user_wallet($remainingBalance, "USD", "Card Termination Refund");
+                $remainingBalance = $response->balance; // Assuming balance is stored in the card model
+                credit_user_wallet($remainingBalance ?? 0, "USD", "Card Termination Refund");
 
                 // Delete the card from the database
                 $card->delete();
