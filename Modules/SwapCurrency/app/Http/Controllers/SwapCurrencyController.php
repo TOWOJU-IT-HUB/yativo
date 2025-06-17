@@ -94,7 +94,7 @@ class SwapCurrencyController extends Controller
 
         $convertedAmount = $validatedData['amount'] * $exchangeRate;
         $convertedAmount = $convertedAmount * 100;
-        if ($fromWallet->Withdraw($request->amount * 100)) {
+        if ($fromWallet->Withdraw($request->amount)) {
             $process = $toWallet->deposit($convertedAmount, ["message" => "Currency swap from $fromWallet->slug to $toWallet->slug"]);
             if ($process) {
                 $swap_data = [
