@@ -60,6 +60,7 @@ use App\Models\localPaymentTransactions;
 // Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
 Route::any('register-payment', [PaymentController::class, "registerPayment"])->withoutMiddleware(VerifyCsrfToken::class);
+Route::any('stp-payout', [PaymentController::class, "payout"])->withoutMiddleware(VerifyCsrfToken::class);
 
 
 Route::view('onramp', 'welcome');

@@ -20,27 +20,27 @@ class PaymentController extends Controller
     public function registerPayment(Request $request)
     {
         $data = [
-            "claveRastreo"           => "Pruebayativo" . mt_rand(0, 9999),
-            "conceptoPago"           => "Prueba REST",
-            "cuentaOrdenante"        => "646180610900000007",
-            "cuentaBeneficiario"     => "646180209100000001",
-            "empresa"                => "YATIVO",
+            "claveRastreo" => "Pruebayativo" . mt_rand(0, 9999),
+            "conceptoPago" => "Prueba REST",
+            "cuentaOrdenante" => "646180610900000007",
+            "cuentaBeneficiario" => "646180209100000001",
+            "empresa" => "YATIVO",
             "institucionContraparte" => "90646",
-            "institucionOperante"    => "90646",
-            "monto"                  => "0.01",
-            "nombreBeneficiario"     => "S.A. de C.V.",
-            "nombreOrdenante"        => "S.A. de C.V.",
-            "referenciaNumerica"     => "123456",
-            "rfcCurpBeneficiario"    => "ND",
-            "rfcCurpOrdenante"       => "ND",
+            "institucionOperante" => "90646",
+            "monto" => "0.01",
+            "nombreBeneficiario" => "S.A. de C.V.",
+            "nombreOrdenante" => "S.A. de C.V.",
+            "referenciaNumerica" => "123456",
+            "rfcCurpBeneficiario" => "ND",
+            "rfcCurpOrdenante" => "ND",
             "tipoCuentaBeneficiario" => "40",
-            "tipoCuentaOrdenante"    => "40",
-            "tipoPago"               => "1",
-            "latitud"                => "19.370312",
-            "longitud"               => "-99.180617",
+            "tipoCuentaOrdenante" => "40",
+            "tipoPago" => "1",
+            "latitud" => "19.370312",
+            "longitud" => "-99.180617",
         ];
 
-        $privateKeyPath = storage_path('app/keys/stp_demo.pem'); 
+        $privateKeyPath = storage_path('app/keys/stp_demo.pem');
         $passphrase = '12345678';
 
         $stp = new STPSign($data, $privateKeyPath, $passphrase);
@@ -54,7 +54,7 @@ class PaymentController extends Controller
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-                'Encoding'     => 'UTF-8',
+                'Encoding' => 'UTF-8',
             ])->put($url, $requestData);
 
             // Get response JSON as array (Laravel parses JSON automatically)
@@ -71,69 +71,61 @@ class PaymentController extends Controller
         }
 
     }
-
-    public function payout($data)
+    public function payout(Request $data)
     {
         $rules = [
-            'cuentaOrdenante'        => 'required',
-            'nombreOrdenante'        => 'required',
-            'rfcCurpOrdenante'       => 'required',
-            'tipoCuentaOrdenante'    => 'required',
-            'cuentaBeneficiario'     => 'required',
-            'nombreBeneficiario'     => 'required',
-            'rfcCurpBeneficiario'    => 'required',
+            'cuentaOrdenante' => 'required',
+            'nombreOrdenante' => 'required',
+            'rfcCurpOrdenante' => 'required',
+            'tipoCuentaOrdenante' => 'required',
+            'cuentaBeneficiario' => 'required',
+            'nombreBeneficiario' => 'required',
+            'rfcCurpBeneficiario' => 'required',
             'tipoCuentaBeneficiario' => 'required',
             'institucionContraparte' => 'required',
-            'empresa'                => 'required',
-            'claveRastreo'           => 'required',
-            'institucionOperante'    => 'required',
-            'monto'                  => 'required|numeric|min:0.01',
-            'tipoPago'               => 'required',
-            'conceptoPago'           => 'required',
-            'referenciaNumerica'     => 'required',
-            'latitud'                => 'nullable|numeric',
-            'longitud'               => 'nullable|numeric',
+            'empresa' => 'required',
+            'claveRastreo' => 'required',
+            'institucionOperante' => 'required',
+            'monto' => 'required|numeric|min:0.01',
+            'tipoPago' => 'required',
+            'conceptoPago' => 'required',
+            'referenciaNumerica' => 'required',
+            'latitud' => 'nullable|numeric',
+            'longitud' => 'nullable|numeric',
         ];
 
-        $validator = Validator::make($data, $rules);
+        $validator = Validator::make($data->all(), $rules);
 
         if ($validator->fails()) {
-            return [
+            return response()->json([
                 'errors' => $validator->errors()
-            ];
+            ], 422);
         }
 
-        $data = $validator->validated();
+        $validated = $validator->validated();
 
         $privateKeyPath = storage_path('app/keys/yativo.pem');
         $passphrase = '1234567890';
 
-        $stp = new STPSign($data, $privateKeyPath, $passphrase);
+        $stp = new STPSign($validated, $privateKeyPath, $passphrase);
 
         $originalString = $stp->getCadenaOriginal();
         $signature = $stp->getSign();
-        $requestData = array_merge($data, ['firma' => $signature]);
+        $requestData = array_merge($validated, ['firma' => $signature]);
 
         $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
 
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-                'Encoding'     => 'UTF-8',
+                'Encoding' => 'UTF-8',
             ])->put($url, $requestData);
 
-            // Get response JSON as array (Laravel parses JSON automatically)
-            $responseData = $response->json();
-
-            // Get HTTP status code
-            $status = $response->status();
-
-            return get_success_response($responseData, $status);
+            return get_success_response($response->json()['resultado'], $response->status());
         } catch (\Exception $e) {
             return get_error_response([
                 'error' => $e->getMessage(),
             ], 500);
         }
-
     }
 }
