@@ -38,6 +38,7 @@ use App\Models\User;
 use Bavix\Wallet\Models\Wallet;
 use App\Models\Deposit;
 use Modules\Customer\app\Http\Controllers\DojahVerificationController;
+use Modules\Customer\app\Http\Controllers\CustomerVirtualCardsController;
 use App\Models\Business\VirtualAccount;
 use Illuminate\Support\Facades\Schema;
 use App\Models\localPaymentTransactions;
@@ -139,6 +140,9 @@ Route::group([], function () {
 
     Route::post("callback/webhook/virtual-account-webhook", [VirtualAccountsController::class, 'virtualAccountWebhook'])->name('business.virtual-account.virtualAccountWebhook');
     Route::any('callback/wallet/webhook/yativo/crypto', [CryptoWalletsController::class, 'walletWebhook'])->name('crypto.wallet.address.callback');
+
+    //Bitnob webhook url 
+    Route::any('callback/webhook/bitnob', [CustomerVirtualCardsController::class, 'webhook']);
 })->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::any('cron', [CronController::class, 'index'])->name('cron.index');

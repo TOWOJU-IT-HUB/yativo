@@ -71,7 +71,8 @@ class payoutMethodsController extends Controller
             'cutoff_hrs_start' => 'nullable',
             'cutoff_hrs_end' => 'nullable',
             'exchange_rate_float' => 'sometimes',
-            'base_currency' => 'sometimes'
+            'base_currency' => 'sometimes',
+            'expiration_time' => 'sometimes'
         ]);
 
         if (empty($request->country)) {

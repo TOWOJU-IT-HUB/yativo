@@ -32,7 +32,8 @@ class PayinMethods extends Model
         "Working_hours_start",
         "Working_hours_end",
         "base_currency",
-        "exchange_rate_float"
+        "exchange_rate_float",
+        "expiration_time"
     ];
 
     protected $hidden = [

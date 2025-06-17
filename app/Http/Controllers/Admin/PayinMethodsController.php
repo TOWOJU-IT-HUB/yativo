@@ -116,7 +116,8 @@ class PayinMethodsController extends Controller
             'Working_hours_start' => 'nullable|string|max:10',
             'Working_hours_end' => 'nullable|string|max:10',
             'exchange_rate_float' => 'sometimes',
-            'base_currency' => 'sometimes'
+            'base_currency' => 'sometimes',
+            'expiration_time' => 'required'
         ]);
         if ($request->payment_mode == null) {
             $validatedData['payment_mode'] = 'bankTransfer';

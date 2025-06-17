@@ -25,37 +25,103 @@ class ClabeController extends Controller
         return response()->json($results);
     }
 
-    // handle all stp-mx payouts
     public function handlePayout(Request $request)
     {
-        $data = $request->all();
+        Log::info('Payout Webhook Received', ['data' => $request->all()]);
 
+        if (!$request->has('id') || !$request->has('estado')) {
+            return response()->json([
+                'error' => 'Missing required fields (id or estado)'
+            ], 422);
+        }
 
-        // Validate and store/update payout info
-        Log::info('Payout Webhook Received', $data);
+        $payoutId = $request->input('id');
+        $estado = strtoupper($request->input('estado')); // Normalize to uppercase
 
+        switch ($estado) {
+            case 'LQ': // Liquidated successfully
+                Log::info("Payout ID {$payoutId} marked as SUCCESS");
+                break;
 
-        // Return acknowledgment
-        return response()->json(['message' => 'Webhook received'], 200);
+            case 'CN': // Cancelled
+                Log::warning("Payout ID {$payoutId} CANCELLED");
+                break;
+
+            case 'D': // Refunded
+                Log::warning("Payout ID {$payoutId} REFUNDED");
+                break;
+
+            default:
+                Log::error("Unknown estado '{$estado}' for payout ID {$payoutId}");
+                return response()->json([
+                    'id' => $payoutId,
+                    'mensaje' => 'estado desconocido'
+                ], 400);
+        }
+
+        return response()->json([
+            'id' => $payoutId,
+            'mensaje' => 'recibido'
+        ], 200);
     }
-
 
     // handle all payin into the virtual account from stp.mx
     public function handleDeposit(Request $request)
     {
         $data = $request->all();
 
-
-        if ($this->isSuspicious($data)) {
-            return response()->json(['error' => 'Invalid amount or suspicious transaction'], 402);
+        if (!isset($request->monto)) {
+            return response()->json(['error' => 'Monto not found in payload'], 422);
         }
 
+        // Mapping of reason codes to rejection messages
+        $rejectionReasons = [
+            1 => 'Cuent inexi',
+            2 => 'Cuent bloqu',
+            3 => 'Cuent cance',
+            5 => 'Cuent en otra divis',
+            6 => 'Cuent no perte al ba',
+            14 => 'Falta infor manda pa',
+            15 => 'Tipo de pago erron',
+            16 => 'Tipo de opera erron',
+            17 => 'Tipo de cuent no cor',
+            19 => 'Carac Invál',
+            20 => 'Exced el límit de sa',
+            21 => 'Exced el límit de ab',
+            22 => 'Númer de línea de te',
+            23 => 'Cuent adici no recib',
+            24 => 'Estru de la infor ad',
+            25 => 'Falta de instr para',
+            26 => 'Resol resul del Conv',
+            27 => 'Pago opcio no acept',
+            28 => 'Tipo de pago CoDi si',
+            30 => 'Clave de rastr repet',
+            31 => 'Cert emisor vencido',
+        ];
 
-        // Store deposit
         Log::info('Deposit Received', $data);
 
+        // Check if monto exactly matches any rejection code
+        $monto = (int) $request->monto;
+        if (array_key_exists($monto, $rejectionReasons)) {
+            return response()->json([
+                'mensaje' => 'devolver',
+                'id' => $monto
+            ], 400);
+        }
 
-        return response()->json(['message' => 'Webhook received'], 200);
+        // Check if a separate reason_code param is provided
+        if (isset($request->reason_code) && array_key_exists($request->reason_code, $rejectionReasons)) {
+            return response()->json([
+                'mensaje' => 'devolver',
+                'id' => $request->reason_code
+            ], 400);
+        }
+
+        // Accept the payment
+        return response()->json([
+            'mensaje' => 'confirmar'
+        ], 200);
     }
 
 
@@ -65,7 +131,7 @@ class ClabeController extends Controller
         // if(!isset($data)) {
         //     return true;
         // }
-        
+
         // return $data['monto'] <= 0;
     }
 

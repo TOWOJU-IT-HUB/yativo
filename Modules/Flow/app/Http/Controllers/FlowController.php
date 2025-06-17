@@ -109,13 +109,13 @@ class FlowController extends Controller
         $rawInput = file_get_contents('php://input');
         $requestBody = $request->all();
         Log::info('Floid callback request body:', $requestBody);
-        if(isset($request->id) && !empty($request->id)) {
+        if (isset($request->id) && !empty($request->id)) {
             $deposit = Deposit::where('gateway_deposit_id', $request->id)->first();
-            if($deposit) {
+            if ($deposit) {
                 // get the deposit then process it.
-                if(strtoupper($deposit->currency) == "PEN") {
+                if (strtoupper($deposit->currency) == "PEN") {
                     return $this->getPenPaymentStatus($request->id);
-                } else if(strtoupper($deposit->currency) == "CLP") {
+                } else if (strtoupper($deposit->currency) == "CLP") {
                     return $this->getChlPaymentStatus($request->id);
                 } else {
                     //
@@ -125,82 +125,132 @@ class FlowController extends Controller
             return rediret()->away('https://app.yativo.com');
         }
     }
-
-
     /**
-     * Payout code
+     * Handle payout to a beneficiary based on currency and gateway.
+     *
+     * @param  object $payload    Payload containing payout and customer info.
+     * @param  float  $amount     Payout amount.
+     * @param  string $currency   Currency code (e.g., CLP, PEN, USD).
+     * @return array              Response from payout gateway or error info.
      */
-
     public function payout($payload, $amount, $currency)
     {
-        try{
-            if ($currency == 'CLP') {
-                $url = "https://api.floid.app/cl/payout/create";
-            } else if ($currency == "PEN" || $currency == "USD") {
-                $url = "https://api.floid.app/pe/payout/create";
-            } else {
-                return ['error' => "Unsupported currency selected"];
-            }
-
-            // var_dump($payload); exit;
-
+        try {
+            // Step 1: Fetch beneficiary payment method from DB
             $beneficiaryId = $payload->beneficiary_id;
             $model = new BeneficiaryPaymentMethod();
-            $ben = [];
-            $data= $model->getBeneficiaryPaymentMethod($beneficiaryId);
-            // var_dump($ben); exit;
+            $data = $model->getBeneficiaryPaymentMethod($beneficiaryId);
 
-            if($data) {
-                $ben = $data->payment_data;
-            }
-
-            if (!$ben) {
+            if (!$data || !$data->payment_data) {
                 return ['error' => 'Beneficiary not found'];
             }
-            $gateway = payoutMethods::whereId($data->gateway_id)->first();
 
+            $ben = $data->payment_data;
+
+            // Step 2: Fetch gateway configuration
+            $gateway = payoutMethods::whereId($data->gateway_id)->first();
             if (!$gateway) {
                 return ['error' => 'Gateway not found'];
             }
 
-            $authToken = env("FLOID_AUTH_TOKEN");
-            
-            // var_dump([$authToken]); exit;
-            // $rate = getExchangeVal($gateway->currency, "CLP");
-            // Log::debug("Processing payout requests", ['payload' => $payload]);
-            $requestData = [
-                "beneficiary_id" => $ben['beneficiary_id'],
-                "beneficiary_name" => $ben['beneficiary_name'],
-                "beneficiary_account" => $ben['beneficiary_account'],
-                "amount" => floatval($payload->customer_receive_amount),
-                "beneficiary_account_type" => $ben['beneficiary_account_type'],
-                "beneficiary_bank_code" => $ben['beneficiary_bank_code'],            
-                "beneficiary_email" => $ben['beneficiary_email'],
-                "description" => $ben['description']
-            ];
+            // Step 3: Determine request URL and data based on currency
+            if ($currency === 'CLP') {
+                $url = "https://api.floid.app/cl/payout/create";
 
-            // if(request()->has('debug')) {
-                // dd(['incoming_payload' => $payload,'curl_payload' => $requestData]); exit;
-            // }
-            // var_dump($requestData); exit;
-            $response = Http::withToken($authToken)->withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post($url, $requestData);
+                $requestData = [
+                    "beneficiary_id" => $ben['beneficiary_id'],
+                    "beneficiary_name" => $ben['beneficiary_name'],
+                    "beneficiary_account" => $ben['beneficiary_account'],
+                    "amount" => floatval($payload->customer_receive_amount),
+                    "beneficiary_account_type" => $ben['beneficiary_account_type'],
+                    "beneficiary_bank_code" => $ben['beneficiary_bank_code'],
+                    "beneficiary_email" => $ben['beneficiary_email'],
+                    "description" => $ben['description']
+                ];
+            } elseif (in_array($currency, ['PEN', 'USD'])) {
+                $url = "https://api.floid.app/pe/payout/create";
+
+                // PEN = 1, USD = 2
+                $paymentCurrency = $currency === 'PEN' ? 1 : 2;
+
+                $requestData = [
+                    "amount" => floatval($payload->customer_receive_amount),
+                    "currency" => $paymentCurrency,
+                    "beneficiary_account" => $ben['beneficiary_account']
+                ];
+            } else {
+                return ['error' => "Unsupported currency selected"];
+            }
+
+            // Step 4: Make API request to Floid
+            $authToken = env("FLOID_AUTH_TOKEN");
+
+            $response = Http::withToken($authToken)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post($url, $requestData);
 
             $result = $response->json();
-            if(isset($result["status"]) && strtoupper($result["status"]) === "SUCCESSFUL") {
+
+            // Step 5: Handle successful payout
+            if (isset($result["status"]) && strtoupper($result["status"]) === "SUCCESSFUL") {
                 mark_payout_completed($payload->id, $payload->payout_id);
             }
-            // var_dump($result); exit;
-            if(isset($result) && is_array($result) && strtolower($result['status']) == "error" || isset($result['code']) && $result['code'] == 400) {
-                $error = $result['data']['error_message'] ?? $result['error_message'];
+
+            // Step 6: Handle API-level errors
+            if (
+                (isset($result['status']) && strtolower($result['status']) === "error") ||
+                (isset($result['code']) && $result['code'] == 400)
+            ) {
+                $error = $result['data']['error_message'] ?? $result['error_message'] ?? 'Unknown error';
                 return ['error' => $error];
             }
+
+            // Return the raw API response if no errors
             return $result;
-            
+
         } catch (\Throwable $e) {
-            // var_dump($e); exit;
+            // Catch any runtime or HTTP exceptions
             return ["error" => $e->getMessage()];
         }
     }
+
+
+    use Illuminate\Support\Facades\Http;
+
+    /**
+     * Check payout status using case ID and currency.
+     *
+     * @param string $caseId   The payout case ID to check.
+     * @param string $currency The currency code ('PEN' or 'CLP') to determine API path.
+     * @return array           The API response as an associative array.
+     */
+    function checkPayoutStatus(string $caseId, string $currency): array
+    {
+        // Determine API region path based on currency
+        $region = strtoupper($currency) === 'PEN' ? 'pe' : 'cl';
+
+        // Construct the API URL dynamically
+        $url = "https://api.floid.app/{$region}/payout/status";
+
+        // Retrieve token from .env file
+        $token = env('FLOID_AUTH_TOKEN');
+
+        try {
+            // Make the POST request with authorization and JSON payload
+            $response = Http::withToken($token)
+                ->withHeaders([
+                    'Content-Type' => 'application/json'
+                ])
+                ->post($url, [
+                    'payout_caseid' => $caseId
+                ]);
+
+            // Return decoded JSON response
+            return $response->json();
+        } catch (\Throwable $e) {
+            // Return error if something goes wrong
+            return ['error' => $e->getMessage()];
+        }
+    }
+
 }

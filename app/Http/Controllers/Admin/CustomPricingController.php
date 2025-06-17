@@ -52,15 +52,15 @@ class CustomPricingController extends Controller
                             return $fail("The selected $attribute is invalid for virtual card.");
                         }
                     } elseif ($type === 'virtual_account') {
-                        $valid = ['mxn_usd', 'usd', 'eur', 'mxn', 'brl'];
+                        $valid = ['mxn_usd', 'usd', 'eur', 'mxn', 'brl', 'mxnb'];
                         if (!in_array($value, $valid)) {
                             return $fail("The selected $attribute is invalid for virtual account.");
                         }
                     } elseif (in_array($type, ['payin', 'payout'])) {
-                        if ($validated['gateway_type'] === 'payout') {
-                            $validated['gateway_id'] = PayoutMethods::findOrFail($validated['gateway_id'])->id;
-                        } elseif ($validated['gateway_type'] === 'payin') {
-                            $validated['gateway_id'] = PayinMethods::findOrFail($validated['gateway_id'])->id;
+                        if ($request->gateway_type === 'payout') {
+                            $request->gateway_id = PayoutMethods::findOrFail($request->gateway_id)->id;
+                        } elseif ($request->gateway_type === 'payin') {
+                            $request->gateway_id = PayinMethods::findOrFail($request->gateway_id)->id;
                         }
                     }
                 }

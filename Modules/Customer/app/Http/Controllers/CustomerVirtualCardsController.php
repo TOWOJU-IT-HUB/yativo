@@ -1,22 +1,21 @@
 <?php
 
-namespace Modules\Customer\app\Http\Controllers;
+namespace Modules\Customer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use GuzzleHttp\Client;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Modules\Customer\app\Models\Customer;
-use Modules\Customer\app\Models\CustomerVirtualCards;
+use Modules\Customer\Models\Customer;
+use Modules\Customer\Models\CustomerVirtualCards;
 use Towoju5\Bitnob\Bitnob;
+use Carbon\Carbon;
 
 class CustomerVirtualCardsController extends Controller
 {
     public $card;
+
     public function __construct()
     {
         $bitnob = new Bitnob();
@@ -39,7 +38,7 @@ class CustomerVirtualCardsController extends Controller
             if ($request->has('created_between') && is_array($request->created_between)) {
                 [$start, $end] = $request->created_between;
                 if ($start && $end) {
-                    $query->whereBetween('created_at', [Carbon\Carbon::parse($start)->startOfDay(), Carbon\Carbon::parse($end)->endOfDay()]);
+                    $query->whereBetween('created_at', [Carbon::parse($start)->startOfDay(), Carbon::parse($end)->endOfDay()]);
                 }
             }
 
@@ -54,26 +53,20 @@ class CustomerVirtualCardsController extends Controller
         }
     }
 
-
     public function verifyUser()
     {
         try {
             $verify = $this->card->verifyUser();
             return get_success_response(['verify' => $verify]);
         } catch (\Exception $e) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $e->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
-    /**
-     * Register a customer for virtual card creation.
-     * 
-     * @return 
-     */
-   public function regUser(Request $request)
+    public function regUser(Request $request)
     {
         try {
             $validate = Validator::make($request->all(), [
@@ -144,7 +137,6 @@ class CustomerVirtualCardsController extends Controller
             $validatedData['date_of_birth'] = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['dateOfBirth'] = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['firstName'] = $customerName[0];
-            // $validatedData['lastName'] = $customerName[1] ?? $customerName[0];
             $validatedData["customerEmail"] = $cust->customer_email;
             $validatedData["phoneNumber"] = $cust->customer_phone;
             $validatedData["idImage"] = $cust->customer_idFront;
@@ -168,7 +160,7 @@ class CustomerVirtualCardsController extends Controller
             // Call card API
             $req = $this->card->regUser($validatedData);
             if (!is_array($req)) {
-                $req = (array)$req;
+                $req = (array) $req;
             }
 
             if (isset($req['errorCode']) && $req['errorCode'] >= 400) {
@@ -189,7 +181,6 @@ class CustomerVirtualCardsController extends Controller
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-
 
     public function store(Request $request)
     {
@@ -257,9 +248,8 @@ class CustomerVirtualCardsController extends Controller
             $bitnob = new Bitnob();
             $cards = $bitnob->cards();
             $create = $cards->create($data);
-            // var_dump($create); exit;
-            if(!is_array($create)) {
-                $create = (array)$create;
+            if (!is_array($create)) {
+                $create = (array) $create;
             }
 
             if (isset($create['status']) && $create['status'] === true) {
@@ -295,7 +285,7 @@ class CustomerVirtualCardsController extends Controller
             }
         } catch (\Throwable $th) {
             Log::error("Bitnob error:", $th->getTrace());
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
@@ -318,9 +308,8 @@ class CustomerVirtualCardsController extends Controller
             return $virtualCard->toArray();
         }
 
-        return false; // <-- Add this line
+        return false;
     }
-
 
     public function show($cardId, $arrOnly = false)
     {
@@ -337,7 +326,7 @@ class CustomerVirtualCardsController extends Controller
 
             $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
-            // return response()->json($card);
+
             if (isset($card['data'])) {
                 $arrData = $card['data'];
 
@@ -346,7 +335,7 @@ class CustomerVirtualCardsController extends Controller
                 }
 
                 // handle error cases inside the data block
-                if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int)$arrData['statusCode'] === 500)) {
+                if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int) $arrData['statusCode'] === 500)) {
                     return $arrOnly ? null : get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
                 }
             }
@@ -355,11 +344,12 @@ class CustomerVirtualCardsController extends Controller
         } catch (\Exception $e) {
             return $arrOnly
                 ? null
-                : get_error_response(['error' => env('APP_ENV') === 'local' 
-                ? $e->getMessage() : 'Something went wrong, please try again later']);
+                : get_error_response([
+                    'error' => env('APP_ENV') === 'local'
+                        ? $e->getMessage() : 'Something went wrong, please try again later'
+                ]);
         }
     }
-
 
     public function update(Request $request, $cardId)
     {
@@ -375,7 +365,7 @@ class CustomerVirtualCardsController extends Controller
             $card = $this->card->action($request->action, $cardId);
             return get_success_response(['action' => $card['message']]);
         } catch (\Exception $e) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $e->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
@@ -393,7 +383,7 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response(['error' => "Error encountered, please check your request"]);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
@@ -446,13 +436,10 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response(['error' => 'Error while charging for card creation']);
             }
 
-
             // Proceed with card creation logic...
             // e.g., call card provider API or create local card record
 
             return get_success_response(['message' => 'Card created successfully', 'charged_fee' => $topUpFee]);
-
-
 
             // make request to bitnob to topup card
             $bitnob = $this->card->topup($data);
@@ -467,32 +454,26 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response($bitnob);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
-    /**
-     * Virtual card Transaction
-     */
     public function transactions($cardId)
     {
         try {
             $card = $this->card->getTransaction($cardId);
             return get_success_response(['transactions' => $card]);
         } catch (\Exception $e) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $e->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
-    /**
-     * Terminate a specified virtual card
-     */
     public function terminateCard(Request $request)
     {
         try {
@@ -514,13 +495,13 @@ class CustomerVirtualCardsController extends Controller
 
             // Charge termination fee
             // 1️⃣  Look up custom pricing (fallback fixed‑fee = $1 if none found)
-            $pricing = get_custom_pricing('card_termination', 1, 'virtual_card');  
+            $pricing = get_custom_pricing('card_termination', 1, 'virtual_card');
 
             // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
             $floatCharge = 0;                            // most cases: 0 %
             if ($pricing['float_fee'] > 0) {
                 // If you do want a % of something (e.g. remaining balance), set $baseAmount accordingly
-                $baseAmount  = 0;                        // change to your own logic if needed
+                $baseAmount = 0;                        // change to your own logic if needed
                 $floatCharge = $baseAmount * ($pricing['float_fee'] / 100);
             }
 
@@ -530,7 +511,6 @@ class CustomerVirtualCardsController extends Controller
             if (!debit_user_wallet(intval($fee * 100), 'USD', 'Card Termination Fee')) {
                 return get_error_response(['error' => 'Error while charging for card termination']);
             }
-
 
             // Call Bitnob API to terminate the card
             $bitnob = new Bitnob();
@@ -549,7 +529,7 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response($response);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
@@ -588,7 +568,7 @@ class CustomerVirtualCardsController extends Controller
 
             return get_error_response($response);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
@@ -640,10 +620,150 @@ class CustomerVirtualCardsController extends Controller
 
             return get_success_response(['message' => 'Failed transaction recorded.']);
         } catch (\Throwable $th) {
-            if(env('APP_ENV') == 'local') {
+            if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
+    }
+}
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class VirtualCardWebhookController extends Controller
+{
+    public function handle(Request $request)
+    {
+        $event = $request->input('event');
+        $data = $request->input('data');
+
+        Log::info("Webhook received: {$event}", $data);
+
+        match ($event) {
+            'virtualcard.created.success' => $this->handleCardCreatedSuccess($data),
+            'virtualcard.created.failed' => $this->handleCardCreatedFailed($data),
+
+            'virtualcard.topup.success' => $this->handleTopupSuccess($data),
+            'virtualcard.topup.failed' => $this->handleTopupFailed($data),
+
+            'virtualcard.withdrawal.success' => $this->handleWithdrawalSuccess($data),
+            'virtualcard.withdrawal.failed' => $this->handleWithdrawalFailed($data),
+
+            'virtualcard.transaction.debit' => $this->handleTransactionDebit($data),
+            'virtualcard.transaction.reversed' => $this->handleTransactionReversed($data),
+            'virtualcard.transaction.declined' => $this->handleTransactionDeclined($data),
+            'virtualcard.transaction.declined.frozen' => $this->handleDeclinedFrozen($data),
+            'virtualcard.transaction.declined.terminated' => $this->handleDeclinedTerminated($data),
+            'virtualcard.transaction.authorization.failed' => $this->handleAuthorizationFailed($data),
+            'virtualcard.transaction.crossborder' => $this->handleCrossBorder($data),
+            'virtualcard.transaction.terminated.refund' => $this->handleTerminatedRefund($data),
+
+            'virtualcard.user.kyc.success' => $this->handleKycSuccess($data),
+            'virtualcard.user.kyc.failed' => $this->handleKycFailed($data),
+
+            default => Log::warning("Unhandled virtual card webhook event: {$event}", $data),
+        };
+
+        return response()->json(['status' => 'ok']);
+    }
+
+
+    protected function handleCardCreatedSuccess(array $data)
+    {
+        Log::info('Virtual card created successfully', $data);
+        // Additional logic for handling successful card creation
+    }
+
+    protected function handleCardCreatedFailed(array $data)
+    {
+        Log::error('Virtual card creation failed', $data);
+        // Additional logic for handling failed card creation
+    }
+
+    protected function handleTopupSuccess(array $data)
+    {
+        Log::info('Virtual card top-up successful', $data);
+        // Additional logic for handling successful top-up
+    }
+
+    protected function handleTopupFailed(array $data)
+    {
+        Log::error('Virtual card top-up failed', $data);
+        // Additional logic for handling failed top-up
+    }
+
+    protected function handleWithdrawalSuccess(array $data)
+    {
+        Log::info('Virtual card withdrawal successful', $data);
+        // Additional logic for handling successful withdrawal
+    }
+
+    protected function handleWithdrawalFailed(array $data)
+    {
+        Log::error('Virtual card withdrawal failed', $data);
+        // Additional logic for handling failed withdrawal
+    }
+
+    protected function handleTransactionDebit(array $data)
+    {
+        Log::info('Virtual card transaction debit', $data);
+        // Additional logic for handling transaction debit
+    }
+
+    protected function handleTransactionReversed(array $data)
+    {
+        Log::info('Virtual card transaction reversed', $data);
+        // Additional logic for handling transaction reversal
+    }
+
+    protected function handleTransactionDeclined(array $data)
+    {
+        Log::info('Virtual card transaction declined', $data);
+        // Additional logic for handling transaction decline
+    }
+
+    protected function handleDeclinedFrozen(array $data)
+    {
+        Log::info('Virtual card transaction declined (frozen)', $data);
+        // Additional logic for handling transaction decline (frozen)
+    }
+
+    protected function handleDeclinedTerminated(array $data)
+    {
+        Log::info('Virtual card transaction declined (terminated)', $data);
+        // Additional logic for handling transaction decline (terminated)
+    }
+
+    protected function handleAuthorizationFailed(array $data)
+    {
+        Log::info('Virtual card authorization failed', $data);
+        // Additional logic for handling authorization failure
+    }
+
+    protected function handleCrossBorder(array $data)
+    {
+        Log::info('Virtual card cross-border transaction', $data);
+        // Additional logic for handling cross-border transactions
+    }
+
+    protected function handleTerminatedRefund(array $data)
+    {
+        Log::info('Virtual card terminated refund', $data);
+        // Additional logic for handling terminated refund
+    }
+
+    protected function handleKycSuccess(array $data)
+    {
+        Log::info('Virtual card KYC success', $data);
+        // Additional logic for handling KYC success
+    }
+
+    protected function handleKycFailed(array $data)
+    {
+        Log::error('Virtual card KYC failed', $data);
+        // Additional logic for handling KYC failure
     }
 }

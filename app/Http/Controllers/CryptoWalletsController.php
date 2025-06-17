@@ -196,70 +196,99 @@ class CryptoWalletsController extends Controller
         ]);
 
         try {
-            $eventType = $request->input('event_type');
-            if ($eventType !== 'deposit.confirmed') {
-                // Ignore non-matching event types
+            $payload = $request->all();
+
+            // Determine webhook format (structure 1 or 2)
+            $isV1 = isset($payload['event']) && isset($payload['data']);
+            $isV2 = isset($payload['event_type']) && isset($payload['event_data']);
+
+            if (!$isV1 && !$isV2) {
+                return response()->json(['error' => 'Invalid webhook structure'], 422);
+            }
+
+            // Extract relevant fields
+            $eventType = $isV1 ? $payload['event'] : $payload['event_type'];
+            $data = $isV1 ? $payload['data'] : $payload['event_data'];
+            $meta = $payload['metadata'] ?? [];
+
+            // Only proceed if event type indicates a received or confirmed deposit
+            if (!in_array($eventType, ['customer.deposit.received', 'customer.deposit.detected'])) {
                 return response()->json(['message' => 'Event ignored'], 200);
             }
 
-            $data = $request->input('data');
-            $transactionId = $data['transaction_hash'] ?? null;
-            $toAddress = $data['to_address'] ?? null;
-            $amountRaw = $data['amount'] ?? '0';
-            $amount = (float) bcdiv($amountRaw, pow(10, $data['tokenInfo']['decimals'] ?? 6), 6); // Normalize token decimals
-            $fee = 0; // No fee provided in new payload
-            $tokenType = $request->input('token_type', 'USDC_SOL');
-            $status = $data['transaction_status'] ?? 'processing';
+            $transactionId = $data['transaction_hash'] ?? $meta['transaction_id'] ?? null;
+            $toAddress = $data['receiving_address'] ?? $data['to_address'] ?? null;
+            $amountRaw = $data['amount_numeric'] ?? $data['amount'] ?? '0';
+            $status = $data['status'] ?? 'processing';
+            $chain = $data['chain'] ?? 'SOL';
+            $tokenType = strtoupper(trim(($data['asset_name'] ?? 'USDC') . '_' . $chain));
+
+            // Normalize amount
+            $amount = (float) preg_replace('/[^\d.]/', '', $amountRaw);
+            $fee = 0;
 
             if (!$transactionId || !$toAddress) {
-                return response()->json(['error' => 'Invalid data received'], 422);
+                return response()->json(['error' => 'Missing required transaction fields'], 422);
             }
 
-            // Cache check: skip if already cached (processed)
-            $cacheKey = 'processed_tx_' . $transactionId;
-            if (Cache::has($cacheKey)) {
-                return response()->json(['message' => 'Transaction already processed (cached)'], 200);
+            // Check if already logged
+            if (TransactionRecord::where('transaction_id', $transactionId)->exists()) {
+                return response()->json(['message' => 'Transaction already processed (TransactionRecord)'], 200);
             }
 
-            // Find the receiving wallet by address and currency
+            // Match receiving wallet
             $wallet = CryptoWallets::where('wallet_address', $toAddress)->firstOrFail();
-
-            $userId = $wallet->user_id;
+            $user = User::findOrFail($wallet->user_id);
+            $userId = $user->id;
             $currency = $wallet->currency ?? $tokenType;
 
-            // Check if the transaction already exists in DB
+            // Create transaction log
+            TransactionRecord::create([
+                "user_id" => $userId,
+                "transaction_beneficiary_id" => $userId,
+                "transaction_id" => $transactionId,
+                "transaction_amount" => $amount,
+                "gateway_id" => null,
+                "transaction_status" => $status,
+                "transaction_type" => "crypto",
+                "transaction_memo" => "crypto",
+                "transaction_currency" => $currency,
+                "base_currency" => $currency,
+                "secondary_currency" => $chain,
+                "transaction_purpose" => "crypto_deposit",
+                "transaction_payin_details" => $payload,
+                "transaction_payout_details" => [],
+            ]);
+
+            // Check if already exists in deposits table
             if (CryptoDeposit::where('transaction_id', $transactionId)->exists()) {
-                // Cache it anyway to prevent reprocessing on future hooks
-                Cache::put($cacheKey, true, now()->addHours(6));
-                return response()->json(['message' => 'Transaction already processed (database)'], 200);
+                return response()->json(['message' => 'Transaction already processed (CryptoDeposit)'], 200);
             }
 
-            // Create a new deposit
+            // Create the deposit
             $deposit = CryptoDeposit::create([
-                'user_id' => $userId,
+                'user_id' => $user->id,
                 'currency' => $currency,
                 'amount' => $amount,
                 'address' => $toAddress,
                 'transaction_id' => $transactionId,
                 'status' => $status,
-                'payload' => $request->all(),
+                'payload' => $payload,
             ]);
 
-            $user = User::findOrFail($wallet->user_id);
+            // Credit user wallet
             $walletInstance = $user->getWallet('usd');
-
             if ($walletInstance) {
                 $zeeFee = $fee * 0.30;
                 $totalFee = $fee + $zeeFee;
                 $creditAmount = $amount - $totalFee;
-
                 $walletInstance->deposit(($creditAmount * 100), $deposit->toArray());
             } else {
-                Log::error("User wallet not found");
+                Log::channel('deposit_error')->warning('User wallet not found', ['user_id' => $user->id]);
             }
 
-            // Trigger webhook if user has set one
-            if ($webhook = Webhook::whereUserId($userId)->first()) {
+            // Notify user’s webhook if set
+            if ($webhook = Webhook::whereUserId($user->id)->first()) {
                 WebhookCall::create()->meta(['_uid' => $webhook->user_id])
                     ->url($webhook->url)
                     ->useSecret($webhook->secret)
@@ -270,15 +299,17 @@ class CryptoWalletsController extends Controller
                     ->dispatchSync();
             }
 
-            // Cache this transaction as processed
-            Cache::put($cacheKey, true, now()->addHours(6));
-
             return response()->json(['message' => 'Deposit processed successfully'], 200);
+
         } catch (\Exception $e) {
-            Log::channel('deposit_error')->error('Error processing crypto deposit', ['error' => $e->getMessage()]);
+            Log::channel('deposit_error')->error('Error processing crypto deposit', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['error' => 'Error processing deposit'], 500);
         }
     }
+
 
 
     public function getWallets()

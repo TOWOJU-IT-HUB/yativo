@@ -29,7 +29,8 @@ class PayoutMethods extends Model
         "cutoff_hrs_start",
         "cutoff_hrs_end",
         "base_currency",
-        "exchange_rate_float"
+        "exchange_rate_float",
+        "expiration_time"
     ];
 
     protected $hidden = [];

@@ -321,4 +321,15 @@
             <div class="text-sm text-red-500 mt-1">{{ $message }}</div>
         @enderror
     </div>
+
+    <!-- payment expiration time End -->
+    <div class="form-group">
+        <label for="expiration_time" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Payment Expiration Time*</label>
+        <input type="text" id="expiration_time" name="expiration_time"
+            value="{{ old('expiration_time', $method->expiration_time) }}"
+            class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary">
+        @error('expiration_time')
+            <div class="text-sm text-red-500 mt-1">{{ $message }}</div>
+        @enderror
+    </div>
 </div>
