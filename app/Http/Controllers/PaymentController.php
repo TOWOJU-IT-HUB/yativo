@@ -113,6 +113,7 @@ class PaymentController extends Controller
         $signature = $stp->getSign();
         $requestData = array_merge($validated, ['firma' => $signature]);
 
+
         $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
 
         try {
@@ -121,6 +122,11 @@ class PaymentController extends Controller
                 'Encoding' => 'UTF-8',
             ])->put($url, $requestData);
 
+            return response()->json([
+                "signature" => $signature,
+                "string" => $originalString,
+                "payload" => $requestData
+            ]);
             return get_success_response($response->json()['resultado'], $response->status());
         } catch (\Exception $e) {
             return get_error_response([
