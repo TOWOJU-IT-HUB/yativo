@@ -31,7 +31,7 @@ class STPSign
             $data['cuentaBeneficiario'] . '|' .
             $data['rfcCurpBeneficiario'] . '||||||' .
             $data['conceptoPago'] . '||||||' .
-            $data['referenciaNumerica'] . '||||||||';
+            $data['referenciaNumerica'] . '||||||||0.00||';
     }
 
     public function getSign(): string
