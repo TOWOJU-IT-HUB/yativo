@@ -41,7 +41,7 @@ class CustomPricingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,user_id',
+            'user_id' => 'required|exists:users,id',
             'gateway_type' => 'required',
             'gateway_id' => [
                 'required',
