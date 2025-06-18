@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\payoutMethods;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class payoutMethodsController extends Controller
 {
@@ -15,6 +17,11 @@ class payoutMethodsController extends Controller
         // $this->middleware('can:create payout methods')->only(['create', 'store']);
         // $this->middleware('can:edit payout methods')->only(['edit', 'update']);
         // $this->middleware('can:delete payout methods')->only(['destroy']);
+        if(!Schema::hasColumn('payout_methods', 'expiration_time')) {
+            Schema::table('payout_methods', function(Blueprint $table) {
+                $table->string('expiration_time')->nullable();
+            });
+        }
     }
 
     public function index()

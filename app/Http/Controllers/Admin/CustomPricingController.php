@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use Illuminate\Http\Request;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 
 class CustomPricingController extends Controller

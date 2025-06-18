@@ -5,11 +5,20 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PayinMethods;
 use Illuminate\Http\Request;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 
 class PayinMethodsController extends Controller
 {
+    public function __construct()
+    {
+        if(!Schema::hasColumn('payin_methods', 'expiration_time')) {
+            Schema::table('payin_methods', function(Blueprint $table) {
+                $table->string('expiration_time')->nullable();
+            });
+        }
+    }
     /**
      * Retrieve all payin methods and filter if query exists
      * @param \Illuminate\Http\Request $request
