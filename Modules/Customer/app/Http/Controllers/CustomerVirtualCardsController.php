@@ -1,16 +1,18 @@
 <?php
-
 namespace Modules\Customer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\UserMeta;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Modules\Customer\Models\Customer;
 use Modules\Customer\Models\CustomerVirtualCards;
+use Modules\Webhook\app\Models\Webhook;
+use Spatie\WebhookServer\WebhookCall;
 use Towoju5\Bitnob\Bitnob;
-use Carbon\Carbon;
 
 class CustomerVirtualCardsController extends Controller
 {
@@ -18,7 +20,7 @@ class CustomerVirtualCardsController extends Controller
 
     public function __construct()
     {
-        $bitnob = new Bitnob();
+        $bitnob     = new Bitnob();
         $this->card = $bitnob->cards();
 
         $this->middleware('vc_charge')->only(['store', 'topUpCard']);
@@ -30,7 +32,7 @@ class CustomerVirtualCardsController extends Controller
             $query = CustomerVirtualCards::where('business_id', get_business_id(auth()->id()));
 
             // Filter by customer_id if provided
-            if ($request->has('customer_id') && !empty($request->customer_id)) {
+            if ($request->has('customer_id') && ! empty($request->customer_id)) {
                 $query->where('customer_id', $request->customer_id);
             }
 
@@ -71,7 +73,7 @@ class CustomerVirtualCardsController extends Controller
         try {
             $validate = Validator::make($request->all(), [
                 "customer_id" => "required|exists:customers,customer_id",
-                "user_photo" => "required"
+                "user_photo"  => "required",
             ]);
 
             if ($validate->fails()) {
@@ -80,20 +82,20 @@ class CustomerVirtualCardsController extends Controller
 
             $cust = Customer::whereCustomerId($request->customer_id)->first();
 
-            if (!$cust) {
+            if (! $cust) {
                 return get_error_response(['error' => "Customer not found!"]);
             }
 
             if ($cust->can_create_vc === true && $cust->vc_customer_id !== null) {
                 return get_error_response([
-                    "error" => "Customer already enrolled and activated"
+                    "error" => "Customer already enrolled and activated",
                 ], 421);
             }
 
             // Define required fields
             $requiredFields = [
                 'address' => ['country', 'city', 'state', 'zipcode', 'street', 'number'],
-                'top' => ['customer_idFront', 'customer_idNumber']
+                'top'     => ['customer_idFront', 'customer_idNumber'],
             ];
 
             $missingFields = [];
@@ -123,7 +125,7 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // Return error if any field is still missing
-            if (!empty($missingFields)) {
+            if (! empty($missingFields)) {
                 return get_error_response($missingFields, 422, "Missing required customer data.");
             }
 
@@ -132,22 +134,22 @@ class CustomerVirtualCardsController extends Controller
             $cust->save();
 
             // Prepare payload
-            $customerName = explode(" ", $cust->customer_name);
-            $validatedData = $validate->validated();
+            $customerName                   = explode(" ", $cust->customer_name);
+            $validatedData                  = $validate->validated();
             $validatedData['date_of_birth'] = $request->dateOfBirth ?? $request->date_of_birth;
-            $validatedData['dateOfBirth'] = $request->dateOfBirth ?? $request->date_of_birth;
-            $validatedData['firstName'] = $customerName[0];
+            $validatedData['dateOfBirth']   = $request->dateOfBirth ?? $request->date_of_birth;
+            $validatedData['firstName']     = $customerName[0];
             $validatedData["customerEmail"] = $cust->customer_email;
-            $validatedData["phoneNumber"] = $cust->customer_phone;
-            $validatedData["idImage"] = $cust->customer_idFront;
-            $validatedData["country"] = $cust->customer_country;
-            $validatedData["city"] = $address['city'];
-            $validatedData["state"] = $address['state'];
-            $validatedData["zipCode"] = $address['zipcode'];
-            $validatedData["line1"] = $address['street'];
-            $validatedData["houseNumber"] = $address['number'];
-            $validatedData["idType"] = "NATIONAL_ID";
-            $validatedData["idNumber"] = $cust->customer_idNumber;
+            $validatedData["phoneNumber"]   = $cust->customer_phone;
+            $validatedData["idImage"]       = $cust->customer_idFront;
+            $validatedData["country"]       = $cust->customer_country;
+            $validatedData["city"]          = $address['city'];
+            $validatedData["state"]         = $address['state'];
+            $validatedData["zipCode"]       = $address['zipcode'];
+            $validatedData["line1"]         = $address['street'];
+            $validatedData["houseNumber"]   = $address['number'];
+            $validatedData["idType"]        = "NATIONAL_ID";
+            $validatedData["idNumber"]      = $cust->customer_idNumber;
             if (isset($customerName[1]) && strlen($customerName[1]) >= 3) {
                 $validatedData['lastName'] = $customerName[1];
             } elseif (isset($customerName[2]) && strlen($customerName[2]) >= 3) {
@@ -159,14 +161,14 @@ class CustomerVirtualCardsController extends Controller
 
             // Call card API
             $req = $this->card->regUser($validatedData);
-            if (!is_array($req)) {
+            if (! is_array($req)) {
                 $req = (array) $req;
             }
 
             if (isset($req['errorCode']) && $req['errorCode'] >= 400) {
                 return get_error_response(['error' => "Error, Please contact support."]);
             } elseif (isset($req['status']) && $req['status'] == true) {
-                $cust->can_create_vc = true;
+                $cust->can_create_vc  = true;
                 $cust->vc_customer_id = $req['data']['id'];
                 $cust->save();
                 return get_success_response(['success' => "Customer activated successfully."]);
@@ -187,7 +189,7 @@ class CustomerVirtualCardsController extends Controller
         try {
             $validate = Validator::make($request->all(), [
                 'customer_id' => 'required|string',
-                'amount' => 'required|numeric|min:5',
+                'amount'      => 'required|numeric|min:5',
             ]);
 
             if ($validate->fails()) {
@@ -196,12 +198,12 @@ class CustomerVirtualCardsController extends Controller
 
             $where = [
                 'customer_id' => $request->customer_id,
-                'user_id' => auth()->id()
+                'user_id'     => auth()->id(),
             ];
 
             $cust = Customer::where($where)->first();
 
-            if (!$cust) {
+            if (! $cust) {
                 return get_error_response(['error' => "Customer with the provided ID not found!"]);
             }
 
@@ -214,31 +216,31 @@ class CustomerVirtualCardsController extends Controller
 
             // Step 3: Calculate the total fee using float % and fixed fee
             $floatCharge = $amount * ($pricing['float_fee'] / 100);
-            $fee = $floatCharge + $pricing['fixed_fee'];
+            $fee         = $floatCharge + $pricing['fixed_fee'];
 
             // Step 4: Debit user's wallet (convert to cents)
-            if (!debit_user_wallet(intval($fee * 100), "USD", "Virtual Card Creation")) {
+            if (! debit_user_wallet(intval($fee * 100), "USD", "Virtual Card Creation")) {
                 return get_error_response(['error' => 'Error while charging for card creation']);
             }
 
             // Ensure the customer_email field is available and correctly fetched
-            if (!$cust->customer_email) {
+            if (! $cust->customer_email) {
                 return get_error_response(['error' => "Customer email not found!"]);
             }
 
             $data = [
                 'customerEmail' => $cust->customer_email,
-                'cardBrand' => 'visa',
-                'cardType' => 'virtual',
-                'reference' => generate_uuid(),
-                'amount' => $request->amount * 100, // amount should be passed in cents
+                'cardBrand'     => 'visa',
+                'cardType'      => 'virtual',
+                'reference'     => generate_uuid(),
+                'amount'        => $request->amount * 100, // amount should be passed in cents
             ];
 
-            // Check how many cards the customer has; 
+            // Check how many cards the customer has;
             // max of 3 is allowed per customer
             $cardCount = CustomerVirtualCards::where([
                 'customer_id' => $request->customer_id,
-                'business_id' => get_business_id(auth()->id())
+                'business_id' => get_business_id(auth()->id()),
             ])->count();
 
             if ($cardCount >= 2) {
@@ -246,15 +248,30 @@ class CustomerVirtualCardsController extends Controller
             }
 
             $bitnob = new Bitnob();
-            $cards = $bitnob->cards();
+            $cards  = $bitnob->cards();
             $create = $cards->create($data);
-            if (!is_array($create)) {
+            if (! is_array($create)) {
                 $create = (array) $create;
             }
 
             if (isset($create['status']) && $create['status'] === true) {
                 // Save card details into DB, call get card to retrieve card details
                 $cardId = $create['data']['id'];
+
+                $user_meta_payload = [
+                    "user_id"                   => auth()->id(),
+                    "customer_id"               => $cust->id,
+                    "card_id"                   => $cardId,
+                    "request_payload"           => $data,
+                    "provider_response_payload" => $create,
+                ];
+
+                UserMeta::create([
+                    'user_id' => auth()->id(),
+                    'key'     => $cardId,
+                    'value'   => json_encode($user_meta_payload),
+                ]);
+
                 $getCard = self::show($cardId, true);
                 Log::error("this is the card details: ", $getCard);
 
@@ -264,11 +281,11 @@ class CustomerVirtualCardsController extends Controller
 
                 // Data to be returned
                 $arr = [
-                    "card_id" => $cardId,
+                    "card_id"        => $cardId,
                     "customer_email" => $cust->customer_email,
-                    "customer_id" => $cust->customer_id,
-                    "card_brand" => "visa",
-                    "card_type" => "virtual",
+                    "customer_id"    => $cust->customer_id,
+                    "card_brand"     => "visa",
+                    "card_type"      => "virtual",
                 ];
 
                 return get_success_response($arr);
@@ -294,15 +311,15 @@ class CustomerVirtualCardsController extends Controller
 
     public function saveVirtualCard($card, $cardId, $request)
     {
-        $virtualCard = new CustomerVirtualCards();
-        $virtualCard->business_id = get_business_id(auth()->id());
-        $virtualCard->customer_id = $request->customer_id;
+        $virtualCard                   = new CustomerVirtualCards();
+        $virtualCard->business_id      = get_business_id(auth()->id());
+        $virtualCard->customer_id      = $request->customer_id;
         $virtualCard->customer_card_id = $cardId;
-        $virtualCard->card_number = $card['cardNumber'];
-        $virtualCard->expiry_date = $card['valid'];
-        $virtualCard->cvv = $card['cvv2'];
-        $virtualCard->card_id = $cardId;
-        $virtualCard->raw_data = json_encode($card);
+        $virtualCard->card_number      = $card['cardNumber'];
+        $virtualCard->expiry_date      = $card['valid'];
+        $virtualCard->cvv              = $card['cvv2'];
+        $virtualCard->card_id          = $cardId;
+        $virtualCard->raw_data         = json_encode($card);
 
         if ($virtualCard->save()) {
             return $virtualCard->toArray();
@@ -320,11 +337,11 @@ class CustomerVirtualCardsController extends Controller
                 return $arrOnly ? null : get_error_response(['error' => "Card not found!"], 404);
             }
 
-            if (!is_array($card)) {
+            if (! is_array($card)) {
                 $card = (array) $card;
             }
 
-            $arr = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
+            $arr     = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
 
             if (isset($card['data'])) {
@@ -343,11 +360,11 @@ class CustomerVirtualCardsController extends Controller
             return $arrOnly ? $arrData : get_success_response($arrData);
         } catch (\Exception $e) {
             return $arrOnly
-                ? null
-                : get_error_response([
-                    'error' => env('APP_ENV') === 'local'
-                        ? $e->getMessage() : 'Something went wrong, please try again later'
-                ]);
+            ? null
+            : get_error_response([
+                'error' => env('APP_ENV') === 'local'
+                ? $e->getMessage() : 'Something went wrong, please try again later',
+            ]);
         }
     }
 
@@ -355,7 +372,7 @@ class CustomerVirtualCardsController extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                "action" => "required|in:freeze,unfreeze"
+                "action" => "required|in:freeze,unfreeze",
             ]);
 
             if ($validate->fails()) {
@@ -395,8 +412,8 @@ class CustomerVirtualCardsController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 "customer_id" => "required",
-                "cardId" => "required",
-                "amount" => "required|numeric|min:1",
+                "cardId"      => "required",
+                "amount"      => "required|numeric|min:1",
             ]);
 
             if ($validator->fails()) {
@@ -407,14 +424,14 @@ class CustomerVirtualCardsController extends Controller
                 ->where('user_id', auth()->id())
                 ->first();
 
-            if (!$customer) {
+            if (! $customer) {
                 return get_error_response(['error' => 'Invalid customer ID provided']);
             }
 
             $data = [
-                'cardId' => $request->cardId,
+                'cardId'    => $request->cardId,
                 'reference' => generate_uuid(),
-                'amount' => floatval($request->amount * 100),
+                'amount'    => floatval($request->amount * 100),
             ];
 
             // Calculate top-up fee
@@ -424,15 +441,15 @@ class CustomerVirtualCardsController extends Controller
             // Ensure $request->amount is a float
             $amount = floatval($request->amount);
 
-            // Apply float and fixed fees
+                                                                   // Apply float and fixed fees
             $floatCharge = $amount * ($getFee['float_fee'] / 100); // e.g., 1.5% => 0.015
-            $topUpFee = $floatCharge + $getFee['fixed_fee'];
+            $topUpFee    = $floatCharge + $getFee['fixed_fee'];
 
             // Enforce a minimum fee of $1
             $topUpFee = max(1, $topUpFee);
 
             // Debit the user's wallet
-            if (!debit_user_wallet(floatval($topUpFee * 100), "USD", "Virtual Card Creation")) {
+            if (! debit_user_wallet(floatval($topUpFee * 100), "USD", "Virtual Card Creation")) {
                 return get_error_response(['error' => 'Error while charging for card creation']);
             }
 
@@ -489,7 +506,7 @@ class CustomerVirtualCardsController extends Controller
                 ->where('business_id', get_business_id(auth()->id()))
                 ->first();
 
-            if (!$card) {
+            if (! $card) {
                 return get_error_response(['error' => 'Card not found!']);
             }
 
@@ -497,27 +514,27 @@ class CustomerVirtualCardsController extends Controller
             // 1️⃣  Look up custom pricing (fallback fixed‑fee = $1 if none found)
             $pricing = get_custom_pricing('card_termination', 1, 'virtual_card');
 
-            // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
-            $floatCharge = 0;                            // most cases: 0 %
+                              // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
+            $floatCharge = 0; // most cases: 0 %
             if ($pricing['float_fee'] > 0) {
-                // If you do want a % of something (e.g. remaining balance), set $baseAmount accordingly
-                $baseAmount = 0;                        // change to your own logic if needed
+                                  // If you do want a % of something (e.g. remaining balance), set $baseAmount accordingly
+                $baseAmount  = 0; // change to your own logic if needed
                 $floatCharge = $baseAmount * ($pricing['float_fee'] / 100);
             }
 
             $fee = $floatCharge + $pricing['fixed_fee'];
 
             // 4️⃣  Debit the user’s wallet (convert dollars ➔ cents)
-            if (!debit_user_wallet(intval($fee * 100), 'USD', 'Card Termination Fee')) {
+            if (! debit_user_wallet(intval($fee * 100), 'USD', 'Card Termination Fee')) {
                 return get_error_response(['error' => 'Error while charging for card termination']);
             }
 
             // Call Bitnob API to terminate the card
-            $bitnob = new Bitnob();
+            $bitnob   = new Bitnob();
             $response = $bitnob->cards()->terminate($request->cardId);
 
             if (isset($response['status']) && $response['status'] === true) {
-                // Return remaining balance to user's Yativo USD balance
+                                                        // Return remaining balance to user's Yativo USD balance
                 $remainingBalance = $response->balance; // Assuming balance is stored in the card model
                 credit_user_wallet($remainingBalance ?? 0, "USD", "Card Termination Refund");
 
@@ -551,7 +568,7 @@ class CustomerVirtualCardsController extends Controller
                 ->where('business_id', get_business_id(auth()->id()))
                 ->first();
 
-            if (!$card) {
+            if (! $card) {
                 return get_error_response(['error' => 'Card not found!']);
             }
 
@@ -559,7 +576,7 @@ class CustomerVirtualCardsController extends Controller
             debit_user_wallet(60, "USD", "Chargeback Fee");
 
             // Call Bitnob API to handle the chargeback
-            $bitnob = new Bitnob();
+            $bitnob   = new Bitnob();
             $response = $bitnob->cards()->chargeback($request->cardId);
 
             if (isset($response['status']) && $response['status'] === true) {
@@ -590,18 +607,18 @@ class CustomerVirtualCardsController extends Controller
                 ->where('business_id', get_business_id(auth()->id()))
                 ->first();
 
-            if (!$card) {
+            if (! $card) {
                 return get_error_response(['error' => 'Card not found!']);
             }
 
-            // Check if this is the third failed transaction
+                                                              // Check if this is the third failed transaction
             $failedTransactions = $card->failed_transactions; // Assuming this is stored in the card model
             if ($failedTransactions >= 3) {
                 // Charge termination fee
                 debit_user_wallet(1, "USD", "Card Declined Termination Fee");
 
                 // Call Bitnob API to terminate the card
-                $bitnob = new Bitnob();
+                $bitnob   = new Bitnob();
                 $response = $bitnob->cards()->terminate($request->cardId);
 
                 if (isset($response['status']) && $response['status'] === true) {
@@ -626,21 +643,21 @@ class CustomerVirtualCardsController extends Controller
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
-}
 
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-
-class VirtualCardWebhookController extends Controller
-{
-    public function handle(Request $request)
+    public function webhook(Request $request)
     {
         $event = $request->input('event');
-        $data = $request->input('data');
+        $data  = $request->input('data');
 
-        Log::info("Webhook received: {$event}", $data);
+        $webhookSecret = env("BITNOB_WEBHOOK_SECRET");
+        $data          = json_encode($_POST);
+        $hash          = hash_hmac('sha512', $data, $webhookSecret);
+
+        if ($hash != $_SERVER['x-bitnob-signature']) {
+            return http_response_code(200);
+        }
+
+        Log::info("Webhook received: {$event}", ['payload' => $data]);
 
         match ($event) {
             'virtualcard.created.success' => $this->handleCardCreatedSuccess($data),
@@ -670,100 +687,351 @@ class VirtualCardWebhookController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-
     protected function handleCardCreatedSuccess(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card created successfully', $data);
         // Additional logic for handling successful card creation
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        Log::error(['virtual_card_created_event' => $data]);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        $cardData        = UserMeta::where('key', $cardId)->first();
+        $cardDataPayload = json_decode($cardData->value, true);
+
+        if ($virtual_card) {
+            $user = User::whereId($cardData->user_id)->first();
+            if ($user) {
+                $virtualCard                   = new CustomerVirtualCards();
+                $virtualCard->business_id      = get_business_id($cardData->user_id);
+                $virtualCard->customer_id      = $cardDataPayload['customer_id'];
+                $virtualCard->customer_card_id = $cardId;
+                $virtualCard->card_number      = $virtual_card['cardNumber'];
+                $virtualCard->expiry_date      = $virtual_card['valid'];
+                $virtualCard->cvv              = $virtual_card['cvv2'];
+                $virtualCard->card_id          = $cardId;
+                $virtualCard->raw_data         = json_encode($virtual_card);
+
+                if ($virtualCard->save()) {
+                    return $virtualCard->toArray();
+                    // send webhook event to customer
+                    $this->dispatchWebhookEvent($data, $user->id);
+                }
+
+                return false;
+            }
+        }
     }
 
     protected function handleCardCreatedFailed(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::error('Virtual card creation failed', $data);
         // Additional logic for handling failed card creation
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleTopupSuccess(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card top-up successful', $data);
         // Additional logic for handling successful top-up
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleTopupFailed(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::error('Virtual card top-up failed', $data);
         // Additional logic for handling failed top-up
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleWithdrawalSuccess(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card withdrawal successful', $data);
         // Additional logic for handling successful withdrawal
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleWithdrawalFailed(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::error('Virtual card withdrawal failed', $data);
         // Additional logic for handling failed withdrawal
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleTransactionDebit(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card transaction debit', $data);
         // Additional logic for handling transaction debit
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleTransactionReversed(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card transaction reversed', $data);
         // Additional logic for handling transaction reversal
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleTransactionDeclined(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card transaction declined', $data);
         // Additional logic for handling transaction decline
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleDeclinedFrozen(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card transaction declined (frozen)', $data);
         // Additional logic for handling transaction decline (frozen)
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleDeclinedTerminated(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card transaction declined (terminated)', $data);
         // Additional logic for handling transaction decline (terminated)
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleAuthorizationFailed(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card authorization failed', $data);
         // Additional logic for handling authorization failure
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleCrossBorder(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card cross-border transaction', $data);
         // Additional logic for handling cross-border transactions
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleTerminatedRefund(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card terminated refund', $data);
         // Additional logic for handling terminated refund
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleKycSuccess(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::info('Virtual card KYC success', $data);
         // Additional logic for handling KYC success
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
     }
 
     protected function handleKycFailed(array $data)
     {
+        $cardId = $data['cardId'] ?? null;
+        if (null == $cardId || empty($cardId)) {return false;}
         Log::error('Virtual card KYC failed', $data);
         // Additional logic for handling KYC failure
+        $virtual_card = $this->show($cardId, $arrOnly = true);
+        if (! $virtual_card) {
+            return false;
+        }
+
+        if ($virtual_card) {
+            $user = $virtual_card->user();
+            if ($user) {
+                // send webhook event to customer
+                $this->dispatchWebhookEvent($data, $user->id);
+            }
+        }
+    }
+
+    protected function dispatchWebhookEvent($event, $userId)
+    {
+        $webhook_url = Webhook::whereUserId($userId)->first();
+
+        if ($webhook_url) {
+            WebhookCall::create()->meta(['_uid' => $webhook_url->user_id])->url($webhook_url->url)->useSecret($webhook_url->secret)->payload($event)->dispatchSync();
+        }
     }
 }

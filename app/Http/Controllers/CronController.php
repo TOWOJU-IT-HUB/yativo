@@ -356,20 +356,28 @@ class CronController extends Controller
 
         $bridge = new BridgeController();
         $response = $bridge->sendRequest("/v0/virtual_accounts/history", "GET", $queryParams);
+
         Log::info("Bridge request processed: ", ['result' => $response]);
-        if (isset($response['count']) && isset($response['data']) && !empty($response['data'])) {
+
+        if (isset($response['count']) && !empty($response['data'])) {
             foreach ($response['data'] as $eventData) {
-                $this->processVirtualAccountWebhook($eventData);
-                // Update the last event ID
+                // Update the last processed event ID
                 if (!empty($eventData['id'])) {
                     Cache::put('bridge_last_event_id', $eventData['id']);
                 }
+                // Process only events from today
+                if (!Carbon::parse($eventData['created_at'])->isToday()) {
+                    continue;
+                }
+
+                $this->processVirtualAccountWebhook($eventData);
+
             }
         } else {
             Log::warning('Bridge webhook fetch returned empty or failed', ['response' => $response]);
         }
-
     }
+
 
     protected function processVirtualAccountWebhook(array $eventData): void
     {
@@ -400,15 +408,6 @@ class CronController extends Controller
             ? SendMoneyController::SUCCESS
             : "pending";
 
-        // Ensure necessary deposit columns exist
-        if (Schema::hasTable('deposits') && Schema::hasColumn('deposits', 'deposit_currency')) {
-            Schema::table('deposits', function (Blueprint $table) {
-                $table->string('deposit_currency')->nullable()->change();
-                $table->string('currency')->nullable()->change();
-                $table->string('receive_amount')->nullable()->change();
-            });
-        }
-
         $sent_amount = $payload['receipt']['initial_amount'] ?? $payload['amount'] ?? 0;
         $payment_rail = $payload['source']['payment_rail'] ?? null;
         $percentage = floatval(0.60 / 100);
@@ -423,102 +422,106 @@ class CronController extends Controller
         $total_fee = $float_fee + $fixed_fee;
         $deposit_amount = floatval($sent_amount - $total_fee);
 
-        // Create or update Deposit
-        $deposit = Deposit::updateOrCreate(
-            ['gateway_deposit_id' => $payload["id"]],
-            [
+        $deposit_exists = Deposit::where('gateway_deposit_id', $payload["id"])->exists();
+
+        if(!$deposit_exists) {
+            // Create or update Deposit
+            $deposit = Deposit::updateOrCreate(
+                ['gateway_deposit_id' => $payload["id"]],
+                [
+                    'user_id' => $user->id,
+                    'amount' => $deposit_amount,
+                    'currency' => 'usd',
+                    'deposit_currency' => 'USD',
+                    'gateway' => 99999999,
+                    'status' => $vc_status,
+                    'receive_amount' => $deposit_amount,
+                    'meta' => $payload,
+                ]
+            );
+
+            // Create or update VirtualAccountDeposit
+            VirtualAccountDeposit::updateOrCreate(
+                [
+                    'user_id' => $deposit->user_id,
+                    'deposit_id' => $deposit->id,
+                ],
+                [
+                    'currency' => strtoupper($payload['currency'] ?? 'USD'),
+                    'amount' => $deposit_amount,
+                    'account_number' => $vc->account_number,
+                    'status' => $vc_status,
+                ]
+            );
+
+            // Create TransactionRecord
+            TransactionRecord::create([
                 'user_id' => $user->id,
-                'amount' => $deposit_amount,
-                'currency' => 'usd',
-                'deposit_currency' => 'USD',
-                'gateway' => 99999999,
-                'status' => $vc_status,
-                'receive_amount' => $deposit_amount,
-                'meta' => $payload,
-            ]
-        );
+                'transaction_beneficiary_id' => $user->id,
+                'transaction_id' => $payload['deposit_id'] ?? Str::uuid(),
+                'transaction_amount' => $deposit_amount,
+                'gateway_id' => 99999999,
+                'transaction_status' => $vc_status,
+                'transaction_type' => 'virtual_account',
+                'transaction_memo' => 'payin',
+                'transaction_currency' => strtoupper($payload['currency'] ?? 'USD'),
+                'base_currency' => strtoupper($payload['currency'] ?? 'USD'),
+                'secondary_currency' => strtoupper($payload['currency'] ?? 'USD'),
+                'transaction_purpose' => 'VIRTUAL_ACCOUNT_DEPOSIT',
+                'transaction_payin_details' => [
+                    'sender_name' => $payload['source']['sender_name'] ?? null,
+                    'trace_number' => $payload['source']['trace_number'] ?? null,
+                    'bank_routing_number' => $payload['source']['sender_bank_routing_number'] ?? null,
+                    'description' => $payload['source']['description'] ?? null,
+                    'transaction_fees' => $total_fee
+                ],
+                'transaction_payout_details' => null,
+            ]);
 
-        // Create or update VirtualAccountDeposit
-        VirtualAccountDeposit::updateOrCreate(
-            [
-                'user_id' => $deposit->user_id,
-                'deposit_id' => $deposit->id,
-            ],
-            [
-                'currency' => strtoupper($payload['currency'] ?? 'USD'),
-                'amount' => $deposit_amount,
-                'account_number' => $vc->account_number,
-                'status' => $vc_status,
-            ]
-        );
+            // Credit wallet if not already done
+            if ($vc_status === SendMoneyController::SUCCESS) {
+                $wallet = $user->getWallet('usd');
+                if ($wallet) {
+                    $existingTransaction = $wallet->transactions()
+                        ->where('meta->deposit_id', $deposit->id)
+                        ->first();
 
-        // Create TransactionRecord
-        TransactionRecord::create([
-            'user_id' => $user->id,
-            'transaction_beneficiary_id' => $user->id,
-            'transaction_id' => $payload['deposit_id'] ?? Str::uuid(),
-            'transaction_amount' => $deposit_amount,
-            'gateway_id' => 99999999,
-            'transaction_status' => $vc_status,
-            'transaction_type' => 'virtual_account',
-            'transaction_memo' => 'payin',
-            'transaction_currency' => strtoupper($payload['currency'] ?? 'USD'),
-            'base_currency' => strtoupper($payload['currency'] ?? 'USD'),
-            'secondary_currency' => strtoupper($payload['currency'] ?? 'USD'),
-            'transaction_purpose' => 'VIRTUAL_ACCOUNT_DEPOSIT',
-            'transaction_payin_details' => [
-                'sender_name' => $payload['source']['sender_name'] ?? null,
-                'trace_number' => $payload['source']['trace_number'] ?? null,
-                'bank_routing_number' => $payload['source']['sender_bank_routing_number'] ?? null,
-                'description' => $payload['source']['description'] ?? null,
-                'transaction_fees' => $total_fee
-            ],
-            'transaction_payout_details' => null,
-        ]);
-
-        // Credit wallet if not already done
-        if ($vc_status === SendMoneyController::SUCCESS) {
-            $wallet = $user->getWallet('usd');
-            if ($wallet) {
-                $existingTransaction = $wallet->transactions()
-                    ->where('meta->deposit_id', $deposit->id)
-                    ->first();
-
-                if (!$existingTransaction) {
-                    $wallet->deposit($deposit_amount * 100, [
-                        'deposit_id' => $deposit->id,
-                        'gateway_deposit_id' => $payload['id'],
-                        'sender' => $payload['source']['description'] ?? null
-                    ]);
+                    if (!$existingTransaction) {
+                        $wallet->deposit($deposit_amount * 100, [
+                            'deposit_id' => $deposit->id,
+                            'gateway_deposit_id' => $payload['id'],
+                            'sender' => $payload['source']['description'] ?? null
+                        ]);
+                    }
                 }
             }
+
+            // Send webhook
+            $webhookData = [
+                "event.type" => "virtual_account.deposit",
+                "payload" => [
+                    "amount" => $payload['amount'],
+                    "currency" => "USD",
+                    "status" => "completed",
+                    "credited_amount" => $deposit_amount,
+                    "transaction_type" => "virtual_account_topup",
+                    "transaction_id" => "TXN" . rand(100000, 999999),
+                    "customer" => $customer,
+                    "source" => $payload['source'] ?? [],
+                ]
+            ];
+
+            dispatch(function () use ($user, $webhookData) {
+                $webhook = Webhook::whereUserId($user->id)->first();
+                if ($webhook) {
+                    WebhookCall::create()
+                        ->meta(['_uid' => $webhook->user_id])
+                        ->url($webhook->url)
+                        ->useSecret($webhook->secret)
+                        ->payload($webhookData)
+                        ->dispatchSync();
+                }
+            })->afterResponse();
         }
-
-        // Send webhook
-        $webhookData = [
-            "event.type" => "virtual_account.deposit",
-            "payload" => [
-                "amount" => $payload['amount'],
-                "currency" => "USD",
-                "status" => "completed",
-                "credited_amount" => $deposit_amount,
-                "transaction_type" => "virtual_account_topup",
-                "transaction_id" => "TXN" . rand(100000, 999999),
-                "customer" => $customer,
-                "source" => $payload['source'] ?? [],
-            ]
-        ];
-
-        dispatch(function () use ($user, $webhookData) {
-            $webhook = Webhook::whereUserId($user->id)->first();
-            if ($webhook) {
-                WebhookCall::create()
-                    ->meta(['_uid' => $webhook->user_id])
-                    ->url($webhook->url)
-                    ->useSecret($webhook->secret)
-                    ->payload($webhookData)
-                    ->dispatchSync();
-            }
-        })->afterResponse();
     }
 }
