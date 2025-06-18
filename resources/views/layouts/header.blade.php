@@ -217,7 +217,7 @@
                             </a>
                         </li>
                         <li>
-                            <a href="settings.html"
+                            <a href="#"
                                 class="flex items-center gap-3.5 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base">
                                 <svg class="fill-current" width="22" height="22" viewBox="0 0 22 22"
                                     fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -232,7 +232,7 @@
                             </a>
                         </li>
                     </ul>
-                    <button
+                    <button onclick=""
                         class="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base">
                         <svg class="fill-current" width="22" height="22" viewBox="0 0 22 22" fill="none"
                             xmlns="http://www.w3.org/2000/svg">
