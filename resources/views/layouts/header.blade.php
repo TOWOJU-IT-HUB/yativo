@@ -114,60 +114,7 @@
                         </div>
 
                         <ul class="flex h-auto flex-col overflow-y-auto">
-                            <li>
-                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="#">
-                                    <p class="text-sm">
-                                        <span class="text-black dark:text-white">Edit your
-                                            information in a swipe</span>
-                                        Sint occaecat cupidatat non proident, sunt in culpa
-                                        qui
-                                        officia deserunt mollit anim.
-                                    </p>
-
-                                    <p class="text-xs">12 May, 2025</p>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="#">
-                                    <p class="text-sm">
-                                        <span class="text-black dark:text-white">It is a
-                                            long established fact</span>
-                                        that a reader will be distracted by the readable.
-                                    </p>
-
-                                    <p class="text-xs">24 Feb, 2025</p>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="#">
-                                    <p class="text-sm">
-                                        <span class="text-black dark:text-white">There are
-                                            many variations</span>
-                                        of passages of Lorem Ipsum available, but the
-                                        majority have
-                                        suffered
-                                    </p>
-
-                                    <p class="text-xs">04 Jan, 2025</p>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="#">
-                                    <p class="text-sm">
-                                        <span class="text-black dark:text-white">There are
-                                            many variations</span>
-                                        of passages of Lorem Ipsum available, but the
-                                        majority have
-                                        suffered
-                                    </p>
-
-                                    <p class="text-xs">01 Dec, 2024</p>
-                                </a>
-                            </li>
+                            
                         </ul>
                     </div>
                     <!-- Dropdown End -->
@@ -209,87 +156,7 @@
                         </div>
 
                         <ul class="flex h-auto flex-col overflow-y-auto">
-                            <li>
-                                <a class="flex gap-4.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="messages.html">
-                                    <div class="h-12.5 w-12.5 rounded-full">
-                                        <img src="{{ url('assets') }}/src/images/user/user-02.png" alt="User" />
-                                    </div>
-
-                                    <div>
-                                        <h6 class="text-sm font-medium text-black dark:text-white">
-                                            Mariya Desoja
-                                        </h6>
-                                        <p class="text-sm">I like your confidence 💪</p>
-                                        <p class="text-xs">2min ago</p>
-                                    </div>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex gap-4.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="messages.html">
-                                    <div class="h-12.5 w-12.5 rounded-full">
-                                        <img src="{{ url('assets') }}/src/images/user/user-01.png" alt="User" />
-                                    </div>
-
-                                    <div>
-                                        <h6 class="text-sm font-medium text-black dark:text-white">
-                                            Robert Jhon
-                                        </h6>
-                                        <p class="text-sm">Can you share your offer?</p>
-                                        <p class="text-xs">10min ago</p>
-                                    </div>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex gap-4.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="messages.html">
-                                    <div class="h-12.5 w-12.5 rounded-full">
-                                        <img src="{{ url('assets') }}/src/images/user/user-03.png" alt="User" />
-                                    </div>
-
-                                    <div>
-                                        <h6 class="text-sm font-medium text-black dark:text-white">
-                                            Henry Dholi
-                                        </h6>
-                                        <p class="text-sm">I cam across your profile
-                                            and...</p>
-                                        <p class="text-xs">1day ago</p>
-                                    </div>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex gap-4.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="messages.html">
-                                    <div class="h-12.5 w-12.5 rounded-full">
-                                        <img src="{{ url('assets') }}/src/images/user/user-04.png" alt="User" />
-                                    </div>
-
-                                    <div>
-                                        <h6 class="text-sm font-medium text-black dark:text-white">
-                                            Cody Fisher
-                                        </h6>
-                                        <p class="text-sm">I’m waiting for you response!</p>
-                                        <p class="text-xs">5days ago</p>
-                                    </div>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="flex gap-4.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="messages.html">
-                                    <div class="h-12.5 w-12.5 rounded-full">
-                                        <img src="{{ url('assets') }}/src/images/user/user-02.png" alt="User" />
-                                    </div>
-
-                                    <div>
-                                        <h6 class="text-sm font-medium text-black dark:text-white">
-                                            Mariya Desoja
-                                        </h6>
-                                        <p class="text-sm">I like your confidence 💪</p>
-                                        <p class="text-xs">2min ago</p>
-                                    </div>
-                                </a>
-                            </li>
+                            
                         </ul>
                     </div>
                     <!-- Dropdown End -->
