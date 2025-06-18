@@ -17,13 +17,6 @@
             </a>
         </div>
 
-        <!-- Success Message -->
-        @if (session('success'))
-            <div class="m-6 p-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg">
-                {{ session('success') }}
-            </div>
-        @endif
-
         <!-- Table Section -->
         <div class="p-6">
             <div class="overflow-x-auto">
