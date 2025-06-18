@@ -15,9 +15,6 @@
                 </span>
             </a>
         </div>
-        @if (session('success'))
-            <div class="mt-4 text-green-600 dark:text-white">{{ session('success') }}</div>
-        @endif
 
         <table class="w-full table-auto">
             <thead>
