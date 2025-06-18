@@ -17,9 +17,9 @@ class CustomPricingController extends Controller
 {
     public function __construct()
     {
-        if(Schema::hasColumn('custom_pricings', 'gateway_type')) {
+        if(Schema::hasColumn('custom_pricings', 'gateway_id')) {
             Schema::table('custom_pricings', function(Blueprint $table) {
-                $table->string('gateway_type')->change();
+                $table->string('gateway_id')->change();
             });
         }
     }
