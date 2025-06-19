@@ -26,7 +26,7 @@ class PaymentController extends Controller
                 "claveRastreo" => $id,
                 "conceptoPago" => "Prueba REST",
                 "cuentaOrdenante" => "646180610900000007",
-                "cuentaBeneficiario" => "",
+                "cuentaBeneficiario" => $ben,
                 "empresa" => "YATIVO",
                 "institucionContraparte" => "90646",
                 "institucionOperante" => "90646",
