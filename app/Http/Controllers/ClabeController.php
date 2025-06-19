@@ -41,14 +41,17 @@ class ClabeController extends Controller
         switch ($estado) {
             case 'LQ': // Liquidated successfully
                 Log::info("Payout ID {$payoutId} marked as SUCCESS");
+                $response = 'recibido';
                 break;
 
             case 'CN': // Cancelled
                 Log::warning("Payout ID {$payoutId} CANCELLED");
+                $response = "cancelación";
                 break;
 
             case 'D': // Refunded
                 Log::warning("Payout ID {$payoutId} REFUNDED");
+                $response = "devolución";
                 break;
 
             default:
@@ -61,7 +64,7 @@ class ClabeController extends Controller
 
         return response()->json([
             'id' => $payoutId,
-            'mensaje' => 'recibido'
+            'mensaje' => $response
         ], 200);
     }
 
