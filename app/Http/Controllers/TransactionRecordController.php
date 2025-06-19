@@ -6,6 +6,7 @@ use App\Models\TransactionRecord;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class TransactionRecordController extends Controller
 {
@@ -22,25 +23,26 @@ class TransactionRecordController extends Controller
 
             $records = TransactionRecord::with(['beneficiary', 'user'])
                 ->whereUserId(auth()->id())
-                ->when($status, function($query) use ($status) {
+                ->when($status, function ($query) use ($status) {
                     return $query->where('transaction_status', $status);
                 })
-                ->when($startDate, function($query) use ($startDate) {
+                ->when($startDate, function ($query) use ($startDate) {
                     return $query->whereDate('created_at', '>=', $startDate);
                 })
-                ->when($endDate, function($query) use ($endDate) {
+                ->when($endDate, function ($query) use ($endDate) {
                     return $query->whereDate('created_at', '<=', $endDate);
                 })
-                ->when($amount, function($query) use ($amount) {
+                ->when($amount, function ($query) use ($amount) {
                     return $query->where('transaction_amount', $amount);
                 })
                 ->latest()
                 ->paginate(per_page())->withQueryString();
-                
+
             return paginate_yativo($records);
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
-        }    }
+        }
+    }
 
     /**
      * Display a listing of the resource.
@@ -69,8 +71,12 @@ class TransactionRecordController extends Controller
     {
         try {
             $record = TransactionRecord::with(['beneficiary', 'user', 'payinMethod', 'payoutMethod'])
-                ->whereId($recordId)
                 ->whereUserId(auth()->id())
+                ->when(
+                    Str::isUuid($recordId),                      // ✅ is it a valid UUID?
+                    fn($q) => $q->where('transaction_id', $recordId),   // yes → match by UUID column
+                    fn($q) => $q->whereId($recordId)                    // no  → match by primary key
+                )
                 ->first();
 
             if (!$record) {
@@ -176,7 +182,7 @@ class TransactionRecordController extends Controller
 
         // Determine the intervals for the given range
         $currentDate = $startDate->copy();
-        
+
         while ($currentDate <= $endDate) {
             // Format the current interval (date, week, month)
             switch ($interval) {

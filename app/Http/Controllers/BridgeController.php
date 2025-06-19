@@ -856,6 +856,34 @@ class BridgeController extends Controller
             return false;
         }
 
+        // Retrieve environment variables
+        $botToken = env("TELEGRAM_TOKEN");
+        $chatId = env('TELEGRAM_CHAT_ID');
+
+        // Log the notification call
+        Log::debug("Telegram notification called");
+
+        // Construct the Telegram API URL
+        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+
+        // Send the HTTP request using Laravel's HTTP client
+        try {
+            $response = Http::post($url, [
+                'text' => json_encode($payload),
+                'chat_id' => $chatId,
+                'protect_content' => true,
+                'parse_mode' => 'html'
+            ]);
+            
+            if ($response->successful()) {
+                Log::debug("Telegram notification sent successfully");
+            } else {
+                Log::error("Telegram notification failed: " . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error("Telegram notification error: " . $e->getMessage());
+        }
+
         $user = User::whereId($vc->user_id)->first();
         if (!$user) {
             Log::error("User not found for virtual account ID: $accountId");
