@@ -21,7 +21,7 @@ class PaymentController extends Controller
     {
         $bens = ["646180282200000009", "646180132700000992"];
         foreach($bens as $index => $ben){
-            $id = "yativoPayout{$index}";
+            $id = "yativoPayoutSTP{$index}";
             $data = [
                 "claveRastreo" => $id,
                 "conceptoPago" => "Prueba REST",
