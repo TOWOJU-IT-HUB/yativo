@@ -61,20 +61,13 @@ class PaymentController extends Controller
                 ])->put($url, $requestData);
 
                 // Get response JSON as array (Laravel parses JSON automatically)
-                $responseData[] = $response->json();
-
-                // Get HTTP status code
-                $status = $response->status();
-
-                
+                $responseData[] = $response->json();                
             } catch (\Exception $e) {
                 $responseData[] = $e->getMessage();
             }
 
-            return get_success_response($responseData);
-
         }
-
+        return get_success_response($responseData);
     }
     public function payout(Request $data)
     {
