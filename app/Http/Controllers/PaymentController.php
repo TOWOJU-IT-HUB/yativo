@@ -40,13 +40,8 @@ class PaymentController extends Controller
             "longitud" => "-99.180617",
         ];
 
-        // $privateKeyPath = storage_path('app/keys/stp_demo.pem');
-        // $passphrase = '12345678';
-
-
-        $privateKeyPath = storage_path('app/keys/yativo.pem');
-        $passphrase = '1234567890';
-
+        $privateKeyPath = storage_path('app/keys/stp_demo.pem');
+        $passphrase = '12345678';
 
         $stp = new STPSign($data, $privateKeyPath, $passphrase);
 
@@ -54,23 +49,13 @@ class PaymentController extends Controller
         $signature = $stp->getSign();
         $requestData = array_merge($data, ['firma' => $signature]);
 
-        $url = "https://prod.stpmex.com:7002/speiws/rest/ordenPago/registra";
-
-        // $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
+        $url = "https://demo.stpmex.com:7024/speiws/rest/ordenPago/registra";
 
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'Encoding' => 'UTF-8',
             ])->put($url, $requestData);
-
-
-            return response()->json([
-                "signature" => $signature,
-                "string" => $originalString,
-                "payload" => $requestData,
-                "response" => $response->json()['resultado']
-            ]);
 
             // Get response JSON as array (Laravel parses JSON automatically)
             $responseData = $response->json();

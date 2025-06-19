@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Deposit;
 use App\Models\User;
 use App\Models\payoutMethods;
-use Http;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
-use Log;
 use Modules\Flow\app\Services\FlowServices;
 use Modules\SendMoney\app\Models\SendMoney;
 use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
-
+use Illuminate\Support\Facades\Log;
 
 class FlowController extends Controller
 {
@@ -72,7 +71,7 @@ class FlowController extends Controller
     public function getPenPaymentStatus($token = null)
     {
         $request = request();
-        // Log::info("Floid request and response data", ['request' => $request->getContent()]);
+        Log::info("Floid request and response data", ['request' => $request->getContent()]);
 
         $url = "https://api.floid.app/pe/payments/check";
 
