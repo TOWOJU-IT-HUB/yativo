@@ -42,7 +42,7 @@ class PaymentController extends Controller
                 "latitud" => "19.370312",
                 "longitud" => "-99.180617",
             ];
-
+            Log::info("payout details is", ["details_{$index}" => $data]);
             $privateKeyPath = storage_path('app/keys/stp_demo.pem');
             $passphrase = '12345678';
 
