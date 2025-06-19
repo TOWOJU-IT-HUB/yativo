@@ -447,7 +447,7 @@ class CustomerVirtualCardsController extends Controller
 
             // Enforce a minimum fee of $1
             $topUpFee = max(1, $topUpFee);
-
+            $topUpFee = $topUpFee + amount;
             // Debit the user's wallet
             if (! debit_user_wallet(floatval($topUpFee * 100), "USD", "Virtual Card Creation")) {
                 return get_error_response(['error' => 'Error while charging for card creation']);
@@ -456,7 +456,7 @@ class CustomerVirtualCardsController extends Controller
             // Proceed with card creation logic...
             // e.g., call card provider API or create local card record
 
-            return get_success_response(['message' => 'Card created successfully', 'charged_fee' => $topUpFee]);
+            // return get_success_response(['message' => 'Card created successfully', 'charged_fee' => $topUpFee]);
 
             // make request to bitnob to topup card
             $bitnob = $this->card->topup($data);
@@ -517,7 +517,6 @@ class CustomerVirtualCardsController extends Controller
                               // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
             $floatCharge = 0; // most cases: 0 %
             if ($pricing['float_fee'] > 0) {
-                                  // If you do want a % of something (e.g. remaining balance), set $baseAmount accordingly
                 $baseAmount  = 0; // change to your own logic if needed
                 $floatCharge = $baseAmount * ($pricing['float_fee'] / 100);
             }
@@ -534,13 +533,13 @@ class CustomerVirtualCardsController extends Controller
             $response = $bitnob->cards()->terminate($request->cardId);
 
             if (isset($response['status']) && $response['status'] === true) {
-                                                        // Return remaining balance to user's Yativo USD balance
-                $remainingBalance = $response->balance; // Assuming balance is stored in the card model
-                credit_user_wallet($remainingBalance ?? 0, "USD", "Card Termination Refund");
+                $remainingBalance = $response['data']['balance']; 
 
+                $user = User::whereId($card->user_id)->first();
+                $wallet = $user->getWallet('usd');
+                $wallet->deposit($remainingBalance, ['desription' => "Card Termination Refund"]);
                 // Delete the card from the database
                 $card->delete();
-
                 return get_success_response(['message' => 'Card terminated successfully.']);
             }
 
@@ -553,18 +552,11 @@ class CustomerVirtualCardsController extends Controller
         }
     }
 
-    public function handleChargeback(Request $request)
+    public function handleChargeback($event)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                "cardId" => "required",
-            ]);
-
-            if ($validator->fails()) {
-                return get_error_response($validator->errors()->toArray());
-            }
-
-            $card = CustomerVirtualCards::where('customer_card_id', $request->cardId)
+            $cardId = $event['cardId'];
+            $card = CustomerVirtualCards::where('customer_card_id', $cardId)
                 ->where('business_id', get_business_id(auth()->id()))
                 ->first();
 
@@ -573,37 +565,32 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // Charge chargeback fee
-            debit_user_wallet(60, "USD", "Chargeback Fee");
-
-            // Call Bitnob API to handle the chargeback
-            $bitnob   = new Bitnob();
-            $response = $bitnob->cards()->chargeback($request->cardId);
-
-            if (isset($response['status']) && $response['status'] === true) {
-                return get_success_response(['message' => 'Chargeback handled successfully.']);
+            $pricing = get_custom_pricing('charge_back', 60, 'virtual_card');
+            $floatCharge = 0; // most cases: 0 %
+            if ($pricing['float_fee'] > 0) {
+                $baseAmount  = 0; // change to your own logic if needed
+                $floatCharge = $baseAmount * ($pricing['float_fee'] / 100);
             }
 
-            return get_error_response($response);
+            $fee = $floatCharge + $pricing['fixed_fee'];
+
+            // Debit the user’s wallet (convert dollars ➔ cents)
+            if (! debit_user_wallet(intval($fee * 100), 'USD', 'Card Termination Fee')) {
+                return get_error_response(['error' => 'Error while charging for card termination']);
+            }
+            return true;
         } catch (\Throwable $th) {
-            if (env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
+            $cardId = $event['data']['cardId'];
+            Log::error("unable to process charge back on cardID: {$cardId}", ['error' => $th->getMessage()]);
+            return false;
         }
     }
 
-    public function handleCardDeclined(Request $request)
+    public function handleCardDeclined($event)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                "cardId" => "required",
-            ]);
-
-            if ($validator->fails()) {
-                return get_error_response($validator->errors()->toArray());
-            }
-
-            $card = CustomerVirtualCards::where('customer_card_id', $request->cardId)
+            $cardId = $event['data']['cardId'];
+            $card = CustomerVirtualCards::where('customer_card_id', $cardId)
                 ->where('business_id', get_business_id(auth()->id()))
                 ->first();
 
@@ -613,22 +600,22 @@ class CustomerVirtualCardsController extends Controller
 
                                                               // Check if this is the third failed transaction
             $failedTransactions = $card->failed_transactions; // Assuming this is stored in the card model
-            if ($failedTransactions >= 3) {
+            if (isset($event[$event]) && $event['event'] == "virtualcard.transaction.declined.frozen") {
                 // Charge termination fee
-                debit_user_wallet(1, "USD", "Card Declined Termination Fee");
-
-                // Call Bitnob API to terminate the card
-                $bitnob   = new Bitnob();
-                $response = $bitnob->cards()->terminate($request->cardId);
-
-                if (isset($response['status']) && $response['status'] === true) {
-                    // Delete the card from the database
-                    $card->delete();
-
-                    return get_success_response(['message' => 'Card terminated due to multiple failed transactions.']);
+                $pricing = get_custom_pricing('card_decline', 1, 'virtual_card');
+                $floatCharge = 0; // most cases: 0 %
+                if ($pricing['float_fee'] > 0) {
+                    $baseAmount  = 0; // change to your own logic if needed
+                    $floatCharge = $baseAmount * ($pricing['float_fee'] / 100);
                 }
 
-                return get_error_response($response);
+                $fee = $floatCharge + $pricing['fixed_fee'];
+
+                // Debit the user’s wallet (convert dollars ➔ cents)
+                if (! debit_user_wallet(intval($fee * 100), 'USD', 'Card Termination Fee')) {
+                    return get_error_response(['error' => 'Error while charging for card termination']);
+                }
+                return true;
             }
 
             // Increment failed transaction count
