@@ -178,14 +178,14 @@ class MiscController extends Controller
                 : $method->base_currency);
     
             if (strtoupper($request->to_currency) !== $targetCurrency) {
-                return get_error_response(['error' => "Currency must be: {$targetCurrency}"]);
+                return get_error_response(['error' => "to_currency must be: {$targetCurrency}"]);
             }
     
             // Check allowed currencies
             $allowedCurrencies = explode(',', $method->base_currency);
             if (!in_array(strtoupper($request->from_currency), array_map('strtoupper', $allowedCurrencies))) {
                 return get_error_response([
-                    'error' => "Allowed currencies: " . implode(', ', $allowedCurrencies)
+                    'error' => "Allowed from currencies are: " . implode(', ', $allowedCurrencies)
                 ], 400);
             }
     
