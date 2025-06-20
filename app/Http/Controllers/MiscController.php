@@ -181,11 +181,11 @@ class MiscController extends Controller
                 return get_error_response(['error' => "to_currency must be: {$targetCurrency}"]);
             }
     
-            $targetCurrency = strtoupper($request->method_type == 'payout' 
+            $allowedCurrencies = strtoupper($request->method_type == 'payout' 
                 ? $method->base_currency 
                 : $method->currency);
             // Check allowed currencies
-            $allowedCurrencies = explode(',', $method->base_currency);
+            $allowedCurrencies = explode(',', $allowedCurrencies);
             if (!in_array(strtoupper($request->from_currency), array_map('strtoupper', $allowedCurrencies))) {
                 return get_error_response([
                     'error' => "Allowed from currencies are: " . implode(', ', $allowedCurrencies)
