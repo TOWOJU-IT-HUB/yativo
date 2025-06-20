@@ -219,7 +219,8 @@ class MiscController extends Controller
                     "customer_receive_amount" => number_format($request->amount, 2), //number_format($result['customer_receive_amount']['payout_currency'], 8),
                     "customer_total_amount_due" => number_format($result['amount_due'], 2)
                 ],
-                // "calculator" => $result
+                "gateway" => $method,
+                "calculator" => $result
             ]);
     
         } catch (\Throwable $th) {
