@@ -175,7 +175,7 @@ class MiscController extends Controller
             // Currency validation
             $targetCurrency = strtoupper($request->method_type == 'payout' 
                 ? $method->currency 
-                : $method->base_currency);
+                : $method->currency);
     
             if (strtoupper($request->to_currency) !== $targetCurrency) {
                 return get_error_response(['error' => "to_currency must be: {$targetCurrency}"]);
