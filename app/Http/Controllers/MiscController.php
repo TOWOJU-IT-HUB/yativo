@@ -212,7 +212,7 @@ class MiscController extends Controller
 
             if($request->method_type == 'payin') {
                 if($request->amount < $method->minimum_deposit) {
-                    return get_error_response(['error' => "A minimum amount of {$gateway->minimum_deposit}{$gateway->currency} is require"]);
+                    return get_error_response(['error' => "A minimum amount of {$method->minimum_deposit}{$method->currency} is require"]);
                 }
                 $calculator = new DepositCalculator($method->toArray());
                 $result = $calculator->calculate(
