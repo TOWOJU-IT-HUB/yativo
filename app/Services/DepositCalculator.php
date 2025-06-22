@@ -68,6 +68,7 @@ class DepositCalculator
 
         if(strtolower(request()->currency) !== strtolower($this->gateway['currency'])) {
             $creditedAmount = $creditedAmount / $adjustedRate;
+            echo "testing mode";
         }
 
         return [
