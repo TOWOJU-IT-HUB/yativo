@@ -215,7 +215,11 @@ class MiscController extends Controller
                     floatval($request->amount)
                 );
 
-                return get_success_response(array_merge($result, ['from_currency' => $request->from_currency, "to_currency" => $request->to_currency]));
+                return get_success_response(array_merge($result, [
+                    'from_currency' => $request->from_currency, 
+                    "to_currency" => $request->to_currency,
+                    "gateway" => $gateway
+                ]));
             }
     
 
