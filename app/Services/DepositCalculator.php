@@ -42,6 +42,13 @@ class DepositCalculator
      */
     public function calculate(float $depositAmount): array
     {
+        $request = request();
+        if($request->has('from_currency') && $request->has('to_currency')) {
+            // then the deposit currency is
+            $depositCurrency = $request->from_currency;
+        } else {
+            $depositCurrency = $request->currency;
+        }
         $adjustedRate = $this->getAdjustedExchangeRate();
 
         $floatChargeRate = $this->gateway['float_charge'] ?? 0;
@@ -66,10 +73,10 @@ class DepositCalculator
 
         $creditedAmount = $depositAmount - $totalFee;
 
-        if(strtolower(request()->currency) !== strtolower($this->gateway['currency'])) {
+        if(strtolower($depositCurrency) !== strtolower($this->gateway['currency'])) {
             $creditedAmount = $creditedAmount / $adjustedRate;
             // echo "testing mode";
-        } elseif(strtolower(request()->currency) === strtolower($this->gateway['currency'])) {
+        } elseif(strtolower($depositCurrency) === strtolower($this->gateway['currency'])) {
              $creditedAmount = $depositAmount - $totalFee;
         }
 
