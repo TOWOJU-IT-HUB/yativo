@@ -11,6 +11,7 @@ use App\Models\PayinMethods;
 use App\Models\payoutMethods;
 use App\Models\State;
 use App\Models\User;
+use App\Services\DepositCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
@@ -200,6 +201,15 @@ class MiscController extends Controller
                 $request->method_id,
                 floatval($method->exchange_rate_float ?? 0)
             );
+
+            if($request->method_type == 'payin') {
+                $calculator = new DepositCalculator($method->toArray());
+                $result = $calculator->calculate(
+                    floatval($request->amount)
+                );
+
+                return get_success_response($result);
+            }
     
 
             // return response()->json($result); exit;
@@ -223,7 +233,7 @@ class MiscController extends Controller
                     "customer_total_amount_due" => number_format($result['amount_due'], 2)
                 ],
                 // "gateway" => $method,
-                "calculator" => $result
+                // "calculator" => $result
             ]);
     
         } catch (\Throwable $th) {
