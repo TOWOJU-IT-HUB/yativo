@@ -45,10 +45,11 @@ class DepositCalculator
         $request = request();
         if($request->has('from_currency') && $request->has('to_currency')) {
             // then the deposit currency is
-            $depositCurrency = $request->from_currency;
+            $depositCurrency = $request->to_currency;
         } else {
             $depositCurrency = $request->currency;
         }
+        
         $adjustedRate = $this->getAdjustedExchangeRate();
 
         $floatChargeRate = $this->gateway['float_charge'] ?? 0;

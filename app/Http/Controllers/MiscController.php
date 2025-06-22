@@ -155,8 +155,8 @@ class MiscController extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                'from_currency' => 'required',
-                'to_currency' => 'required',
+                'from_currency' => 'required', // currency you're making payment -> gateway currency
+                'to_currency' => 'required', // currency of wallet to be credited
                 'method_id' => 'required',
                 'method_type' => 'required|in:payin,payout',
                 'amount' => 'required|numeric|min:0.01'
