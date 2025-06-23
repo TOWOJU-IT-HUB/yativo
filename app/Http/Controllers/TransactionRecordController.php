@@ -54,8 +54,8 @@ class TransactionRecordController extends Controller
             $records = TransactionRecord::with(['beneficiary', 'user', 'customer'])->whereUserId(auth()->id())
                 ->where(function($query) use ($currency){
                     $query->where('base_currency', $currency);
-                    $query->orWhere('secondary_currency', $currency)   ; 
-                })            
+                    $query->orWhere('secondary_currency', $currency); 
+                })
                 ->latest()
                 ->paginate(per_page())->withQueryString();
 

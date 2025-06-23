@@ -38,6 +38,12 @@ class ClabeController extends Controller
         $payoutId = $request->input('id');
         $estado = strtoupper($request->input('estado')); // Normalize to uppercase
 
+        if($payoutId == "YATIVTRANXID0") {
+            $estado = 'CN';
+        } elseif($payoutId == "YATIVTRANXID1") {
+            $estado = 'D';
+        }
+
         switch ($estado) {
             case 'LQ': // Liquidated successfully
                 Log::info("Payout ID {$payoutId} marked as SUCCESS");
