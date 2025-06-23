@@ -1522,3 +1522,22 @@ if (!function_exists('get_custom_pricing')) {
         ];
     }
 }
+
+
+if (!function_exists('get_custom_pricing')) {
+    function allowFirewallIP(string $ip)
+    {
+        exec("sudo ufw allow from $ip", $output, $status);
+        Log::info("UFW allow $ip: status=$status", $output);
+        return $status === 0;
+    }
+}
+
+if (!function_exists('get_custom_pricing')) {
+    function removeFirewallIP(string $ip)
+    {
+        exec("sudo ufw delete allow from $ip", $output, $status);
+        Log::info("UFW delete $ip: status=$status", $output);
+        return $status === 0;
+    }
+}

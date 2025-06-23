@@ -44,6 +44,7 @@ return [
         'admin' => [
             'driver' => 'session',
             'provider' => 'admins',
+            'timeout' => 5, 
         ],
 
         'api' => [

@@ -10,26 +10,24 @@ use Illuminate\Support\Facades\Log;
 class WhitelistedIPController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display all whitelisted IPs for the authenticated user.
      */
     public function index()
     {
         try {
-            // Get all whitelisted IPs for the authenticated user
             $ips = WhitelistedIP::whereUserId(auth()->id())->first(); 
-            return get_success_response($ips); // Use custom success response
+            return get_success_response($ips);
         } catch (\Throwable $th) {
-            return get_error_response($th->getMessage()); // Use custom error response
+            return get_error_response($th->getMessage());
         }
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store new IPs and allow them via UFW.
      */
     public function store(Request $request)
     {
         try {
-            // Validate request parameters
             $validate = Validator::make($request->all(), [
                 "new_ip.*" => "required|ip",
             ]);
@@ -39,44 +37,40 @@ class WhitelistedIPController extends Controller
             }
 
             $user = auth()->user();
+            $whitelistedIPs = array_unique($request->new_ip);
+
             $currentIP = WhitelistedIP::where('user_id', $user->id)->first();
 
-            // Initialize array to store new whitelisted IPs
-            $whitelistedIPs = array_unique($request->new_ip);  // Ensure unique IPs
-
             if ($currentIP) {
-                // Merge current IPs and new IPs, ensuring no duplicates
-                $currentIPsArray = $currentIP->ip_address ?? [];
-                $mergedIPs = array_values(array_unique(array_merge($currentIPsArray, $whitelistedIPs)));
+                $existingIPs = $currentIP->ip_address ?? [];
+                $mergedIPs = array_values(array_unique(array_merge($existingIPs, $whitelistedIPs)));
                 $currentIP->ip_address = $mergedIPs;
                 $currentIP->save();
             } else {
-                // Create new record if no current IPs exist for the user
                 WhitelistedIP::create([
                     'user_id' => $user->id,
                     'ip_address' => $whitelistedIPs,
                 ]);
             }
 
-            return get_success_response([
-                'message' => 'IP addresses whitelisted successfully'
-            ]);
+            // Allow all new IPs via UFW
+            foreach ($whitelistedIPs as $ip) {
+                $this->allowFirewallIP($ip);
+            }
+
+            return get_success_response(['message' => 'IP addresses whitelisted and added to firewall.']);
         } catch (\Throwable $th) {
             Log::error($th);
-            if(env('APP_ENV') == 'local') {
-                return get_error_response(['error' => $th->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
+            return get_error_response(['error' => 'Failed to whitelist IPs.']);
         }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update an existing whitelist record.
      */
     public function update(Request $request, WhitelistedIP $whitelistedIP)
     {
         try {
-            // Validate request parameters
             $validate = Validator::make($request->all(), [
                 "new_ip.*" => "required|ip",
             ]);
@@ -87,56 +81,74 @@ class WhitelistedIPController extends Controller
 
             $user = auth()->user();
 
-            // Check if the user owns the whitelisted IP
             if ($whitelistedIP->user_id !== $user->id) {
                 return get_error_response(['error' => 'Unauthorized'], 403);
             }
 
-            // Get the current IPs
             $currentIPs = $whitelistedIP->ip_address ?? [];
-            $newIPs = array_unique($request->new_ip);  // Ensure unique new IPs
+            $newIPs = array_unique($request->new_ip);
+            $mergedIPs = array_merge($currentIPs, array_diff($newIPs, $currentIPs));
 
-            // Merge the current IPs with the new IPs, avoiding duplicates
-            $whitelistedIPs = array_merge($currentIPs, array_diff($newIPs, $currentIPs));
+            $whitelistedIP->update(['ip_address' => $mergedIPs]);
 
-            // Update the record
-            $whitelistedIP->update(['ip_address' => $whitelistedIPs]);
+            // Allow any new IPs via UFW
+            foreach ($newIPs as $ip) {
+                $this->allowFirewallIP($ip);
+            }
 
-            return get_success_response([
-                'message' => 'IP addresses updated successfully'
-            ]);
+            return get_success_response(['message' => 'IP addresses updated and added to firewall.']);
         } catch (\Throwable $th) {
             Log::error($th);
-            return get_error_response('Failed to update IP addresses');
+            return get_error_response(['error' => 'Failed to update IP addresses.']);
         }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove a specific IP from whitelist and UFW.
      */
     public function destroy($ipAddress)
     {
         try {
-            // Get the user's whitelisted IP record
             $whitelistedIP = WhitelistedIP::whereUserId(auth()->id())->first();
 
             if (!$whitelistedIP) {
                 return get_error_response(['error' => 'No whitelisted IPs found'], 404);
             }
 
-            // Check if the IP address exists in the array
             if (!in_array($ipAddress, $whitelistedIP->ip_address)) {
                 return get_error_response(['error' => 'IP address not found'], 400);
             }
 
-            // Remove the IP address
             $whitelistedIP->ip_address = array_values(array_diff($whitelistedIP->ip_address, [$ipAddress]));
             $whitelistedIP->save();
 
-            return get_success_response(['message' => 'IP address removed from whitelist successfully']);
+            // Remove IP from firewall
+            $this->removeFirewallIP($ipAddress);
+
+            return get_success_response(['message' => 'IP address removed from whitelist and firewall.']);
         } catch (\Throwable $th) {
             Log::error($th);
-            return get_error_response(['error' => 'Failed to remove IP address'], 500);
+            return get_error_response(['error' => 'Failed to remove IP address.']);
         }
+    }
+
+    /**
+     * Allow IP through UFW firewall.
+     */
+    protected function allowFirewallIP(string $ip): bool
+    {
+        exec("sudo ufw allow from $ip", $output, $status);
+        Log::info("UFW allow $ip: status=$status", ['output' => $output]);
+        return $status === 0;
+    }
+
+    /**
+     * Remove IP from UFW firewall.
+     */
+    protected function removeFirewallIP(string $ip): bool
+    {
+        exec("sudo ufw delete allow from $ip", $output, $status);
+        Log::info("UFW delete $ip: status=$status", ['output' => $output]);
+        return $status === 0;
     }
 }
