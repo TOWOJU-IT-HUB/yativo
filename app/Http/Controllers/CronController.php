@@ -58,7 +58,7 @@ class CronController extends Controller
 
 
         $payout = new CronController();
-        $payout->bitso();
+        // $payout->bitso();
 
 
     }
@@ -352,31 +352,39 @@ class CronController extends Controller
 
     public function checkForBridgeVirtualAccountDeposits()
     {
-        $lastEventId = Cache::get('bridge_last_event_id', 'fe3d9209-8cc3-4a5d-85b0-9b61324edef8');
-        $queryParams = $lastEventId ? ['ending_before' => $lastEventId] : [];
-        $queryParams['event_type'] = 'payment_processed';
+        try {
+            $lastEventId = Cache::get('bridge_last_event_id', 'fe3d9209-8cc3-4a5d-85b0-9b61324edef8');
+            $queryParams = $lastEventId ? ['ending_before' => $lastEventId] : [];
+            $queryParams['event_type'] = 'payment_processed';
 
-        $bridge = new BridgeController();
-        $response = $bridge->sendRequest("/v0/virtual_accounts/history", "GET", $queryParams);
+            $bridge = new BridgeController();
+            $response = $bridge->sendRequest("/v0/virtual_accounts/history", "GET", $queryParams);
 
-        Log::info("Bridge request processed: ", ['result' => $response]);
+            Log::info("Bridge request processed: ", ['result' => $response]);
 
-        if (isset($response['count']) && !empty($response['data'])) {
-            foreach ($response['data'] as $eventData) {
-                // Update the last processed event ID
-                if (!empty($eventData['id'])) {
-                    Cache::put('bridge_last_event_id', $eventData['id']);
+            if (isset($response['count']) && !empty($response['data'])) {
+                foreach ($response['data'] as $eventData) {
+                    // Update the last processed event ID
+                    if (!empty($eventData['id'])) {
+                        Cache::put('bridge_last_event_id', $eventData['id']);
+                    }
+                    // Process only events from today
+                    if (!Carbon::parse($eventData['created_at'])->isToday()) {
+                        continue;
+                    }
+
+                    $this->processVirtualAccountWebhook($eventData);
+
                 }
-                // Process only events from today
-                if (!Carbon::parse($eventData['created_at'])->isToday()) {
-                    continue;
-                }
-
-                $this->processVirtualAccountWebhook($eventData);
-
+            } else {
+                Log::warning('Bridge webhook fetch returned empty or failed', ['response' => $response]);
             }
-        } else {
-            Log::warning('Bridge webhook fetch returned empty or failed', ['response' => $response]);
+        } catch (\Throwable $e) {
+            Log::error("Exception in processVirtualAccountWebhook", [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'eventData' => $eventData,
+            ]);
         }
     }
 
