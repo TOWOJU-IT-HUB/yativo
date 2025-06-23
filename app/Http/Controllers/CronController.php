@@ -41,6 +41,9 @@ class CronController extends Controller
         // run general failed update
         // $this->payout();
         // $this->deposit();
+        
+        // handle USD virtual account deposits
+        $this->checkForBridgeVirtualAccountDeposits();
 
         $deposit = new CronDepositController();
         // info("Cron Job running at ". now());
@@ -57,8 +60,6 @@ class CronController extends Controller
         $payout->bitso();
 
 
-        // handle USD virtual account deposits
-        $this->checkForBridgeVirtualAccountDeposits();
     }
 
     private function payout()
