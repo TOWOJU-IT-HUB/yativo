@@ -22,13 +22,18 @@ class DepositCronCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Running deposit cronjob description';
+    protected $description = 'Running deposit cronjob';
   
     /**
      * Execute the console command.
      */
     public function handle()
     {
+
+        $payout = new CronController();
+        $payout->checkForBridgeVirtualAccountDeposits();
+        $payout->bitso();
+
         $deposit = new CronDepositController();
         // info("Cron Job running at ". now());
 
@@ -40,11 +45,6 @@ class DepositCronCommand extends Command
         $deposit->bitso();
 
 
-        $payout = new CronController();
-        $payout->bitso();
-
-
         // handle USD virtual account deposits
-        $payout->checkForBridgeVirtualAccountDeposits();
     }
 }
