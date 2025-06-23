@@ -213,9 +213,6 @@ class FlowController extends Controller
         }
     }
 
-
-    use Illuminate\Support\Facades\Http;
-
     /**
      * Check payout status using case ID and currency.
      *
