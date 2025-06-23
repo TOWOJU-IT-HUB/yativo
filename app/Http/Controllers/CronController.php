@@ -369,9 +369,9 @@ class CronController extends Controller
                         Cache::put('bridge_last_event_id', $eventData['id']);
                     }
                     // Process only events from today
-                    if (!Carbon::parse($eventData['created_at'])->isToday()) {
-                        continue;
-                    }
+                    // if (!Carbon::parse($eventData['created_at'])->isToday()) {
+                    //     continue;
+                    // }
 
                     $this->processVirtualAccountWebhook($eventData);
 
