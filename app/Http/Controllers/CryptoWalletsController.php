@@ -6,6 +6,7 @@ use App\Models\BusinessConfig;
 use App\Models\CryptoDeposit;
 use App\Models\CryptoWallets;
 use App\Models\User;
+use App\Models\TransactionRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
