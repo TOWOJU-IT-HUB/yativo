@@ -29,18 +29,21 @@ class ClabeController extends Controller
     {
         Log::info('Payout Webhook Received', ['data' => $request->all()]);
 
-        if (!$request->has('id') || !$request->has('estado')) {
-            return response()->json([
-                'error' => 'Missing required fields (id or estado)'
-            ], 422);
-        }
+        $validated = $request->validate([
+            'id' => 'required|string|max:255',
+            'estado' => 'required|string|max:10',
+        ]);
 
-        $payoutId = $request->input('id');
-        $estado = strtoupper($request->input('estado')); // Normalize to uppercase
+        $payoutId = $validated['id'];
+        $estado = strtoupper(trim($validated['estado'])); // Normalize and sanitize
 
-        if($payoutId == "YATIVTRANXID0") {
+        $cache0 = cache()->get("YATIVTRANSID0");
+        $cache1 = cache()->get("YATIVTRANSID1");
+
+        // Override estado if ID matches cached ones
+        if ($payoutId === $cache0) {
             $estado = 'CN';
-        } elseif($payoutId == "YATIVTRANXID1") {
+        } elseif ($payoutId === $cache1) {
             $estado = 'D';
         }
 
@@ -52,27 +55,28 @@ class ClabeController extends Controller
 
             case 'CN': // Cancelled
                 Log::warning("Payout ID {$payoutId} CANCELLED");
-                $response = "cancelación";
+                $response = 'cancelación';
                 break;
 
             case 'D': // Refunded
                 Log::warning("Payout ID {$payoutId} REFUNDED");
-                $response = "devolución";
+                $response = 'devolución';
                 break;
 
             default:
                 Log::error("Unknown estado '{$estado}' for payout ID {$payoutId}");
                 return response()->json([
                     'id' => $payoutId,
-                    'mensaje' => 'estado desconocido'
+                    'mensaje' => 'estado desconocido',
                 ], 400);
         }
 
         return response()->json([
             'id' => $payoutId,
-            'mensaje' => $response
+            'mensaje' => $response,
         ], 200);
     }
+
 
     // handle all payin into the virtual account from stp.mx
     public function handleDeposit(Request $request)
