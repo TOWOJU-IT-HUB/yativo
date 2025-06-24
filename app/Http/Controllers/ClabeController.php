@@ -27,25 +27,16 @@ class ClabeController extends Controller
 
     public function handlePayout(Request $request)
     {
-        Log::info('Payout Webhook Received', ['data' => $request->all()]);
+       Log::info('Payout Webhook Received', ['data' => $request->all()]);
 
-        $validated = $request->validate([
-            'id' => 'required|string|max:255',
-            'estado' => 'required|string|max:10',
-        ]);
+        if (!$request->has('id') || !$request->has('estado')) {
+            return response()->json([
+                'error' => 'Missing required fields (id or estado)'
+            ], 422);
+        }
 
-        $payoutId = $validated['id'];
-        $estado = strtoupper(trim($validated['estado'])); // Normalize and sanitize
-
-        // $cache0 = cache()->get("YATIVTRANSID0");
-        // $cache1 = cache()->get("YATIVTRANSID1");
-
-        // // Override estado if ID matches cached ones
-        // if ($payoutId === $cache0) {
-        //     $estado = 'CN';
-        // } elseif ($payoutId === $cache1) {
-        //     $estado = 'D';
-        // }
+        $payoutId = $request->input('id');
+        $estado = strtoupper($request->input('estado')); 
         
         $response = 'recibido';
 
