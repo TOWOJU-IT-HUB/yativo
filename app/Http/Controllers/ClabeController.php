@@ -37,42 +37,44 @@ class ClabeController extends Controller
         $payoutId = $validated['id'];
         $estado = strtoupper(trim($validated['estado'])); // Normalize and sanitize
 
-        $cache0 = cache()->get("YATIVTRANSID0");
-        $cache1 = cache()->get("YATIVTRANSID1");
+        // $cache0 = cache()->get("YATIVTRANSID0");
+        // $cache1 = cache()->get("YATIVTRANSID1");
 
-        // Override estado if ID matches cached ones
-        if ($payoutId === $cache0) {
-            $estado = 'CN';
-        } elseif ($payoutId === $cache1) {
-            $estado = 'D';
-        }
+        // // Override estado if ID matches cached ones
+        // if ($payoutId === $cache0) {
+        //     $estado = 'CN';
+        // } elseif ($payoutId === $cache1) {
+        //     $estado = 'D';
+        // }
+        
+        $response = 'recibido';
 
-        switch ($estado) {
-            case 'LQ': // Liquidated successfully
-                Log::info("Payout ID {$payoutId} marked as SUCCESS");
-                $response = 'recibido';
-                break;
+        // switch ($estado) {
+        //     case 'LQ': // Liquidated successfully
+        //         Log::info("Payout ID {$payoutId} marked as SUCCESS");
+        //         $response = 'recibido';
+        //         break;
 
-            case 'CN': // Cancelled
-                Log::warning("Payout ID {$payoutId} CANCELLED");
-                $response = 'cancelación';
-                break;
+        //     case 'CN': // Cancelled
+        //         Log::warning("Payout ID {$payoutId} CANCELLED");
+        //         $response = 'cancelación';
+        //         break;
 
-            case 'D': // Refunded
-                Log::warning("Payout ID {$payoutId} REFUNDED");
-                $response = 'devolución';
-                break;
+        //     case 'D': // Refunded
+        //         Log::warning("Payout ID {$payoutId} REFUNDED");
+        //         $response = 'devolución';
+        //         break;
 
-            default:
-                Log::error("Unknown estado '{$estado}' for payout ID {$payoutId}");
-                return response()->json([
-                    'id' => $payoutId,
-                    'mensaje' => 'estado desconocido',
-                ], 400);
-        }
+        //     default:
+        //         Log::error("Unknown estado '{$estado}' for payout ID {$payoutId}");
+        //         return response()->json([
+        //             'id' => $payoutId,
+        //             'mensaje' => 'estado desconocido',
+        //         ], 400);
+        // }
 
         return response()->json([
-            'id' => $payoutId,
+            // 'id' => $payoutId,
             'mensaje' => $response,
         ], 200);
     }
