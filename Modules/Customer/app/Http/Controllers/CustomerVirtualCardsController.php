@@ -9,7 +9,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Modules\Customer\Models\Customer;
-use Modules\Customer\Models\CustomerVirtualCards;
+use Modules\Customer\app\Models\CustomerVirtualCards;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Towoju5\Bitnob\Bitnob;
