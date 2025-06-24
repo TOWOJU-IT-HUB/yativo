@@ -1,5 +1,5 @@
 <?php
-namespace Modules\Customer\Http\Controllers;
+namespace Modules\Customer\app\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserMeta;
