@@ -14,7 +14,7 @@ use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
 use Towoju5\Bitnob\Bitnob;
 
-class old_CustomerVirtualCardsController extends Controller
+class CustomerVirtualCardsControllerOld extends Controller
 {
     public $card;
     public function __construct()

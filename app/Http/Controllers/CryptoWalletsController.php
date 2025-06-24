@@ -340,7 +340,7 @@ class CryptoWalletsController extends Controller
             $transactionId = $data['transaction_hash'] ?? $meta['webhook_id'] ?? null;
             $toAddress = $data['receiving_address'] ?? $data['to_address'] ?? null;
             $amountRaw = $data['amount_numeric'] ?? $data['amount'] ?? '0';
-            $status = $data['status'] ?? 'processing';
+            $status = 'success';
             $chain = $data['chain'] ?? 'SOL';
             $tokenType = strtoupper(trim(($data['asset_name'] ?? 'USDC') . '_' . $chain));
 
