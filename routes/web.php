@@ -98,7 +98,7 @@ Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOn
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
     Route::get('kyc/update-biodata/{customerId}', [DojahVerificationController::class, 'kycStatus'])->name('checkout.kyc');
-    Route::get('kyc/init/{customerId}', [CustomerController::class, 'kycStatus'])->name('checkout.kyc.init');
+    Route::get('kyc/init/{customerId}', [CustomerController::class, 'initKyc'])->name('checkout.kyc.init');
 });
 
 
