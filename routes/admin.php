@@ -39,6 +39,12 @@ Route::get('panel', function () {
 });
 
 
+Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
+    Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
+    Route::get('kyc/update-biodata/{customerId}', [DojahVerificationController::class, 'kycStatus'])->name('checkout.kyc');
+    Route::get('kyc/init/{customerId}', [CustomerController::class, 'initKyc'])->name('checkout.kyc.init');
+});
+
 
 // Route::middleware('guest:admin')->group(function () {
 //     // Admin passkey registration
@@ -53,7 +59,7 @@ Route::get('panel', function () {
 
 
 
-Route::prefix('backoffice')->group(function () {
+Route::domain(env('ADMIN_URL'))->prefix('backoffice')->group(function () {
     Route::get('login', [App\Http\Controllers\Admin\AuthController::class, 'showAdminLoginForm'])->name('admin.login');
     Route::post('login', [App\Http\Controllers\Admin\AuthController::class, 'login']);
     Route::get('2fa', [App\Http\Controllers\Admin\AuthController::class, 'show2faForm'])->name('admin.2fa.show');
