@@ -17,7 +17,7 @@ class CustomerKycMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // Skip validation if the request is for the KYC verification URL
-        if ($request->is('api/v1/verification/verify-customer') OR $request->is('api/v1/customer/kyc/*')) {
+        if ($request->is('api/v1/verification/*') OR $request->is('api/v1/customer/kyc/*')) {
             return $next($request);
         }
 
