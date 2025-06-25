@@ -90,8 +90,8 @@ Route::prefix('backoffice')->group(function () {
             // Deposit Routes
             Route::group([], function () {
                 Route::get('deposits', [DepositController::class, 'index'])->name('deposits.index');
-                Route::get('deposits/update-status', [DepositController::class, 'updateStatus'])->name('deposits.update-status');
                 Route::get('deposits/{id}', [DepositController::class, 'show'])->name('deposits.show');
+                Route::post('deposits/update-status', [DepositController::class, 'updateStatus'])->name('deposits.update-status');
             });
 
             // Custom Pricing controller route
