@@ -25,6 +25,8 @@ class CustomerVirtualCards extends Model
         "card_id",
         "raw_data"
     ];
+
+    protected $hidden = ['business_id'];
     
     protected $casts = [
         "raw_data"

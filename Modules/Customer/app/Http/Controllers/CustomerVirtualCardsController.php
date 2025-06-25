@@ -405,21 +405,27 @@ class CustomerVirtualCardsController extends Controller
     public function show($cardId, $arrOnly = false)
     {
         try {
-            $card = $this->card->getCard($cardId);
+            // check if card belongs to the customer
+            $businessId = get_business_id(auth()->id());
+            $card = CustomerVirtualCards::where('business_id', $businessId)->where('card_id', $cardId)->first();
+            if(!$card) {
+                return get_error_response(['error' => "Card not found"]);
+            }
+            $cardData = $this->card->getCard($cardId);
 
-            if (empty($card)) {
+            if (empty($cardData)) {
                 return $arrOnly ? null : get_error_response(['error' => "Card not found!"], 404);
             }
 
-            if (! is_array($card)) {
-                $card = (array) $card;
+            if (! is_array($cardData)) {
+                $cardData = (array) $cardData;
             }
 
             $arr     = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
             $arrData = [];
 
-            if (isset($card['data'])) {
-                $arrData = $card['data'];
+            if (isset($cardData['data'])) {
+                $arrData = $cardData['data'];
 
                 foreach ($arr as $key) {
                     unset($arrData[$key]);
@@ -429,6 +435,16 @@ class CustomerVirtualCardsController extends Controller
                 if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int) $arrData['statusCode'] === 500)) {
                     return $arrOnly ? null : get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
                 }
+            }
+
+            // update card details in DB
+            if($card->card_number == null) {
+                $card->update([
+                    'card_number' => $arrData['cardNumber'],
+                    'expiry_date' => $arrData['valid'],
+                    'cvv'         => $arrData['cvv2'],
+                    'raw_data'    => $arrData,
+                ]);
             }
 
             return $arrOnly ? $arrData : get_success_response($arrData);
