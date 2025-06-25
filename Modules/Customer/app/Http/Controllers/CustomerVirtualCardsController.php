@@ -233,7 +233,7 @@ class CustomerVirtualCardsController extends Controller
                 'cardBrand'     => 'visa',
                 'cardType'      => 'virtual',
                 'reference'     => generate_uuid(),
-                'amount'        => $request->amount * 100, // amount should be passed in cents
+                'amount'        => $request->amount, // amount should be passed in cents
             ];
 
             // Check how many cards the customer has;
@@ -250,6 +250,7 @@ class CustomerVirtualCardsController extends Controller
             $bitnob = new Bitnob();
             $cards  = $bitnob->cards();
             $create = $cards->create($data);
+            // var_dump(['response' => $create, 'payload' => $data]);
             if (! is_array($create)) {
                 $create = (array) $create;
             }
