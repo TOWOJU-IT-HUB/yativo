@@ -19,9 +19,12 @@
                 </button>
                 <button data-tab="gateway" class="tab-button px-6 py-3 border-b-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                     Gateway Info
-                </button>
+                </button> 
                 <button data-tab="transactions" class="tab-button px-6 py-3 border-b-2 text-sm font-medium text-gray-500 dark:text-gray-400">
                     Transactions
+                </button>
+                <button data-tab="statusChange" class="tab-button px-6 py-3 border-b-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Update Status
                 </button>
             </nav>
         </div>
@@ -187,6 +190,43 @@
                         No transactions available
                     </div>
                 @endif
+            </div>
+            <div id="statusChange" class="tab-content hidden space-y-4">
+                <form action="{{ route('admin.deposits.update-status') }}" method="POST" class="max-w-md mx-auto bg-white shadow-md rounded-xl p-6 mt-6 border">
+                    @csrf
+
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Update Deposit Status</h2>
+
+                    {{-- Show validation errors --}}
+                    @if ($errors->any())
+                        <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded">
+                            <ul class="text-sm list-disc pl-4">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    {{-- Hidden input for deposit ID --}}
+                    <input type="hidden" name="deposit_id" value="{{ $deposit->id }}">
+
+                    {{-- Status dropdown --}}
+                    <label for="deposit_status" class="block mb-2 text-sm font-medium text-gray-700">Select Status</label>
+                    <select name="deposit_status" id="deposit_status" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Choose status --</option>
+                        <option value="pending" {{ old('deposit_status', $deposit->status) == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="approved" {{ old('deposit_status', $deposit->status) == 'approved' ? 'selected' : '' }}>Approved</option>
+                        <option value="rejected" {{ old('deposit_status', $deposit->status) == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                        <option value="completed" {{ old('deposit_status', $deposit->status) == 'completed' ? 'selected' : '' }}>Completed</option>
+                    </select>
+
+                    {{-- Submit button --}}
+                    <button type="submit" class="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition">
+                        Update Status
+                    </button>
+                </form>
+
             </div>
         </div>
     </div>
