@@ -425,4 +425,46 @@ class CustomerController extends Controller
     {
         //
     }
+
+    public function getCustomerKycLink(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            "customer_id" => "required|exists:customers,customer_id",
+            "customer_type" => "required|in:individual,business",
+            "redirect_uri" => "sometimes"
+        ]);
+
+        if ($validator->fails()) {
+            return get_error_response($validator->errors(), 422);
+        }
+
+        $cust = Customer::where('customer_id', $request->customer_id)->first();
+
+
+        $url = env('BRIDGE_BASE_URL');
+        $apiKey = env('BRIDGE_API_KEY');
+        $headers = [
+            "Api-Key" => $apiKey,
+            "Accept" => "application/json",
+        ];
+
+        $payload = [
+            'type' => $request->customer_type,
+            'full_name' => $cust->customer_name,
+            'email' => $cust->customer_email,
+            'redirect_uri' => $request->redirect_uri ?? 'https://app.yativo.com'
+        ];
+
+        $response = Http::withHeaders($headers)->post("{$url}v0/kyc_links", $payload);
+
+        if ($response->successful()) {
+            // On success, get the response body
+            $data = $response->json();
+            return get_success_response($data['kyc_link']); // or return response()->json($data);
+        } else {
+            // On failure, log or return the error
+            Log::error('Bridge API error', ['response' => $response->body()]);
+            get_error_response(['error' => 'Request to Bridge API failed'], 400);
+        }
+    }
 }
