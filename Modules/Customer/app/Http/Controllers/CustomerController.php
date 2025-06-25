@@ -430,13 +430,14 @@ class CustomerController extends Controller
     public function initKyc($customerId)
     {        
         $cust = Customer::where('customer_id', $customerId)->first();
-        if(!$cust) {
-            return get_error_response(['error' => 'Invalid customer ID provied']);
-        }
         
-        return view('kyc.index', compact([
-            "kyc_link" => $cust->customer_kyc_link
-        ]));
+        if (!$cust) {
+            return get_error_response(['error' => 'Invalid customer ID provided']);
+        }
+
+        $kyc_link = $cust->customer_kyc_link;
+
+        return view('kyc.index', compact('kyc_link'));
     }
 
     public function getCustomerKycLink(Request $request)
