@@ -447,6 +447,7 @@ class CustomerController extends Controller
         $headers = [
             "Api-Key" => $apiKey,
             "Accept" => "application/json",
+            "Idempotency-Key" => generate_uuid()
         ];
 
         $payload = [
@@ -465,12 +466,12 @@ class CustomerController extends Controller
             $cust->update([
                 "customer_kyc_link" => $data['kyc_link']
             ]);
-            
+
             return get_success_response($cust); // or return response()->json($data);
         } else {
             // On failure, log or return the error
             Log::error('Bridge API error', ['response' => $response->body()]);
-            get_error_response(['error' => 'Request to Bridge API failed'], 400);
+            return get_error_response(['error' => 'Request to Bridge API failed'], 400);
         }
     }
 }
