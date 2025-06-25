@@ -443,7 +443,7 @@ class CustomerVirtualCardsController extends Controller
                     'card_number' => $arrData['cardNumber'],
                     'expiry_date' => $arrData['valid'],
                     'cvv'         => $arrData['cvv2'],
-                    'raw_data'    => $arrData,
+                    'raw_data'    => (array)$arrData,
                 ]);
             }
 

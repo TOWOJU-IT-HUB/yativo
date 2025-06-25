@@ -29,7 +29,7 @@ class CustomerVirtualCards extends Model
     protected $hidden = ['business_id'];
     
     protected $casts = [
-        "raw_data"
+        "raw_data" => "array"
     ];
     
     // Use UUID as the primary key type
