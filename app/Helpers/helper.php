@@ -1038,6 +1038,12 @@ if (!function_exists('debit_user_wallet')) {
         // Find or create wallet for the user
         $wallet = $user->getWallet($currency);
 
+
+        echo json_encode([
+            "debit_amount" => $amount,
+            "wallet" => $wallet
+        ]);
+
         if(!$wallet) {
             return ['error' => "Insufficient balance or invalid debit wallet."];
         }

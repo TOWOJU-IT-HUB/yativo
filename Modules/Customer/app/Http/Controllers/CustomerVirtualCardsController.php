@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Modules\Customer\Models\Customer;
+use Modules\Customer\app\Models\Customer;
 use Modules\Customer\app\Models\CustomerVirtualCards;
 use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
