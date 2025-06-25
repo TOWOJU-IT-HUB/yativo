@@ -23,7 +23,7 @@ class CustomerVirtualCardsController extends Controller
         $bitnob     = new Bitnob();
         $this->card = $bitnob->cards();
 
-        $this->middleware('vc_charge')->only(['store', 'topUpCard']);
+        // $this->middleware('vc_charge')->only(['store', 'topUpCard']);
     }
 
     public function index(Request $request)
