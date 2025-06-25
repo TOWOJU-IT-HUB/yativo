@@ -427,6 +427,18 @@ class CustomerController extends Controller
         //
     }
 
+    public function initKyc($customerId)
+    {        
+        $cust = Customer::where('customer_id', $customerId)->first();
+        if(!$cust) {
+            return get_error_response(['error' => 'Invalid customer ID provied']);
+        }
+        
+        return view('kyc.index', compact([
+            "kyc_link" => $cust->customer_kyc_link
+        ]));
+    }
+
     public function getCustomerKycLink(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -441,6 +453,11 @@ class CustomerController extends Controller
 
         $cust = Customer::where('customer_id', $request->customer_id)->first();
 
+        if(!empty($cust->customer_kyc_link)) {
+            return get_success_response([
+                "kyc_url" => route('checkout.kyc.init', ['customerId' => $request->customer_id])
+            ]);
+        }
 
         $url = env('BRIDGE_BASE_URL');
         $apiKey = env('BRIDGE_API_KEY');
@@ -467,11 +484,13 @@ class CustomerController extends Controller
                 "customer_kyc_link" => $data['kyc_link']
             ]);
 
-            return get_success_response($cust); // or return response()->json($data);
+            return get_success_response([
+                "kyc_url" => route('checkout.kyc.init', ['customerId' => $request->customer_id])
+            ]);
         } else {
             // On failure, log or return the error
             Log::error('Bridge API error', ['response' => $response->body()]);
-            return get_error_response(['error' => 'Request to Bridge API failed'], 400);
+            return get_error_response(['error' => 'API Request to failed'], 400);
         }
     }
 }

@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Advcash\app\Http\Controllers\AdvcashController;
 use Modules\Bitso\app\Http\Controllers\BitsoController as ControllersBitsoController;
 use Modules\Bitso\app\Services\BitsoServices;
+use Modules\Customer\app\Http\Controllers\CustomerController;
 use Modules\Flow\app\Http\Controllers\FlowController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletController;
 use Modules\VitaWallet\app\Http\Controllers\VitaWalletTestController;
@@ -97,6 +98,7 @@ Route::any('/coinbase/onramp/url', [CoinbaseOnrampController::class, 'generateOn
 Route::domain(env('CHECKOUT_DOMAIN'))->group(function () {
     Route::get('process-payin/{id}/paynow', [CheckoutController::class, 'show'])->name('checkout.url');
     Route::get('kyc/update-biodata/{customerId}', [DojahVerificationController::class, 'kycStatus'])->name('checkout.kyc');
+    Route::get('kyc/init/{customerId}', [CustomerController::class, 'kycStatus'])->name('checkout.kyc.init');
 });
 
 
