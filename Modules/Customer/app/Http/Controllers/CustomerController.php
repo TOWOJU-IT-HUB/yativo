@@ -449,7 +449,7 @@ class CustomerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return get_error_response($validator->errors(), 422);
+            return get_error_response($validator->errors()->toArray(), 422);
         }
 
         $cust = Customer::where('customer_id', $request->customer_id)->first();
