@@ -258,6 +258,20 @@ class CustomerVirtualCardsController extends Controller
                 // Save card details into DB, call get card to retrieve card details
                 $cardId = $create['data']['id'];
 
+                // store the card in the db against the card ID.
+                $businessId = get_business_id(auth()->id());
+                $save_card_id = CustomerVirtualCards::updateOrCreate(
+                    [
+                        "card_id" => $cardId,
+                        'business_id' => $businessId,
+                        'customer_id' => $request->customer_id,
+                    ], [
+                        "card_id" => $cardId,
+                        'business_id' => $businessId,
+                        'customer_id' => $request->customer_id,
+                        'customer_card_id' => $cardId,
+                    ]);
+
                 $user_meta_payload = [
                     "user_id"                   => auth()->id(),
                     "customer_id"               => $cust->id,
@@ -311,21 +325,68 @@ class CustomerVirtualCardsController extends Controller
 
     public function saveVirtualCard($card, $cardId, $request)
     {
-        $virtualCard                   = new CustomerVirtualCards();
-        $virtualCard->business_id      = get_business_id(auth()->id());
-        $virtualCard->customer_id      = $request->customer_id;
-        $virtualCard->customer_card_id = $cardId;
-        $virtualCard->card_number      = $card['cardNumber'];
-        $virtualCard->expiry_date      = $card['valid'];
-        $virtualCard->cvv              = $card['cvv2'];
-        $virtualCard->card_id          = $cardId;
-        $virtualCard->raw_data         = json_encode($card);
+        $businessId = get_business_id(auth()->id());
 
-        if ($virtualCard->save()) {
-            return $virtualCard->toArray();
+        $virtualCard = CustomerVirtualCards::updateOrCreate(
+            [
+                'business_id' => $businessId,
+                'customer_id' => $request->customer_id,
+                'customer_card_id' => $cardId,
+            ],
+            [
+                'card_number' => $card['cardNumber'],
+                'expiry_date' => $card['valid'],
+                'cvv'         => $card['cvv2'],
+                'card_id'     => $cardId,
+                'raw_data'    => $card,
+            ]
+        );
+
+        return $virtualCard ? $virtualCard->toArray() : false;
+    }
+
+    /**
+     * Add a cronjob to pull details of virtual cards that failed to pull on creation
+     * 
+     * @param string cardId
+     */
+    public function virtualCardCronJob()
+    {
+        $cards = CustomerVirtualCards::whereNull('card_number')->get();
+        foreach ($cards as $index => $card) {
+             $cardInfo = $this->card->getCard($card->card_id);
+
+            if (empty($cardInfo)) {
+                return false;
+            }
+
+            if (! is_array($cardInfo)) {
+                $cardInfo = (array) $cardInfo;
+            }
+
+            $arr     = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
+            $arrData = [];
+
+            if (isset($cardInfo['data'])) {
+                $arrData = $cardInfo['data'];
+                foreach ($arr as $key) {
+                    unset($arrData[$key]);
+                }
+                // handle error cases inside the data block
+                if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int) $arrData['statusCode'] === 500)) {
+                    return false;
+                }
+            }
+
+            // update card details in DB
+            $card->update([
+                'card_number' => $card['cardNumber'],
+                'expiry_date' => $card['valid'],
+                'cvv'         => $card['cvv2'],
+                'card_id'     => $card->card_id,
+                'raw_data'    => $card,
+            ]);
         }
-
-        return false;
     }
 
     public function show($cardId, $arrOnly = false)

@@ -216,9 +216,9 @@
                     <select name="deposit_status" id="deposit_status" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="">-- Choose status --</option>
                         <option value="pending" {{ old('deposit_status', $deposit->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="approved" {{ old('deposit_status', $deposit->status) == 'approved' ? 'selected' : '' }}>Approved</option>
-                        <option value="rejected" {{ old('deposit_status', $deposit->status) == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                        <option value="completed" {{ old('deposit_status', $deposit->status) == 'completed' ? 'selected' : '' }}>Completed</option>
+                        <option value="failed" {{ old('deposit_status', $deposit->status) == 'failed' ? 'selected' : '' }}>Failed</option>
+                        <option value="cancelled" {{ old('deposit_status', $deposit->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        <option value="success" {{ old('deposit_status', $deposit->status) == 'success' ? 'selected' : '' }}>Success</option>
                     </select>
 
                     {{-- Submit button --}}
