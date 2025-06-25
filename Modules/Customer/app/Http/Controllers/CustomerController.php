@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Modules\Customer\app\Models\Customer;
 use Illuminate\Support\Facades\Crypt;
 use Modules\Customer\app\Models\CustomerVirtualCards;
+use Log;
 
 class CustomerController extends Controller
 {
