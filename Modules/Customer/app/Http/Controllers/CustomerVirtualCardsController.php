@@ -354,7 +354,7 @@ class CustomerVirtualCardsController extends Controller
     {
         $cards = CustomerVirtualCards::whereNull('card_number')->get();
         foreach ($cards as $index => $card) {
-             $cardInfo = $this->card->getCard($card->card_id);
+            $cardInfo = $this->card->getCard($card->card_id);
 
             if (empty($cardInfo)) {
                 return false;

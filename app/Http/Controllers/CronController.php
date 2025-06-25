@@ -25,6 +25,7 @@ use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 use Carbon\Carbon;
+use Modules\Customer\app\Http\Controllers\CustomerVirtualAccountController;
 
 class CronController extends Controller
 {
@@ -45,6 +46,10 @@ class CronController extends Controller
 
         // handle USD virtual account deposits
         $this->checkForBridgeVirtualAccountDeposits();
+        // fetch virtual cards and pull card details
+        
+        $vcards = new CustomerVirtualAccountController();
+        $vcards->virtualCardCronJob();
 
         $deposit = new CronDepositController();
         // info("Cron Job running at ". now());
@@ -374,7 +379,6 @@ class CronController extends Controller
                     }
 
                     $this->processVirtualAccountWebhook($eventData);
-
                 }
             } else {
                 Log::warning('Bridge webhook fetch returned empty or failed', ['response' => $response]);
