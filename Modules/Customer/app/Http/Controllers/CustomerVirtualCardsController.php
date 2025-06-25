@@ -261,17 +261,29 @@ class CustomerVirtualCardsController extends Controller
 
                 // store the card in the db against the card ID.
                 $businessId = get_business_id(auth()->id());
+                // $save_card_id = CustomerVirtualCards::updateOrCreate(
+                //     [
+                //         "card_id" => $cardId,
+                //         'business_id' => $businessId,
+                //         'customer_id' => $request->customer_id,
+                //     ], [
+                //         "card_id" => $cardId,
+                //         'business_id' => $businessId,
+                //         'customer_id' => $request->customer_id,
+                //         'customer_card_id' => $cardId,
+                //     ]);
+
                 $save_card_id = CustomerVirtualCards::updateOrCreate(
                     [
-                        "card_id" => $cardId,
+                        'card_id'     => $cardId,
                         'business_id' => $businessId,
                         'customer_id' => $request->customer_id,
-                    ], [
-                        "card_id" => $cardId,
-                        'business_id' => $businessId,
-                        'customer_id' => $request->customer_id,
+                    ],
+                    [
                         'customer_card_id' => $cardId,
-                    ]);
+                    ]
+                );
+
 
                 $user_meta_payload = [
                     "user_id"                   => auth()->id(),
@@ -316,11 +328,11 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response($create["message"] ?? $create);
             }
         } catch (\Throwable $th) {
-            Log::error("Bitnob error:", $th->getTrace());
-            if (env('APP_ENV') == 'local') {
+            // Log::error("Bitnob error:", $th->getTrace());
+            // if (env('APP_ENV') == 'local') {
                 return get_error_response(['error' => $th->getMessage()]);
-            }
-            return get_error_response(['error' => 'Something went wrong, please try again later']);
+            // }
+            // return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
 
