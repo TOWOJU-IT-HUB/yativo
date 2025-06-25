@@ -347,7 +347,7 @@ class CustomerVirtualCardsController extends Controller
 
     /**
      * Add a cronjob to pull details of virtual cards that failed to pull on creation
-     * 
+     * Modules\Customer\app\Http\Controllers\CustomerVirtualAccountController::virtualCardCronJob
      * @param string cardId
      */
     public function virtualCardCronJob()

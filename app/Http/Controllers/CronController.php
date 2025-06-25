@@ -25,7 +25,7 @@ use Modules\Webhook\app\Models\Webhook;
 use Spatie\WebhookServer\WebhookCall;
 use Modules\SendMoney\app\Http\Controllers\SendMoneyController;
 use Carbon\Carbon;
-use Modules\Customer\app\Http\Controllers\CustomerVirtualAccountController;
+use Modules\Customer\app\Http\Controllers\CustomerVirtualCardsController;
 
 class CronController extends Controller
 {
@@ -47,8 +47,8 @@ class CronController extends Controller
         // handle USD virtual account deposits
         $this->checkForBridgeVirtualAccountDeposits();
         // fetch virtual cards and pull card details
-        
-        $vcards = new CustomerVirtualAccountController();
+
+        $vcards = new CustomerVirtualCardsController();
         $vcards->virtualCardCronJob();
 
         $deposit = new CronDepositController();
