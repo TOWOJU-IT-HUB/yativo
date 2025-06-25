@@ -461,7 +461,12 @@ class CustomerController extends Controller
         if ($response->successful()) {
             // On success, get the response body
             $data = $response->json();
-            return get_success_response($data['kyc_link']); // or return response()->json($data);
+
+            $cust->update([
+                "customer_kyc_link" => $data['kyc_link']
+            ]);
+            
+            return get_success_response($cust); // or return response()->json($data);
         } else {
             // On failure, log or return the error
             Log::error('Bridge API error', ['response' => $response->body()]);
