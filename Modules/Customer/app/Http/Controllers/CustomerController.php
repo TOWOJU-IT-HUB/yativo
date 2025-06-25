@@ -436,8 +436,8 @@ class CustomerController extends Controller
         }
 
         $kyc_link = $cust->customer_kyc_link;
-
-        return view('kyc.index', compact('kyc_link'));
+        return redirect()->away($kyc_link);
+        // return view('kyc.index', compact('kyc_link'));
     }
 
     public function getCustomerKycLink(Request $request)
