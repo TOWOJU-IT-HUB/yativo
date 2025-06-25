@@ -188,7 +188,7 @@ class CustomerVirtualCardsController extends Controller
     {
         try {
             $validate = Validator::make($request->all(), [
-                'customer_id' => 'required|exists:customers,id',
+                'customer_id' => 'required|exists:customers,customer_id',
                 'amount'      => 'required|numeric|min:5',
             ]);
 
