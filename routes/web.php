@@ -60,6 +60,13 @@ use App\Models\localPaymentTransactions;
 // Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
 // Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
+
+
+// routes/web.php or routes/api.php
+Route::get('bridge-vc-update-all', [BridgeController::class, 'updateAllVirtualAccounts']);
+
+
+
 Route::any('register-payment', [PaymentController::class, "registerPayment"])->withoutMiddleware(VerifyCsrfToken::class);
 Route::any('stp-payout', [PaymentController::class, "payout"])->withoutMiddleware(VerifyCsrfToken::class);
 

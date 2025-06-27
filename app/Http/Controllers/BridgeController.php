@@ -1144,4 +1144,88 @@ class BridgeController extends Controller
     {
         return response()->json(['message' => $message], 400);
     }
+
+    public function updateAllVirtualAccounts()
+    {
+        $url = "https://api.bridge.xyz/v0/virtual_accounts?status=activated&limit=100";
+
+        $response = Http::withHeaders([
+            'accept' => 'application/json',
+            'Api-Key' => env('BRIDGE_API_KEY'),
+        ])->get($url);
+
+        if ($response->failed()) {
+            Log::error('Failed to fetch virtual accounts', ['response' => $response->body()]);
+            return response()->json(['error' => 'Unable to fetch virtual accounts'], 500);
+        }
+
+        $accounts = $response->json('data') ?? [];
+
+        $results = [];
+
+        foreach ($accounts as $account) {
+            $customerId = $account['customer_id'] ?? null;
+            $virtualAccountId = $account['id'] ?? null;
+
+            if (!$customerId || !$virtualAccountId) {
+                Log::warning('Missing customer or account ID', ['account' => $account]);
+                continue;
+            }
+
+            $walletAddress = $this->createWallet();
+
+            if (is_array($walletAddress) && isset($walletAddress['error'])) {
+                Log::error('Wallet creation failed', [
+                    'customer_id' => $customerId,
+                    'error' => $walletAddress['error']
+                ]);
+                $results[] = [
+                    'customer_id' => $customerId,
+                    'account_id' => $virtualAccountId,
+                    'status' => 'failed',
+                    'error' => $walletAddress['error'],
+                ];
+                continue;
+            }
+
+            // Now update the destination
+            $updateResponse = Http::withHeaders([
+                'accept' => 'application/json',
+                'content-type' => 'application/json',
+                'Api-Key' => env('BRIDGE_API_KEY'),
+            ])->put("https://api.bridge.xyz/v0/customers/{$customerId}/virtual_accounts/{$virtualAccountId}", [
+                'destination' => [
+                    'currency' => 'usdc',
+                    'payment_rail' => 'solana',
+                    'address' => $walletAddress,
+                ]
+            ]);
+
+            if ($updateResponse->successful()) {
+                $results[] = [
+                    'customer_id' => $customerId,
+                    'account_id' => $virtualAccountId,
+                    'status' => 'updated',
+                    'address' => $walletAddress,
+                ];
+            } else {
+                Log::error('Update failed', [
+                    'customer_id' => $customerId,
+                    'account_id' => $virtualAccountId,
+                    'response' => $updateResponse->body()
+                ]);
+                $results[] = [
+                    'customer_id' => $customerId,
+                    'account_id' => $virtualAccountId,
+                    'status' => 'failed',
+                    'error' => 'Update failed',
+                ];
+            }
+        }
+
+        return response()->json([
+            'status' => 'completed',
+            'results' => $results,
+        ]);
+    }
 }
