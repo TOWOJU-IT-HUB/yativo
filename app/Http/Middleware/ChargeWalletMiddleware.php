@@ -139,8 +139,8 @@ class ChargeWalletMiddleware
                 //     "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from]
                 // ];
                 $apis = [
-                    "https://min-api.cryptocompare.com/data/price" => ['fsym' => $from, 'tsyms' => $to],
                     "https://api.coinbase.com/v2/exchange-rates" => ['currency' => $from],
+                    "https://min-api.cryptocompare.com/data/price" => ['fsym' => $from, 'tsyms' => $to],
                     "https://api.coinbase.com/v2/prices/{$from}-{$to}/spot"
                 ];
 
