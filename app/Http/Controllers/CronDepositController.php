@@ -147,7 +147,7 @@ class CronDepositController extends Controller
 
     public function onramp()
     {
-        $ids = $this->getGatewayPayinMethods('transfi');
+        $ids = $this->getGatewayPayinMethods('onramp');
         $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
         $transfi = new OnrampService();
     
@@ -203,7 +203,7 @@ class CronDepositController extends Controller
                         $statusMessage = 'Withdrawal initiated';
                         break;
                     default:
-                        $statusMessage = 'Unknown status';
+                        $statusMessage = 'failed';
                         break;
                 }
     
@@ -224,36 +224,36 @@ class CronDepositController extends Controller
     public function bitso()
     {
         return true;
-        $ids = $this->getGatewayPayinMethods('bitso');
-        $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
-        $bitsoService = new BitsoServices();
+        // $ids = $this->getGatewayPayinMethods('bitso');
+        // $deposits = Deposit::whereIn('gateway', $ids)->whereStatus('pending')->get();
+        // $bitsoService = new BitsoServices();
 
-        foreach ($deposits as $deposit) {
-            $response = $bitsoService->getDepositStatus($deposit->gateway_deposit_id, []);
+        // foreach ($deposits as $deposit) {
+        //     $response = $bitsoService->getDepositStatus($deposit->gateway_deposit_id, []);
     
-            if (is_array($response) && isset($response['status'])) {
-                $status = strtolower($response['status']);
-                $transactionId = $response['fid'] ?? null;
-                $amount = $response['amount'] ?? null;
-                $currency = $response['currency'] ?? null;
+        //     if (is_array($response) && isset($response['status'])) {
+        //         $status = strtolower($response['status']);
+        //         $transactionId = $response['fid'] ?? null;
+        //         $amount = $response['amount'] ?? null;
+        //         $currency = $response['currency'] ?? null;
     
-                $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
-                if (!$txn) continue;
+        //         $txn = TransactionRecord::where('transaction_id', $deposit->id)->first();
+        //         if (!$txn) continue;
     
-                switch ($status) {
-                    case 'complete':
-                        $depositService = new DepositService();
-                        $depositService->process_deposit($txn->transaction_id);
-                        break;
-                    default:
-                        break;
-                }
+        //         switch ($status) {
+        //             case 'complete':
+        //                 $depositService = new DepositService();
+        //                 $depositService->process_deposit($txn->transaction_id);
+        //                 break;
+        //             default:
+        //                 break;
+        //         }
     
-                // Update transaction and deposit records
-                $txn->update(["transaction_status" => $status]);
-                $deposit->update(['status' => $status]);
-            }
-        }
+        //         // Update transaction and deposit records
+        //         $txn->update(["transaction_status" => $status]);
+        //         $deposit->update(['status' => $status]);
+        //     }
+        // }
     }
 
     private function getGatewayPayinMethods($gateway)

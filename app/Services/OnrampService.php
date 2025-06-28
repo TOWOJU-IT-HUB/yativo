@@ -155,7 +155,8 @@ class OnrampService
             if ($response->failed()) {
                 Log::error('Order Status API Error:', [
                     'status' => $response->status(),
-                    'response' => $response->body()
+                    'response' => $response->body(),
+                    'error' => true
                 ]);
                 throw new \Exception('Failed to retrieve order status.');
             }
