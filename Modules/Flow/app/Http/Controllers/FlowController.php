@@ -32,9 +32,9 @@ class FlowController extends Controller
                 'quote_id' => $quoteId,
                 'custom' => $quoteId,
                 'amount' => $amount,
-                'currency' => $currency
-                // 'redirect_url' => request()->redirect_url ?? route('floid.callback.redirect'),
-                // 'webhook_url' => route('floid.callback.success'),
+                'currency' => $currency,
+                'redirect_url' => request()->redirect_url ?? route('floid.callback.redirect'),
+                'webhook_url' => route('floid.callback.success'),
                 // 'sandbox' => env("FLOID_SANDBOX", false),
             ];
 
