@@ -21,6 +21,8 @@ class TransactionRecord extends Model
         "raw_data" => 'array',
     ];
 
+    protected $appends = ['payment_gateway'];
+
     protected $hidden = [
         "transaction_payin_details",
         "transaction_payout_details",
@@ -54,6 +56,7 @@ class TransactionRecord extends Model
     // Method to retrieve payment gateway dynamically
     public function getPaymentGatewayAttribute()
     {
+        $result = [];
         if ($this->transaction_memo === 'payin') {
             $result = $this->payinMethod; 
         }

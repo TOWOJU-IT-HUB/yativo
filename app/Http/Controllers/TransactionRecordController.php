@@ -71,7 +71,7 @@ class TransactionRecordController extends Controller
     public function show($recordId)
     {
         try {
-            $record = TransactionRecord::with(['beneficiary', 'user', 'payinMethod', 'payoutMethod'])
+            $record = TransactionRecord::with(['beneficiary', 'user'])
                 ->whereUserId(auth()->id())
                 ->when(
                     Str::isUuid($recordId),                      // ✅ is it a valid UUID?
