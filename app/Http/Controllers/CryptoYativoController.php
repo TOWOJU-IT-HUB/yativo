@@ -35,11 +35,12 @@ class CryptoYativoController extends Controller
         return null;
     }
 
-    public function addCustomer()
+    public function addCustomer($customerId = null)
     {
         try {
             $request = request();
-            $customer = Customer::where('customer_id', $request->customer_id)->first();
+            $customer_id = $customerId ?? $request->customer_id;
+            $customer = Customer::where('customer_id', $customer_id)->first();
             if (!$customer) {
                 return ['error' => 'Customer not found'];
             }
