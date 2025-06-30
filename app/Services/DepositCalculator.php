@@ -81,7 +81,7 @@ class DepositCalculator
              $creditedAmount = $depositAmount - $totalFee;
         }
 
-        return [
+        $result = [
             'deposit_amount' => round($depositAmount, 2),
             'fixed_fee' => round($fixedFeeInQuote, 2),
             'float_fee' => round($percentageFee, 2),
@@ -91,5 +91,9 @@ class DepositCalculator
             'total_fees' => round($totalFee, 2),
             'credited_amount' => round($creditedAmount, 2),
         ];
+
+        request()->merge([
+            "calculator_result" => $result
+        ]);
     }
 }

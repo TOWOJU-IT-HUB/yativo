@@ -60,6 +60,11 @@ use App\Models\localPaymentTransactions;
 // Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
 // Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
+if(!Schema::hasColumn("transaction_records", "exchange_data")) {
+    Schema::table("transaction_records", function(Blueprint $table) {
+        $table->string("exchange_data")->nullable();
+    });
+}
 
 
 // routes/web.php or routes/api.php

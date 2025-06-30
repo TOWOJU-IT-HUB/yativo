@@ -65,7 +65,7 @@ class TransactionRecord extends Model
             $result = $this->payoutMethod;
         }
 
-        return ['payment_gateway' => $result]; // In case neither condition is met
+        return $result; // In case neither condition is met
     }
 
     public function tracking(){

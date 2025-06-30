@@ -325,7 +325,7 @@ class PayoutCalculator
         $fixed_charge = $payoutMethod->fixed_charge;
 
         // Determine user plan pricing
-        if ($user_plan === 3) {
+        // if ($user_plan === 3) {
             $customPricing = CustomPricing::where('user_id', $user->id)
                 ->where('gateway_id', $payoutMethod->id)
                 ->first();
@@ -336,7 +336,7 @@ class PayoutCalculator
                 $fixed_charge = $customPricing->fixed_charge;
                 $float_charge = $customPricing->float_charge;
             }
-        }
+        // }
 
         if ($user_plan === 1 || $user_plan === 2) {
             $fixed_charge = $user_plan === 1 ? $payoutMethod->fixed_charge : $payoutMethod->pro_fixed_charge;
@@ -520,8 +520,7 @@ class PayoutCalculator
             $total_fee_due = $payoutMethod->maximum_charge;
         }
 
-
-        return [
+        $result = [
             'total_fee' => [
                 'payout_currency' => $total_fee_due,
                 'wallet_currency' => round($fees['total_fee'], 6)
@@ -556,5 +555,11 @@ class PayoutCalculator
             ],
             "PayoutMethod" => $payoutMethod
         ];
+
+        request()->merge([
+            "calculator_result" => $result
+        ]);
+
+        return $result;
     }
 }
