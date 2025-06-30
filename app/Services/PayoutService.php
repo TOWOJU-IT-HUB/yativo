@@ -88,7 +88,7 @@ class PayoutService
                         "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => $result],
                     ]);
                 } catch (\Throwable $th) {
-                    Log::info("Error adding transaction record", ['error' => $th->getMessage, 'trace' => $th->getTraceAsString()]);
+                    Log::info("Error adding transaction record", ['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()]);
                 }
 
                 Track::create([
