@@ -69,23 +69,27 @@ class PayoutService
                 }
                 // var_dump($result); exit;
 
-                TransactionRecord::create([
-                    "user_id" => $withdrawal->user_id,
-                    "transaction_beneficiary_id" => $withdrawal->user_id,
-                    "transaction_id" => $quoteId,
-                    "transaction_amount" => $withdrawal->amount,
-                    "gateway_id" => $gateway,
-                    "transaction_status" => "In Progress",
-                    "transaction_type" => $txn_type ?? 'payout',
-                    "transaction_memo" => "payout",
-                    "transaction_currency" => $withdrawal->currency ?? "N/A",
-                    "base_currency" => $withdrawal->currency ?? "N/A",
-                    "secondary_currency" => $c_gateway->currency ?? "N/A",
-                    "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
-                    "transaction_payin_details" => null,
-                    "exchange_data" => session()->get('calculator_result'),
-                    "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => $result],
-                ]);
+                try {
+                    TransactionRecord::create([
+                        "user_id" => $withdrawal->user_id,
+                        "transaction_beneficiary_id" => $withdrawal->user_id,
+                        "transaction_id" => $quoteId,
+                        "transaction_amount" => $withdrawal->amount,
+                        "gateway_id" => $gateway,
+                        "transaction_status" => "In Progress",
+                        "transaction_type" => $txn_type ?? 'payout',
+                        "transaction_memo" => "payout",
+                        "transaction_currency" => $withdrawal->currency ?? "N/A",
+                        "base_currency" => $withdrawal->currency ?? "N/A",
+                        "secondary_currency" => $c_gateway->currency ?? "N/A",
+                        "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
+                        "transaction_payin_details" => null,
+                        "exchange_data" => session()->get('calculator_result'),
+                        "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => $result],
+                    ]);
+                } catch (\Throwable $th) {
+                    Log::info("Error adding transaction record", ['error' => $th->getMessage, 'trace' => $th->getTraceAsString()]);
+                }
 
                 Track::create([
                     "quote_id" => $quoteId,
