@@ -1193,7 +1193,7 @@ class BridgeController extends Controller
                     'customer_id' => $customerId,
                     'account_id' => $virtualAccountId,
                     'status' => 'failed',
-                    'error' => $walletAddress['error'],
+                    'error' => $walletAddress,
                 ];
                 continue;
             }
