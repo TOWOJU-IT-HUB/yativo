@@ -769,11 +769,11 @@ class BridgeController extends Controller
         return "data:image/{$format};base64,{$encodedData}";
     }
 
-    public function createWallet()
+    public function createWallet($customerId = null)
     {
         // Generate wallet address
         $yativo = new CryptoYativoController();
-        $curl = $yativo->generateCustomerWallet();
+        $curl = $yativo->generateCustomerWallet($customerId);
 
         if (!isset($curl['address'])) {
             Log::error('Failed to generate wallet address', ['response' => $curl]);
@@ -1171,8 +1171,18 @@ class BridgeController extends Controller
                 Log::warning('Missing customer or account ID', ['account' => $account]);
                 continue;
             }
-
-            $walletAddress = $this->createWallet();
+            // get the yativo customer using the bridge customer ID
+            $cust = Customer::where('bridge_customer_id', $customerId)->first();
+            if(!$cust) {                
+                $results[] = [
+                    'customer_id' => $customerId,
+                    'account_id' => $virtualAccountId,
+                    'status' => 'customer record not found in DB',
+                    'error' => $walletAddress['error'],
+                ];
+                continue;
+            }
+            $walletAddress = $this->createWallet($cust->customer_id);
 
             if (is_array($walletAddress) && isset($walletAddress['error'])) {
                 Log::error('Wallet creation failed', [

@@ -75,24 +75,31 @@ class CryptoYativoController extends Controller
         }
     }
 
-    public function generateCustomerWallet()
+    public function generateCustomerWallet($customerId = null, $currency = null)
     {
         try {
             $request = request(); 
             $user = $request->user();
-            if($request->has('customer_id')){
-                $customer = Customer::where('customer_id', $request->customer_id)->first();
+
+            // Use parameter if passed, else fallback to request
+            $customerId = $customerId ?? $request->customer_id;
+            $currency = $currency ?? $request->currency;
+
+            if ($customerId) {
+                $customer = Customer::where('customer_id', $customerId)->first();
                 if (!$customer) {
                     return ['error' => 'Customer not found or not registered with Yativo'];
                 }
 
-                if(empty($customer->yativo_customer_id)) {
+                if (empty($customer->yativo_customer_id)) {
                     $cId = $this->addCustomer();
-                    if(isset($cId['error'])) {
+                    if (isset($cId['error'])) {
                         return $cId;
                     }
                     $customer->yativo_customer_id = $cId;
                 }
+            } else {
+                return ['error' => 'Customer ID is required'];
             }
 
             $token = $this->getToken();
@@ -102,28 +109,82 @@ class CryptoYativoController extends Controller
 
             $payload = [
                 "ticker_name" => "USDC_SOL", 
-                "asset_name" => "USDC_SOL", // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
+                "asset_name" => "USDC_SOL", // Replace with dynamic asset if needed
                 "customer_id" => $customer->yativo_customer_id,
             ];
 
             Log::debug("my request payload is: ", ['payload' => $payload]);
 
-            // if(null === $payload['asset_id']) {
-            //     return ['error' => 'Invalid asset provided'];
-            // }
+            $response = Http::withToken($token)
+                ->post($this->baseUrl . "assets/add-customer-asset", $payload)
+                ->json();
 
-            $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
-
-            if (isset($response['status']) && isset($response['data']) ) {
+            if (isset($response['status']) && isset($response['data'])) {
                 return $response['data'];
             }
 
-            Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
+            Log::error("Failed to generate wallet", [
+                "error" => $response, 
+                'token' => $token, 
+                'payload' => $payload
+            ]);
+
             return ['error' => $response['message'] ?? 'Unknown error'];
         } catch (\Throwable $th) {
             return ['error' => $th->getMessage()];
         }
     }
+
+
+    // public function generateCustomerWallet()
+    // {
+    //     try {
+    //         $request = request(); 
+    //         $user = $request->user();
+    //         if($request->has('customer_id')){
+    //             $customer = Customer::where('customer_id', $request->customer_id)->first();
+    //             if (!$customer) {
+    //                 return ['error' => 'Customer not found or not registered with Yativo'];
+    //             }
+
+    //             if(empty($customer->yativo_customer_id)) {
+    //                 $cId = $this->addCustomer();
+    //                 if(isset($cId['error'])) {
+    //                     return $cId;
+    //                 }
+    //                 $customer->yativo_customer_id = $cId;
+    //             }
+    //         }
+
+    //         $token = $this->getToken();
+    //         if (!$token) {
+    //             return ['error' => 'Failed to authenticate with Yativo API'];
+    //         }
+
+    //         $payload = [
+    //             "ticker_name" => "USDC_SOL", 
+    //             "asset_name" => "USDC_SOL", // $this->getAssetId($request->currency) ?? "67db5f72ebea822c360d568d",
+    //             "customer_id" => $customer->yativo_customer_id,
+    //         ];
+
+    //         Log::debug("my request payload is: ", ['payload' => $payload]);
+
+    //         // if(null === $payload['asset_id']) {
+    //         //     return ['error' => 'Invalid asset provided'];
+    //         // }
+
+    //         $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
+
+    //         if (isset($response['status']) && isset($response['data']) ) {
+    //             return $response['data'];
+    //         }
+
+    //         Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
+    //         return ['error' => $response['message'] ?? 'Unknown error'];
+    //     } catch (\Throwable $th) {
+    //         return ['error' => $th->getMessage()];
+    //     }
+    // }
 
     public function getAssetId(string $ticker)
     {
