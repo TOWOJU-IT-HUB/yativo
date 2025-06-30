@@ -38,7 +38,7 @@ class TransactionRecordController extends Controller
                 ->latest()
                 ->paginate(per_page())->withQueryString();
 
-            return paginate_yativo($records);
+            return paginate_yativo($records->makeHidden(['subscriptions', 'business_config', 'balances']));
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
@@ -59,7 +59,7 @@ class TransactionRecordController extends Controller
                 ->latest()
                 ->paginate(per_page())->withQueryString();
 
-            return paginate_yativo($records);
+            return paginate_yativo($records->makeHidden(['subscriptions', 'business_config', 'balances']));
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }
@@ -84,7 +84,7 @@ class TransactionRecordController extends Controller
                 return get_error_response(['error' => 'Transaction with the provided ID not found!'], 404);
             }
 
-            return get_success_response($record);
+            return get_success_response($record->makeHidden(['subscriptions', 'business_config', 'balances']));
         } catch (\Throwable $th) {
             return get_error_response(['error' => $th->getMessage()], 500);
         }

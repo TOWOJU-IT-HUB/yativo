@@ -110,6 +110,7 @@ class User extends Authenticatable implements JWTSubject
         'idType',
         'is_pnd',
         'bussinessName',
+        'yativo_customer_id'
     ];
 
     protected $casts = [
