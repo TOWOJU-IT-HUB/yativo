@@ -856,24 +856,36 @@ if (!function_exists("url_request")) {
 
 
 if (!function_exists('paginate_yativo')) {
-    function paginate_yativo($paginator, $status_code = 200)
+    function paginate_yativo($data, $status_code = 200)
     {
+        if ($data instanceof \Illuminate\Pagination\LengthAwarePaginator || $data instanceof \Illuminate\Pagination\Paginator) {
+            return [
+                'status' => 'success',
+                'status_code' => $status_code,
+                'message' => 'Records retrieved successfully',
+                'data' => $data->items(),
+                'pagination' => [
+                    'total' => $data->total(),
+                    'per_page' => $data->perPage(),
+                    'current_page' => $data->currentPage(),
+                    'last_page' => $data->lastPage(),
+                    'next_page_url' => $data->nextPageUrl(),
+                    'prev_page_url' => $data->previousPageUrl(),
+                ]
+            ];
+        }
+
+        // fallback for plain Collection
         return [
             'status' => 'success',
             'status_code' => $status_code,
             'message' => 'Records retrieved successfully',
-            'data' => $paginator->items(),
-            'pagination' => [
-                'total' => $paginator->total(),
-                'per_page' => $paginator->perPage(),
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'next_page_url' => $paginator->nextPageUrl(),
-                'prev_page_url' => $paginator->previousPageUrl(),
-            ]
+            'data' => $data->toArray(),
+            'pagination' => null
         ];
     }
 }
+
 
 
 if (!function_exists('add_transaction_details')) {
