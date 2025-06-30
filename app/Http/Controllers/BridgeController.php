@@ -1178,7 +1178,7 @@ class BridgeController extends Controller
                     'customer_id' => $customerId,
                     'account_id' => $virtualAccountId,
                     'status' => 'customer record not found in DB',
-                    'error' => $walletAddress['error'],
+                    'error' => 'customer record not found in DB',
                 ];
                 continue;
             }
