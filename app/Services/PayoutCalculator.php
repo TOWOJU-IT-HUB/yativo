@@ -556,9 +556,7 @@ class PayoutCalculator
             "PayoutMethod" => $payoutMethod
         ];
 
-        request()->merge([
-            "calculator_result" => $result
-        ]);
+        session()->put("calculator_result", $result);
 
         return $result;
     }

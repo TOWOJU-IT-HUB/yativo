@@ -18,6 +18,7 @@ class TransactionRecord extends Model
         "transaction_payin_details" => 'array',
         "transaction_payout_details" => 'array',
         "transaction_swap_details" => 'array',
+        "exchange_data" => 'array',
         "raw_data" => 'array',
     ];
 

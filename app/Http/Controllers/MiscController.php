@@ -248,7 +248,7 @@ class MiscController extends Controller
                     "customer_total_amount_due" => number_format($result['amount_due'], 2)
                 ],
                 // "gateway" => $method,
-                // "calculator" => $result
+                "calculator" => $result
             ]);
     
         } catch (\Throwable $th) {

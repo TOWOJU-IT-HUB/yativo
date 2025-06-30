@@ -92,8 +92,8 @@ class DepositCalculator
             'credited_amount' => round($creditedAmount, 2),
         ];
 
-        request()->merge([
-            "calculator_result" => $result
-        ]);
+        session()->put("calculator_result", $result);
+
+        return $result;
     }
 }

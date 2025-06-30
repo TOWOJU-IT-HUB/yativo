@@ -62,7 +62,7 @@ use App\Models\localPaymentTransactions;
 
 if(!Schema::hasColumn("transaction_records", "exchange_data")) {
     Schema::table("transaction_records", function(Blueprint $table) {
-        $table->string("exchange_data")->nullable();
+        $table->json("exchange_data")->nullable();
     });
 }
 

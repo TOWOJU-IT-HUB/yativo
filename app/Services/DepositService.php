@@ -95,7 +95,7 @@ class DepositService
                 "transaction_purpose" => request()->transaction_purpose ?? "Deposit",
                 "transaction_payin_details" => array_merge([$send, $result]),
                 "transaction_payout_details" => [],
-                "exchange_data" => request()->calculator_result,
+                "exchange_data" => session()->get('calculator_result'),
             ]);
 
             Track::create([

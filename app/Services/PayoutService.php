@@ -83,7 +83,7 @@ class PayoutService
                     "secondary_currency" => $c_gateway->currency ?? "N/A",
                     "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
                     "transaction_payin_details" => null,
-                    "exchange_data" => request()->calculator_result,
+                    "exchange_data" => session()->get('calculator_result'),
                     "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => $result],
                 ]);
 
