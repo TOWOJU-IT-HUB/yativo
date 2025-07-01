@@ -219,41 +219,64 @@ class WithdrawalConntroller extends Controller
                 }
             }
 
-            // Retrieve environment variables
-            $botToken = env("TELEGRAM_TOKEN");
-            $chatId = env('TELEGRAM_CHAT_ID');
+            if(!$request->has('notif')) {
+                // Retrieve environment variables
+                $botToken = env("TELEGRAM_TOKEN");
+                $chatId = env('TELEGRAM_CHAT_ID');
 
-            // Log the notification call
-            Log::debug("Telegram notification called");
+                // Log the notification call
+                Log::debug("Telegram notification called");
 
-            // Construct the Telegram API URL
-            $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+                // Construct the Telegram API URL
+                $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
 
-            // Send the HTTP request using Laravel's HTTP client
-            try {
-                $response = Http::post($url, [
-                    'text' => $message_payload,
-                    'chat_id' => $chatId,
-                    'protect_content' => true,
-                    'parse_mode' => 'html'
-                ]);
-                
-                if ($response->successful()) {
-                    Log::debug("Telegram notification sent successfully");
-                } else {
-                    Log::error("Telegram notification failed: " . $response->body());
+                // Send the HTTP request using Laravel's HTTP client
+                try {
+                    $response = Http::post($url, [
+                        'text' => $message_payload,
+                        'chat_id' => $chatId,
+                        'protect_content' => true,
+                        'parse_mode' => 'html'
+                    ]);
+                    
+                    if ($response->successful()) {
+                        Log::debug("Telegram notification sent successfully");
+                    } else {
+                        Log::error("Telegram notification failed: " . $response->body());
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Telegram notification error: " . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                Log::error("Telegram notification error: " . $e->getMessage());
-            }
             
+            }
+
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
             }
-
             $withdrawal = Withdraw::create($withdrawalData);
 
             if(!$withdrawal) {
+                TransactionRecord::updateOrCreate([
+                    "user_id" => $withdrawal->user_id,
+                    "transaction_beneficiary_id" => $withdrawal->user_id,
+                    "transaction_id" => $withdrawal->id,
+                ], [
+                    "user_id" => $withdrawal->user_id,
+                    "transaction_beneficiary_id" => $withdrawal->user_id,
+                    "transaction_id" => $withdrawal->id,
+                    "transaction_amount" => $withdrawal->amount,
+                    "gateway_id" => $beneficiary->gateway_id,
+                    "transaction_status" => "pending",
+                    "transaction_type" => $txn_type ?? 'payout',
+                    "transaction_memo" => "payout",
+                    "transaction_currency" => $withdrawal->currency ?? "N/A",
+                    "base_currency" => $withdrawal->currency ?? "N/A",
+                    "secondary_currency" => $payoutMethod->currency ?? "N/A",
+                    "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
+                    "transaction_payin_details" => null,
+                    "exchange_data" => session()->get('calculator_result'),
+                    "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => []],
+                ]);
                 return get_error_response([], 400, 'Unable to process Withdrawal');
             }
            

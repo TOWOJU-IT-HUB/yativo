@@ -70,7 +70,11 @@ class PayoutService
                 // var_dump($result); exit;
 
                 try {
-                    TransactionRecord::create([
+                    TransactionRecord::updateOrCreate([
+                        "user_id" => $withdrawal->user_id,
+                        "transaction_beneficiary_id" => $withdrawal->user_id,
+                        "transaction_id" => $quoteId,
+                    ], [
                         "user_id" => $withdrawal->user_id,
                         "transaction_beneficiary_id" => $withdrawal->user_id,
                         "transaction_id" => $quoteId,
