@@ -21,7 +21,7 @@ class TransactionRecordController extends Controller
             $endDate = request('end_date');
             $amount = request('amount');
 
-            $records = TransactionRecord::with(['beneficiary', 'user'])
+            $records = TransactionRecord::query()
                 ->whereUserId(auth()->id())
                 ->when($status, function ($query) use ($status) {
                     return $query->where('transaction_status', $status);

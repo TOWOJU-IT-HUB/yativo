@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Modules\Beneficiary\app\Models\Beneficiary;
 use Modules\Customer\app\Models\Customer;
+use Modules\Beneficiary\app\Models\BeneficiaryPaymentMethod;
 
 class TransactionRecord extends Model
 {
@@ -35,7 +36,7 @@ class TransactionRecord extends Model
     ];
 
     public function beneficiary(){
-        return $this->belongsTo(Beneficiary::class);
+        return $this->belongsTo(BeneficiaryPaymentMethod::class, 'transaction_beneficiary_id');
     }
 
     public function user(){
