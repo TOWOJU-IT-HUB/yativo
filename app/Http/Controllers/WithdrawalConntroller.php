@@ -254,8 +254,8 @@ class WithdrawalConntroller extends Controller
                 dd($withdrawalData); exit;
             }
             $withdrawal = Withdraw::create($withdrawalData);
-
-            if(!$withdrawal) {
+                
+            if($withdrawal) {
                 TransactionRecord::updateOrCreate([
                     "user_id" => $withdrawal->user_id,
                     "transaction_beneficiary_id" => $withdrawal->user_id,
@@ -277,6 +277,9 @@ class WithdrawalConntroller extends Controller
                     "exchange_data" => session()->get('calculator_result'),
                     "transaction_payout_details" => ['payout_data' => $withdrawal, "gateway_response" => []],
                 ]);
+            }
+
+            if(!$withdrawal) {
                 return get_error_response([], 400, 'Unable to process Withdrawal');
             }
            
