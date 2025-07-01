@@ -21,6 +21,8 @@ use Laragear\WebAuthn\Contracts\WebAuthnChallengeRepository;
 use Laragear\WebAuthn\Http\Routes as WebAuthnRoutes;
 use Modules\ShuftiPro\app\Http\Controllers\ShuftiProController;
 use App\Http\Controllers\CheckoutController;
+use Modules\Customer\app\Http\Controllers\CustomerController;
+
 
 /*
 |--------------------------------------------------------------------------
