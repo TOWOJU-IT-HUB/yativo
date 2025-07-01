@@ -23,7 +23,7 @@ class TransactionRecord extends Model
         "raw_data" => 'array',
     ];
 
-    protected $appends = ['payment_gateway'];
+    // protected $appends = ['payment_gateway'];
 
     protected $hidden = [
         "transaction_payin_details",
