@@ -133,7 +133,11 @@ class CustomerVirtualCardsController extends Controller
                 return get_error_response($missingFields, 422, "Missing required customer data.");
             }
 
-            // Step 5: Save updated customer data
+            if(strtolower($cust->customer_country) == "nigeria" && !$request->has('idType')) {
+                return get_error_response(['error' => "ID Type is required"], 422, "ID Type is required.");
+            }
+
+            // Save updated data to DB
             $cust->customer_address = $cust->customer_address ?: $address;
             $cust->save();
 
@@ -152,7 +156,7 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["zipCode"]       = $address['zipcode'];
             $validatedData["line1"]         = $address['street'];
             $validatedData["houseNumber"]   = $address['number'];
-            $validatedData["idType"]        = "NATIONAL_ID";
+            $validatedData["idType"]        = $request->idType ?? "NATIONAL_ID";
             $validatedData["idNumber"]      = $cust->customer_idNumber;
 
             // Step 7: Resolve last name
