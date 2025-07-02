@@ -262,7 +262,7 @@ class WithdrawalConntroller extends Controller
                     "transaction_id" => $withdrawal->id,
                 ], [
                     "user_id" => $withdrawal->user_id,
-                    "transaction_beneficiary_id" => $withdrawal->user_id,
+                    "transaction_beneficiary_id" => $request->payment_method_id,
                     "transaction_id" => $withdrawal->id,
                     "transaction_amount" => $withdrawal->amount,
                     "gateway_id" => $beneficiary->gateway_id,
@@ -270,7 +270,7 @@ class WithdrawalConntroller extends Controller
                     "transaction_type" => $txn_type ?? 'payout',
                     "transaction_memo" => "payout",
                     "transaction_currency" => $withdrawal->currency ?? "N/A",
-                    "base_currency" => $withdrawal->currency ?? "N/A",
+                    "base_currency" => $request->debit_wallet ?? "N/A",
                     "secondary_currency" => $payoutMethod->currency ?? "N/A",
                     "transaction_purpose" => request()->transaction_purpose ?? "Withdrawal",
                     "transaction_payin_details" => null,
