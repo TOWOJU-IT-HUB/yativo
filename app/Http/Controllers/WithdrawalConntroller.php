@@ -258,7 +258,7 @@ class WithdrawalConntroller extends Controller
             if($withdrawal) {
                 TransactionRecord::updateOrCreate([
                     "user_id" => $withdrawal->user_id,
-                    "transaction_beneficiary_id" => $withdrawal->user_id,
+                    "transaction_beneficiary_id" => $request->payment_method_id,
                     "transaction_id" => $withdrawal->id,
                 ], [
                     "user_id" => $withdrawal->user_id,
@@ -266,6 +266,7 @@ class WithdrawalConntroller extends Controller
                     "transaction_id" => $withdrawal->id,
                     "transaction_amount" => $withdrawal->amount,
                     "gateway_id" => $beneficiary->gateway_id,
+                    "customer_id" => $request->customer_id ?? null,
                     "transaction_status" => "pending",
                     "transaction_type" => $txn_type ?? 'payout',
                     "transaction_memo" => "payout",

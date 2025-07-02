@@ -77,7 +77,7 @@ class TransactionRecord extends Model
     }
 
     public function customer(){
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
     protected static function boot()
