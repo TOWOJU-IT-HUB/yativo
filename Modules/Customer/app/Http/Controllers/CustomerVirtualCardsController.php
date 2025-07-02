@@ -150,13 +150,28 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["houseNumber"]   = $address['number'];
             $validatedData["idType"]        = "NATIONAL_ID";
             $validatedData["idNumber"]      = $cust->customer_idNumber;
-            if (isset($customerName[1]) && strlen($customerName[1]) >= 3) {
+            if (
+                isset($customerName[1]) &&
+                strlen($customerName[1]) >= 3 &&
+                preg_match('/^[a-zA-Z]+$/', $customerName[1])
+            ) {
                 $validatedData['lastName'] = $customerName[1];
-            } elseif (isset($customerName[2]) && strlen($customerName[2]) >= 3) {
+            } elseif (
+                isset($customerName[2]) &&
+                strlen($customerName[2]) >= 3 &&
+                preg_match('/^[a-zA-Z]+$/', $customerName[2])
+            ) {
                 $validatedData['lastName'] = $customerName[2];
-            } else {
+            } elseif (
+                isset($customerName[0]) &&
+                preg_match('/^[a-zA-Z]+$/', $customerName[0])
+            ) {
                 $validatedData['lastName'] = $customerName[0];
+            } else {
+                // fallback if none meet the criteria
+                $validatedData['lastName'] = 'Unknown'; // or null or throw validation error
             }
+
             $validatedData['userPhoto'] = $request->user_photo;
 
             // Call card API
