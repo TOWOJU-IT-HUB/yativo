@@ -70,7 +70,7 @@ class Customer extends Model
         // "can_create_vc", // can_create_virtual_card
         // "can_create_va", // can_create_virtual_account
     ];
-
+ 
     protected $casts = [
         "json_data" => 'array',
         "customer_address" => "array",
