@@ -71,36 +71,41 @@ class CustomerVirtualCardsController extends Controller
     public function regUser(Request $request)
     {
         try {
-            $validate = Validator::make($request->all(), [
-                "customer_id" => "required|exists:customers,customer_id",
-                "user_photo"  => "required",
+            // Step 1: Validate customer_id early
+            $idValidate = Validator::make($request->only('customer_id'), [
+                'customer_id' => 'required|exists:customers,customer_id',
             ]);
 
-            if ($validate->fails()) {
-                return get_error_response(['error' => $validate->errors()->toArray()]);
+            if ($idValidate->fails()) {
+                return get_error_response(['error' => $idValidate->errors()->toArray()]);
             }
 
+            // Step 2: Retrieve customer record
             $cust = Customer::whereCustomerId($request->customer_id)->first();
 
             if (! $cust) {
                 return get_error_response(['error' => "Customer not found!"]);
             }
 
-            if ($cust->can_create_vc === true && $cust->vc_customer_id !== null) {
-                return get_error_response([
-                    "error" => "Customer already enrolled and activated",
-                ], 421);
+            // Step 3: Validate other fields including conditionally required idType
+            $fullValidate = Validator::make($request->all(), [
+                'user_photo' => 'required',
+                'idType' => [
+                    'required_if:' . ($cust->customer_address['country'] ?? $request->input('customer_address.country')) . ',Nigeria'
+                ]
+            ]);
+
+            if ($fullValidate->fails()) {
+                return get_error_response(['error' => $fullValidate->errors()->toArray()]);
             }
 
-            // Define required fields
+            // Step 4: Field completeness check
             $requiredFields = [
                 'address' => ['country', 'city', 'state', 'zipcode', 'street', 'number'],
                 'top'     => ['customer_idFront', 'customer_idNumber'],
             ];
 
             $missingFields = [];
-
-            // Build address array from customer or request
             $address = $cust->customer_address ?? $request->customer_address ?? [];
 
             foreach ($requiredFields['address'] as $field) {
@@ -124,18 +129,17 @@ class CustomerVirtualCardsController extends Controller
                 }
             }
 
-            // Return error if any field is still missing
             if (! empty($missingFields)) {
                 return get_error_response($missingFields, 422, "Missing required customer data.");
             }
 
-            // Save updated data to DB
+            // Step 5: Save updated customer data
             $cust->customer_address = $cust->customer_address ?: $address;
             $cust->save();
 
-            // Prepare payload
-            $customerName                   = explode(" ", $cust->customer_name);
-            $validatedData                  = $validate->validated();
+            // Step 6: Prepare payload
+            $customerName = explode(" ", $cust->customer_name);
+            $validatedData = $fullValidate->validated();
             $validatedData['date_of_birth'] = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['dateOfBirth']   = $request->dateOfBirth ?? $request->date_of_birth;
             $validatedData['firstName']     = $customerName[0];
@@ -150,6 +154,8 @@ class CustomerVirtualCardsController extends Controller
             $validatedData["houseNumber"]   = $address['number'];
             $validatedData["idType"]        = "NATIONAL_ID";
             $validatedData["idNumber"]      = $cust->customer_idNumber;
+
+            // Step 7: Resolve last name
             if (
                 isset($customerName[1]) &&
                 strlen($customerName[1]) >= 3 &&
@@ -168,21 +174,21 @@ class CustomerVirtualCardsController extends Controller
             ) {
                 $validatedData['lastName'] = $customerName[0];
             } else {
-                // fallback if none meet the criteria
-                $validatedData['lastName'] = 'Unknown'; // or null or throw validation error
+                $validatedData['lastName'] = 'Unknown';
             }
 
             $validatedData['userPhoto'] = $request->user_photo;
 
-            // Call card API
+            // Step 8: Call registration API
             $req = $this->card->regUser($validatedData);
             if (! is_array($req)) {
                 $req = (array) $req;
             }
 
+            // Step 9: Handle API response
             if (isset($req['errorCode']) && $req['errorCode'] >= 400) {
                 return get_error_response(['error' => "Error, Please contact support."]);
-            } elseif (isset($req['status']) && $req['status'] == true) {
+            } elseif (isset($req['status']) && $req['status'] === true) {
                 $cust->can_create_vc  = true;
                 $cust->vc_customer_id = $req['data']['id'];
                 $cust->save();
@@ -192,12 +198,13 @@ class CustomerVirtualCardsController extends Controller
             }
 
         } catch (\Throwable $th) {
-            if (env('APP_ENV') == 'local') {
+            if (env('APP_ENV') === 'local') {
                 return get_error_response(['error' => $th->getMessage(), 'trace' => $th->getTraceAsString()]);
             }
             return get_error_response(['error' => 'Something went wrong, please try again later']);
         }
     }
+
 
     public function store(Request $request)
     {
