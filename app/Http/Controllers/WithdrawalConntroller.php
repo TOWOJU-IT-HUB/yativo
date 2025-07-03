@@ -197,7 +197,7 @@ class WithdrawalConntroller extends Controller
             // Prepare withdrawal record
             $customer_receive_amount = $validated['amount'] * $result['adjusted_rate'];
             $withdrawalData = [
-                'user_id' => auth()->id(),
+                'user_id' => auth()->user()->name,
                 'gateway' => $payoutMethod->gateway,
                 'gateway_id' => $beneficiary->gateway_id,
                 'currency' => $payoutMethod->currency,
