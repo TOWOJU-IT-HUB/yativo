@@ -453,6 +453,16 @@ class CustomerVirtualCardsController extends Controller
             if (isset($cardData['data'])) {
                 $arrData = $cardData['data'];
 
+                // update card details in DB
+                if($card->card_number == null) {
+                    $card->update([
+                        'card_number' => $arrData['cardNumber'],
+                        'expiry_date' => $arrData['valid'],
+                        'cvv'         => $arrData['cvv2'],
+                        'raw_data'    => (array)$arrData,
+                    ]);
+                }
+
                 foreach ($arr as $key) {
                     unset($arrData[$key]);
                 }
@@ -461,16 +471,6 @@ class CustomerVirtualCardsController extends Controller
                 if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int) $arrData['statusCode'] === 500)) {
                     return $arrOnly ? null : get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
                 }
-            }
-
-            // update card details in DB
-            if($card->card_number == null) {
-                $card->update([
-                    'card_number' => $arrData['cardNumber'],
-                    'expiry_date' => $arrData['valid'],
-                    'cvv'         => $arrData['cvv2'],
-                    'raw_data'    => (array)$arrData,
-                ]);
             }
 
             return $arrOnly ? $arrData : get_success_response($arrData);
