@@ -192,7 +192,7 @@ class BitsoController extends Controller
             mark_payout_completed($payload->id, $payload->payout_id);
         }
 
-        var_dump($result); exit;
+        // var_dump($result); exit;
         return $result;
      }
      
