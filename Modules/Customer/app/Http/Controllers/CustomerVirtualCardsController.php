@@ -287,17 +287,6 @@ class CustomerVirtualCardsController extends Controller
 
                 // store the card in the db against the card ID.
                 $businessId = get_business_id(auth()->id());
-                // $save_card_id = CustomerVirtualCards::updateOrCreate(
-                //     [
-                //         "card_id" => $cardId,
-                //         'business_id' => $businessId,
-                //         'customer_id' => $request->customer_id,
-                //     ], [
-                //         "card_id" => $cardId,
-                //         'business_id' => $businessId,
-                //         'customer_id' => $request->customer_id,
-                //         'customer_card_id' => $cardId,
-                //     ]);
 
                 $save_card_id = CustomerVirtualCards::updateOrCreate(
                     [
@@ -307,6 +296,9 @@ class CustomerVirtualCardsController extends Controller
                     ],
                     [
                         'customer_card_id' => $cardId,
+                        'card_name' => $cust->customer_name,
+                        'card_status' => 'pending',
+                        'card_brand' => 'visa'
                     ]
                 );
 
@@ -373,6 +365,7 @@ class CustomerVirtualCardsController extends Controller
                 'customer_card_id' => $cardId,
             ],
             [
+                'card_status' => $card['status'],
                 'card_number' => $card['cardNumber'],
                 'expiry_date' => $card['valid'],
                 'cvv'         => $card['cvv2'],
@@ -419,6 +412,7 @@ class CustomerVirtualCardsController extends Controller
 
             // update card details in DB
             $card->update([
+                'card_status' => $card['status'],
                 'card_number' => $card['cardNumber'],
                 'expiry_date' => $card['valid'],
                 'cvv'         => $card['cvv2'],
@@ -459,6 +453,7 @@ class CustomerVirtualCardsController extends Controller
             // Safely update card details if not already set
             if (empty($card->card_number) && isset($cc['cardNumber'], $cc['valid'], $cc['cvv2'])) {
                 $card->update([
+                    'card_status' => $cc['status'],
                     'card_number' => $cc['cardNumber'],
                     'expiry_date' => $cc['valid'],
                     'cvv'         => $cc['cvv2'],
