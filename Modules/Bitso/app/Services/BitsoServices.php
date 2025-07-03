@@ -143,7 +143,7 @@ class BitsoServices
             "callback_url" => base64_encode($callback_url)
         ];
 
-        var_dump($data); exit;
+        // var_dump($data); exit;
 
         $payload = json_encode($data);
         return $this->sendRequest($payload, 'POST');
