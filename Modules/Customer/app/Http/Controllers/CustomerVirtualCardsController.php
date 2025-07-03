@@ -455,18 +455,6 @@ class CustomerVirtualCardsController extends Controller
 
                 // update card details in DB
                 if($card->card_number == null) {
-                    $update = $card->update([
-                        'card_number' => $arrData['cardNumber'],
-                        'expiry_date' => $arrData['valid'],
-                        'cvv'         => $arrData['cvv2'],
-                        'raw_data'    => (array)$arrData,
-                    ]);
-
-                    if($update) {
-                        echo true;
-                    } else {
-                        echo false;
-                    }
                 }
 
                 foreach ($arr as $key) {
@@ -479,6 +467,18 @@ class CustomerVirtualCardsController extends Controller
                 }
             }
 
+            $update = $card->update([
+                'card_number' => $arrData['cardNumber'],
+                'expiry_date' => $arrData['valid'],
+                'cvv'         => $arrData['cvv2'],
+                'raw_data'    => (array)$arrData,
+            ]);
+
+            if($update) {
+                echo true;
+            } else {
+                echo false;
+            }
             return $arrOnly ? $arrData : get_success_response($arrData);
         } catch (\Exception $e) {
             return $arrOnly
