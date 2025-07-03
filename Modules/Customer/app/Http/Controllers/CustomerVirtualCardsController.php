@@ -326,7 +326,7 @@ class CustomerVirtualCardsController extends Controller
                 ]);
 
                 $getCard = self::show($cardId, true);
-                Log::error("this is the card details: ", $getCard);
+                // Log::error("this is the card details: ", $getCard);
 
                 if ($getCard && $save = $this->saveVirtualCard($getCard, $cardId, $request)) {
                     return get_success_response($save);
@@ -697,7 +697,7 @@ class CustomerVirtualCardsController extends Controller
             return true;
         } catch (\Throwable $th) {
             $cardId = $event['data']['cardId'];
-            Log::error("unable to process charge back on cardID: {$cardId}", ['error' => $th->getMessage()]);
+            // Log::error("unable to process charge back on cardID: {$cardId}", ['error' => $th->getMessage()]);
             return false;
         }
     }
@@ -750,17 +750,17 @@ class CustomerVirtualCardsController extends Controller
     public function webhook(Request $request)
     {
         $event = $request->input('event');
-        $data  = $request->input('data');
 
         $webhookSecret = env("BITNOB_WEBHOOK_SECRET");
         $data          = json_encode($_POST);
         $hash          = hash_hmac('sha512', $data, $webhookSecret);
 
+        $data  = $request->input('data');
         if ($hash != $_SERVER['x-bitnob-signature']) {
             return http_response_code(200);
         }
 
-        Log::info("Webhook received: {$event}", ['payload' => $data]);
+        // Log::info("Webhook received: {$event}", ['payload' => $data]);
 
         match ($event) {
             'virtualcard.created.success' => $this->handleCardCreatedSuccess($data),
