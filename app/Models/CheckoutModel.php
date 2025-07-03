@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class CheckoutModel extends Model
 {
@@ -19,12 +20,15 @@ class CheckoutModel extends Model
         'provider_checkout_response',
         'checkouturl',
         'checkout_status',
+        'expiration_time'
     ];
 
     // Cast the provider_checkout_response attribute to array
     protected $casts = [
         'provider_checkout_response' => 'array', // Automatically encode/decode to/from JSON
     ];
+
+    protected $append = ['is_expired'];
 
     // Optionally, you can add relationships if needed
     public function user()
@@ -40,5 +44,14 @@ class CheckoutModel extends Model
     public function deposit()
     {
         return $this->belongsTo(Deposit::class);
+    }
+
+    public function getIsExpiredAttribute(): bool
+    {
+        $createdAt = $this->created_at instanceof Carbon
+            ? $this->created_at
+            : Carbon::parse($this->created_at);
+
+        return now()->diffInMinutes($createdAt) >= (int) $this->expiration_time;
     }
 }

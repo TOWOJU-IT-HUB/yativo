@@ -33,7 +33,7 @@ class CheckoutController extends Controller
             }
 
             // Check expiration
-            if ($checkout->created_at->diffInHours(now()) >= 24) {
+            if ($checkout->is_expired) {
                 $checkout->update(['checkout_status' => 'expired']);
                 abort(403, 'This checkout link has expired.');
             }

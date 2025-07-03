@@ -30,9 +30,10 @@ class DepositController extends Controller
 
     public function __construct()
     {
-        if (!Schema::hasColumn('deposits', 'customer_id')) {
-            Schema::table('deposits', function (Blueprint $table) {
-                $table->string('customer_id')->nullable();
+        // CheckoutModel
+        if (!Schema::hasColumn('checkout_models', 'expiration_time')) {
+            Schema::table('checkout_models', function (Blueprint $table) {
+                $table->string('expiration_time')->nullable();
             });
         }
     }
@@ -238,7 +239,9 @@ class DepositController extends Controller
                     "total_amount_due" => round($totalAmount, 4) . " " . strtoupper($gateway->currency),
                     'calc' => $calc
                 ];
-                $process = $this->process_store($request->gateway, $gateway->currency, $totalAmount, $deposit->toArray());
+                
+                $expireAt = $gateway->expiration_time;
+                $process = $this->process_store($request->gateway, $gateway->currency, $totalAmount, $deposit->toArray(), $expireAt);
 
                 if (isset($process['error'])) {
                     return get_error_response($process);
@@ -258,7 +261,7 @@ class DepositController extends Controller
     /**
      * @return array
      */
-    public function process_store($gateway, $currency, $amount, $deposit = [], $txn_type = 'deposit')
+    public function process_store($gateway, $currency, $amount, $deposit = [], $expireAt, $txn_type = 'deposit')
     {
         try {
             $payment = new DepositService();
@@ -325,6 +328,7 @@ class DepositController extends Controller
             $checkout->provider_checkout_response = $callback;
             $checkout->checkouturl = str_replace('http://api.yativo.com', 'https://checkout.yativo.com', route("checkout.url", ['id' => $deposit['id']]));
             $checkout->checkout_status = "pending";
+            $checkout->expiration_time = $expireAt;
 
             if (!$checkout->save()) {
                 return ['error' => "Unable to initiate payment, please contact support."];
