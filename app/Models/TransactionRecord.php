@@ -29,7 +29,7 @@ class TransactionRecord extends Model
         "transaction_payin_details",
         "transaction_payout_details",
         "transaction_swap_details",
-        "transaction_beneficiary_id",
+        // "transaction_beneficiary_id",
         "raw_data",
         "user_id",
         "gateway_id",
