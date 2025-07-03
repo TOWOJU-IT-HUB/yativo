@@ -196,8 +196,9 @@ class WithdrawalConntroller extends Controller
 
             // Prepare withdrawal record
             $customer_receive_amount = $validated['amount'] * $result['adjusted_rate'];
+            $user = auth()->user();
             $withdrawalData = [
-                'user_id' => auth()->user()->name,
+                'user_id' => $user->id,
                 'gateway' => $payoutMethod->gateway,
                 'gateway_id' => $beneficiary->gateway_id,
                 'currency' => $payoutMethod->currency,
@@ -215,6 +216,9 @@ class WithdrawalConntroller extends Controller
             $message_payload = "<b>You have a new payout request of {$customer_receive_amount}</b>\n\n";
             foreach ($withdrawalData as $key => $value) {
                 if(!is_array($value)) {
+                    if($key == "user_id") {
+                        $value = $user->name;
+                    }
                     $message_payload .= "<em>{$key}</em>: <b>{$value}</b>\n";
                 }
             }
