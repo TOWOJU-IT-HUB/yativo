@@ -433,62 +433,56 @@ class CustomerVirtualCardsController extends Controller
         try {
             // check if card belongs to the customer
             $businessId = get_business_id(auth()->id());
-            $card = CustomerVirtualCards::where('business_id', $businessId)->where('card_id', $cardId)->first();
-            if(!$card) {
-                return get_error_response(['error' => "Card not found"]);
+            $card = CustomerVirtualCards::where('business_id', $businessId)
+                        ->where('card_id', $cardId)
+                        ->first();
+
+            if (!$card) {
+                return $arrOnly ? null : get_error_response(['error' => "Card not found"]);
             }
+
             $cardData = $this->card->getCard($cardId);
 
-            if (empty($cardData)) {
+            if (empty($cardData) || !isset($cardData['data'])) {
                 return $arrOnly ? null : get_error_response(['error' => "Card not found!"], 404);
             }
 
-            if (! is_array($cardData)) {
-                $cardData = (array) $cardData;
+            $cc = $cardData['data'];
+
+            // Handle internal API errors inside data
+            if (isset($cc['error']) || (isset($cc['statusCode']) && (int) $cc['statusCode'] === 500)) {
+                return $arrOnly ? null : get_error_response([
+                    'error' => $cc['message'] ?? 'An error occurred'
+                ], $cc['statusCode'] ?? 400);
             }
 
-            $arr     = ["reference", "createdStatus", "customerId", "customerEmail", "status", "cardUserId", "createdAt", "updatedAt"];
-            $arrData = [];
-
-            if (isset($cardData['data'])) {
-                $arrData = $cardData['data'];
-
-                // update card details in DB
-                if($card->card_number == null) {
-                }
-
-                foreach ($arr as $key) {
-                    unset($arrData[$key]);
-                }
-
-                // handle error cases inside the data block
-                if (isset($arrData['error']) || (isset($arrData['statusCode']) && (int) $arrData['statusCode'] === 500)) {
-                    return $arrOnly ? null : get_error_response(['error' => $arrData['message']], $arrData['statusCode'] ?? 400);
-                }
+            // Safely update card details if not already set
+            if (empty($card->card_number) && isset($cc['cardNumber'], $cc['valid'], $cc['cvv2'])) {
+                $card->update([
+                    'card_number' => $cc['cardNumber'],
+                    'expiry_date' => $cc['valid'],
+                    'cvv'         => $cc['cvv2'],
+                    'raw_data'    => $cc,
+                ]);
             }
 
-            $update = $card->update([
-                'card_number' => $arrData['cardNumber'],
-                'expiry_date' => $arrData['valid'],
-                'cvv'         => $arrData['cvv2'],
-                'raw_data'    => (array)$arrData,
-            ]);
+            // Remove unneeded fields
+            $arr = ["reference", "createdStatus", "customerId", "customerEmail", "cardUserId", "createdAt", "updatedAt"];
+            $arrData = array_diff_key($cc, array_flip($arr));
 
-            if($update) {
-                echo true;
-            } else {
-                echo false;
-            }
             return $arrOnly ? $arrData : get_success_response($arrData);
+
         } catch (\Exception $e) {
             return $arrOnly
-            ? null
-            : get_error_response([
-                'error' => env('APP_ENV') === 'local'
-                ? $e->getMessage() : 'Something went wrong, please try again later',
-            ]);
+                ? null
+                : get_error_response([
+                    'error' => env('APP_ENV') === 'local'
+                        ? $e->getMessage()
+                        : 'Something went wrong, please try again later',
+                ]);
         }
     }
+
 
     public function update(Request $request, $cardId)
     {
