@@ -297,7 +297,7 @@ class WithdrawalConntroller extends Controller
             unset($result['fee_breakdown']);
             // Format response data
             $responseData = [
-                'transaction_id' => $withdrawal->id,
+                'transaction_id' => $save->id,
                 // 'payout_id' => $withdrawal->payout_id,
                 'status' => $withdrawal->status,
                 'debit_amount' => $result['amount_due'],
