@@ -219,36 +219,36 @@ class WithdrawalConntroller extends Controller
                 }
             }
 
-            if(!$request->has('notif')) {
-                // Retrieve environment variables
-                $botToken = env("TELEGRAM_TOKEN");
-                $chatId = env('TELEGRAM_CHAT_ID');
+            // if(!$request->has('notif')) {
+            //     // Retrieve environment variables
+            //     $botToken = env("TELEGRAM_TOKEN");
+            //     $chatId = env('TELEGRAM_CHAT_ID');
 
-                // Log the notification call
-                Log::debug("Telegram notification called");
+            //     // Log the notification call
+            //     Log::debug("Telegram notification called");
 
-                // Construct the Telegram API URL
-                $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
+            //     // Construct the Telegram API URL
+            //     $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
 
-                // Send the HTTP request using Laravel's HTTP client
-                try {
-                    $response = Http::post($url, [
-                        'text' => $message_payload,
-                        'chat_id' => $chatId,
-                        'protect_content' => true,
-                        'parse_mode' => 'html'
-                    ]);
+            //     // Send the HTTP request using Laravel's HTTP client
+            //     try {
+            //         $response = Http::post($url, [
+            //             'text' => $message_payload,
+            //             'chat_id' => $chatId,
+            //             'protect_content' => true,
+            //             'parse_mode' => 'html'
+            //         ]);
                     
-                    if ($response->successful()) {
-                        Log::debug("Telegram notification sent successfully");
-                    } else {
-                        Log::error("Telegram notification failed: " . $response->body());
-                    }
-                } catch (\Exception $e) {
-                    Log::error("Telegram notification error: " . $e->getMessage());
-                }
+            //         if ($response->successful()) {
+            //             Log::debug("Telegram notification sent successfully");
+            //         } else {
+            //             Log::error("Telegram notification failed: " . $response->body());
+            //         }
+            //     } catch (\Exception $e) {
+            //         Log::error("Telegram notification error: " . $e->getMessage());
+            //     }
             
-            }
+            // }
 
             if(request()->has('debug')) {
                 dd($withdrawalData); exit;
@@ -256,7 +256,7 @@ class WithdrawalConntroller extends Controller
             $withdrawal = Withdraw::create($withdrawalData);
                 
             if($withdrawal) {
-                TransactionRecord::updateOrCreate([
+                $save = TransactionRecord::updateOrCreate([
                     "user_id" => $withdrawal->user_id,
                     "transaction_beneficiary_id" => $beneficiary->id,
                     "transaction_id" => $withdrawal->id,
