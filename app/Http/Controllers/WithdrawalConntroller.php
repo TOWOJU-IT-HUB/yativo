@@ -262,11 +262,11 @@ class WithdrawalConntroller extends Controller
             if($withdrawal) {
                 $save = TransactionRecord::updateOrCreate([
                     "user_id" => $withdrawal->user_id,
-                    "transaction_beneficiary_id" => $beneficiary->id,
+                    "transaction_beneficiary_id" => $withdrawal->beneficiary_id,
                     "transaction_id" => $withdrawal->id,
                 ], [
                     "user_id" => $withdrawal->user_id,
-                    "transaction_beneficiary_id" => $beneficiary->id,
+                    "transaction_beneficiary_id" => $withdrawal->beneficiary_id,
                     "transaction_id" => $withdrawal->id,
                     "transaction_amount" => $withdrawal->amount,
                     "gateway_id" => $beneficiary->gateway_id,
@@ -327,6 +327,7 @@ class WithdrawalConntroller extends Controller
     public function getWithdrawalStatus($payoutsId)
     {
         try {
+            return true;
             // $monnet = new MonnetServices();
             // return $monnet->payoutStatus($payoutsId);
         } catch (\Throwable $th) {

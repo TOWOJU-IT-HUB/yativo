@@ -86,7 +86,13 @@ class TransactionRecord extends Model
 
         static::creating(function ($model) {
             if (!$model->customer_id && request()->has('customer_id')) {
-                $model->customer_id = request()->customer_id;
+                $model->customer_id = request()->customer_id;                
+            }
+            if (request()->has('payment_method_id')) {
+                $model->transaction_beneficiary_id = request()->payment_method_id;
+            }
+            if (request()->has('debit_wallet')) {
+                $model->base_currency = request()->debit_wallet;
             }
         });
     }
