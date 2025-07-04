@@ -122,15 +122,19 @@ class PayoutCalculator
         $rates = $this->getExchangeRates($walletCurrency, $targetCurrency);
         $usdToTarget = $rates['usd_to_target'];
 
-        // ✅ Float fee applied directly on amount (no USD conversion)
-        $floatFee = $amount * ($floatPercent / 100) * $rates['wallet_to_target'];
+        // ✅ Correct float fee calculation
+        $floatFee = ($floatPercent / 100) * $amount;
 
-        // ✅ Fixed fee converted from USD to payout currency
-        $fixedFee = $fixedFeeUSD * $usdToTarget;
+        // ✅ If from_currency is USD, do not convert fixed fee
+        if (strtoupper($walletCurrency) === 'USD') {
+            $fixedFee = $fixedFeeUSD;
+        } else {
+            $fixedFee = $fixedFeeUSD * $usdToTarget;
+        }
 
         $totalFee = $floatFee + $fixedFee;
 
-        // ✅ Enforce min/max fees using USD comparison
+        // ✅ Enforce min/max using USD equivalent
         $totalFeeUSD = $totalFee / $usdToTarget;
 
         if ($payoutMethod->minimum_charge && $totalFeeUSD < $payoutMethod->minimum_charge) {
@@ -147,6 +151,7 @@ class PayoutCalculator
             'total_fee' => round($totalFee, 2),
         ];
     }
+
 
     private function applyExchangeRateFloat(float $rate, float $floatPercent): float
     {
