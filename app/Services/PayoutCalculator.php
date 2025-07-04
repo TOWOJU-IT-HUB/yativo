@@ -148,7 +148,7 @@ class PayoutCalculator
         return [
             'float_fee' => round($floatFee, 4),
             'fixed_fee' => round($fixedFee, 4),
-            'total_fee' => round($totalFee, 4),
+            'total_fee' => round($floatFee + $fixedFee, 6),
         ];
     }
 
