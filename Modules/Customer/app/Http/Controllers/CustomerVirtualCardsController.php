@@ -451,7 +451,7 @@ class CustomerVirtualCardsController extends Controller
             }
 
             // Safely update card details if not already set
-            if (empty($cc->card_number) && isset($cc['cardNumber'], $cc['valid'], $cc['cvv2'])) {
+            if (isset($card->card_number) && isset($cc['cardNumber'])) {
                 $card->update([
                     'card_name' => $cc['cardName'],
                     'card_status' => $cc['status'],
