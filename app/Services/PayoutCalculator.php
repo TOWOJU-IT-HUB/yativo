@@ -146,9 +146,9 @@ class PayoutCalculator
         }
 
         return [
-            'float_fee' => round($floatFee, 2),
-            'fixed_fee' => round($fixedFee, 2),
-            'total_fee' => round($totalFee, 2),
+            'float_fee' => round($floatFee, 4),
+            'fixed_fee' => round($fixedFee, 4),
+            'total_fee' => round($totalFee, 4),
         ];
     }
 
@@ -221,9 +221,11 @@ class PayoutCalculator
         $customerReceiveAmountInWalletCurrency = round($amount, 6);
         $customerReceiveAmountInPayoutCurrency = round($amount / $exchangeRate, 6);
 
+        $fees['total_fee'] = number_format($fees['fixed_fee'] + $fees['float_fee'], 4);
+
         return [
             'total_fee' => [
-                'payout_currency' => round($fees['total_fee'], 2),
+                'payout_currency' => round($fees['total_fee'], 4),
                 'wallet_currency' => round($fees['total_fee'] * $exchangeRate, 6)
             ],
             'total_amount' => [
@@ -245,16 +247,16 @@ class PayoutCalculator
             ],
             'fee_breakdown' => [
                 'float' => [
-                    'wallet_currency' => round($fees['float_fee'] * $exchangeRate, 4),
-                    'payout_currency' => round($fees['float_fee'], 4)
+                    'wallet_currency' => number_format($fees['float_fee'] * $exchangeRate, 4),
+                    'payout_currency' => number_format($fees['float_fee'], 4)
                 ],
                 'fixed' => [
-                    'wallet_currency' => round($fees['fixed_fee'] * $exchangeRate, 4),
-                    'payout_currency' => round($fees['fixed_fee'], 4)
+                    'wallet_currency' => number_format($fees['fixed_fee'] * $exchangeRate, 4),
+                    'payout_currency' => number_format($fees['fixed_fee'], 4)
                 ],
-                'total' => round($fees['total_fee'], 4),
-                'total_in_from_currency' => round($fees['float_fee'] * $exchangeRate, 4) + round($fees['fixed_fee'] * $exchangeRate, 4),
-                'total_in_to_currency' => round($fees['fixed_fee'] + $fees['float_fee'], 4),
+                'total' => number_format($fees['total_fee'], 4),
+                'total_in_from_currency' => number_format($fees['float_fee'] * $exchangeRate, 4) + number_format($fees['fixed_fee'] * $exchangeRate, 4),
+                'total_in_to_currency' => number_format($fees['fixed_fee'] + $fees['float_fee'], 4),
             ],
             "PayoutMethod" => $payoutMethod
         ];
