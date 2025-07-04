@@ -298,7 +298,7 @@ class WithdrawalConntroller extends Controller
             // Format response data
             $responseData = [
                 'transaction_id' => $save->id,
-                // 'payout_id' => $withdrawal->payout_id,
+                'payout_id' => $withdrawal->payout_id,
                 'status' => $withdrawal->status,
                 'debit_amount' => $result['amount_due'],
                 'target_amount' => $result['total_amount'],
