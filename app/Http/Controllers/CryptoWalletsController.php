@@ -57,7 +57,7 @@ class CryptoWalletsController extends Controller
         $userId = $user->id;
 
         // return exiting wallet if any
-        $walletAddresses = CryptoWallets::where(["user_id" => $userId])->first();
+        $walletAddresses = CryptoWallets::where(["user_id" => $userId, "wallet_currency" => $currency])->first();
         if($walletAddresses) {
             return get_success_response($walletAddresses, 200, "Wallet already exists");
         }
