@@ -37,6 +37,8 @@ class TransactionRecord extends Model
         "deleted_at",
     ];
 
+    protected $with = ['checkout_url'];
+
     public function beneficiary(){
         return $this->belongsTo(BeneficiaryPaymentMethod::class, 'transaction_beneficiary_id');
     }
@@ -55,6 +57,11 @@ class TransactionRecord extends Model
     public function payoutMethod()
     {
         return $this->belongsTo(payoutMethods::class, 'gateway_id');
+    }
+
+    public function checkout_url()
+    {
+        return $this->belongsTo(CheckoutModel::class);
     }
 
     // Method to retrieve payment gateway dynamically

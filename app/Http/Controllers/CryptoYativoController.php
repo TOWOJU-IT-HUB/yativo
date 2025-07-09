@@ -109,8 +109,8 @@ class CryptoYativoController extends Controller
             }
 
             $payload = [
-                "ticker_name" => "USDC_SOL", 
-                "asset_name" => "USDC_SOL", // Replace with dynamic asset if needed
+                "ticker_name" => $currency ?? "USDC_SOL", 
+                "asset_name" => $currency ?? "USDC_SOL", // Replace with dynamic asset if needed
                 "customer_id" => $customer->yativo_customer_id,
             ];
 

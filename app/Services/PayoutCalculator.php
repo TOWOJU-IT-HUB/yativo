@@ -216,6 +216,13 @@ class PayoutCalculator
         $total_fee_due = max($total_fee_due, $payoutMethod->minimum_charge);
         $total_fee_due = min($total_fee_due, $payoutMethod->maximum_charge);
 
+        if(strtoupper($walletCurrency) !== "USD" && strtoupper($targetCurrency) === "USD")
+        {
+            $fixed_fee = $feesInPayoutCurrency['fixed_fee'];
+            $float_fee = $feesInPayoutCurrency['float_fee'];
+            $total_fee_due = $fixed_fee + $float_fee;
+        }
+
         return [
             'total_fee' => [
                 'payout_currency' => $total_fee_due,

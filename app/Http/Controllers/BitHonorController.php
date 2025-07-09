@@ -12,7 +12,9 @@ class BitHonorController extends Controller
     {
         $this->baseUrl = env("BITHONOR_BASE_URL", "https://api-test.spatransfer.com");
     }
-    public function sendPaymentOrder($amount)
+
+
+    public function sendPaymentOrder($payoutObject, $amount, $currency = "VES")
     {
         $request = request();
         $customer = Customer::where('customer_id', $request->customer_id)->first();
@@ -22,34 +24,29 @@ class BitHonorController extends Controller
             $userName = $user->name;
             $userPhone = $user->phoneNumber;
         }
+
+        $receiver = $payoutObject;
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'x-api-key' => env("BITHONOR_API_KEY"),
         ])->post("{$this->baseUrl}/spa/api/v1.2/send-payment-order", [
                     "secret_company_key" => env("BITHONOR_SECRET_KEY"),
-                    "names" => $customer->customer_name ?? $userName,
-                    "docType" => $request->docType,
-                    "identNumber" => $request->docNumber,
-                    "payType" => "PMV",
-                    "bankCode" => $request->bankCode,
-                    "currency" => "VES",
+                    "names" => $receiver->names,
+                    "docType" => $receiver->docType,
+                    "identNumber" => $receiver->docNumber,
+                    "payType" => $receiver->payment_type,
+                    "bankCode" => $receiver->bankCode,
+                    "currency" => $currency,
                     "amount" => $amount,
-                    "phoneNumber" => $request->customer_phone ?? $userPhone,
+                    "phoneNumber" => $receiver->phoneNumber,
                     "client_txid" => generate_uuid(),
                 ]);
 
         // Return API response to the frontend
         if ($response->successful()) {
-            return response()->json([
-                'success' => true,
-                'data' => $response->json(),
-            ]);
+            return $response->json();
         } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Request failed',
-                'error' => $response->body(),
-            ], $response->status());
+            return ['error' => $response->body()];
         }
     }
 

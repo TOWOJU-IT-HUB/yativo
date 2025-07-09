@@ -35,6 +35,7 @@ Route::middleware(['auth:api'])->prefix('v1/customer/virtual')->name('api.')->gr
     Route::get('cards/transactions/{card_id}', [CustomerVirtualCardsController::class, 'getTransactions'])->name('virtual-cards.transactions');
     Route::post('cards/create', [CustomerVirtualCardsController::class, 'store'])->name('virtual-cards.store');
     Route::post('cards/topup', [CustomerVirtualCardsController::class, 'topUpCard'])->name('virtual-cards.topup');
+    Route::post('cards/terminate', [CustomerVirtualCardsController::class, 'terminateCard'])->name('virtual-cards.terminate');
     Route::put('cards/update/{card_id}', [CustomerVirtualCardsController::class, 'update'])->name('virtual-cards.update'); //freeze and unfreeze card
     Route::delete('cards/{card_id}/delete', [CustomerVirtualCardsController::class, 'destroy'])->name('virtual-cards.destroy');
 });

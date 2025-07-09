@@ -301,13 +301,33 @@ class PayoutService
         }
     }
 
+    public function bithonor($quoteId, $currency, $payoutObject)
+    {
+        $amount = $payoutObject->customer_receive_amount;
+        $beneficiaryId = request()->payment_method_id;
+        $model = new BeneficiaryPaymentMethod();
+        $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
+        $formArray = (array) $beneficiary->payment_data;
+
+        if (!$beneficiary) {
+            return ['error' => 'Beneficiary not found'];
+        }
+        $gateway = payoutMethods::whereId($beneficiary->gateway_id)->first();
+        if (!$gateway) {
+            return ['error' => 'Gateway not found'];
+        }
+        $bithonor = new BitHonorController();
+        $init = $bithonor->sendPaymentOrder($formArray, $amount);
+        return $init;
+    }
+
     public function stp($quoteId, $currency, $payoutObject)
     {
         $request = request();
         try {
             $amount = $payoutObject->customer_receive_amount;
             $beneficiaryId = $request->payment_method_id;
-            $model = new PaymentController();
+            $model = new BeneficiaryPaymentMethod();
             $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
 
             if (!$beneficiary) {

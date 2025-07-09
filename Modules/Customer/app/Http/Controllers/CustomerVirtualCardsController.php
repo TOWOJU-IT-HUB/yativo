@@ -625,7 +625,7 @@ class CustomerVirtualCardsController extends Controller
             // 1️⃣  Look up custom pricing (fallback fixed‑fee = $1 if none found)
             $pricing = get_custom_pricing('card_termination', 1, 'virtual_card');
 
-                              // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
+            // 2️⃣  Card‑termination is typically a flat charge, but we’ll still honour any %
             $floatCharge = 0; // most cases: 0 %
             if ($pricing['float_fee'] > 0) {
                 $baseAmount  = 0; // change to your own logic if needed
