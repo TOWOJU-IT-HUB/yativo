@@ -75,6 +75,45 @@ class CryptoWalletsController extends Controller
 
         $response = Http::withToken($token)->post($this->baseUrl . "assets/add-customer-asset", $payload)->json();
 
+        if(isset($response['status']) && $response["status"] == true) {
+            // Create wallet record in the database
+            $data = $response['data'];
+            $walletData = [
+                "user_id" => $userId,
+                "is_customer" => false,
+                "customer_id" => null,
+                "wallet_address" => $data['address'],
+                "wallet_currency" => trim($data['ticker_name']),
+                "wallet_network" => $data['chain'],
+                "wallet_provider" => 'yativo',
+                "coin_name" => $data['asset_name'],
+                "wallet_balance" => 0,
+            ];
+        
+            $record = CryptoWallets::create($walletData);
+        
+            // Queue webhook notification
+            dispatch(function () use ($userId, $record) {
+                $webhook = Webhook::whereUserId($userId)->first();
+                if ($webhook) {
+                    WebhookCall::create()
+                        ->meta(['_uid' => $webhook->user_id])
+                        ->url($webhook->url)
+                        ->useSecret($webhook->secret)
+                        ->payload([
+                            "event.type" => "crypto.wallet.created",
+                            "payload" => $record,
+                        ])
+                        ->dispatchSync();
+                }
+            })->afterResponse();
+        
+            // Load relationships for the response
+            $record = $record->load('user');
+        
+            return get_success_response($record);
+        }
+
         if (!isset($response['status']) || !isset($response['data']) ) {
             Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
             return get_error_response(['error' => $response]);
@@ -84,43 +123,6 @@ class CryptoWalletsController extends Controller
             Log::error("Failed to generate wallet", ["error" => $response, 'token' => $token, 'payload' => $payload]);
             return get_error_response(['error' => $response]);
         }
-    
-        // Create wallet record in the database
-        $data = $response['data'];
-        $walletData = [
-            "user_id" => $userId,
-            "is_customer" => false,
-            "customer_id" => null,
-            "wallet_address" => $data['address'],
-            "wallet_currency" => trim($data['ticker_name']),
-            "wallet_network" => $data['chain'],
-            "wallet_provider" => 'yativo',
-            "coin_name" => $data['asset_name'],
-            "wallet_balance" => 0,
-        ];
-    
-        $record = CryptoWallets::create($walletData);
-    
-        // Queue webhook notification
-        dispatch(function () use ($userId, $record) {
-            $webhook = Webhook::whereUserId($userId)->first();
-            if ($webhook) {
-                WebhookCall::create()
-                    ->meta(['_uid' => $webhook->user_id])
-                    ->url($webhook->url)
-                    ->useSecret($webhook->secret)
-                    ->payload([
-                        "event.type" => "crypto.wallet.created",
-                        "payload" => $record,
-                    ])
-                    ->dispatchSync();
-            }
-        })->afterResponse();
-    
-        // Load relationships for the response
-        $record = $record->load('user');
-    
-        return get_success_response($record);
     }
     
 
