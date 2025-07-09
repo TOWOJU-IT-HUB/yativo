@@ -80,8 +80,8 @@ class CryptoWalletsController extends Controller
             $data = $response['data'];
             $walletData = [
                 "user_id" => $userId,
-                "is_customer" => false,
-                "customer_id" => null,
+                "is_customer" => request()->customer_id ? true : false,
+                "customer_id" => request()->customer_id,
                 "wallet_address" => $data['address'],
                 "wallet_currency" => trim($data['ticker_name']),
                 "wallet_network" => $data['chain'],
@@ -109,7 +109,7 @@ class CryptoWalletsController extends Controller
             })->afterResponse();
         
             // Load relationships for the response
-            $record = $record->load('user');
+            // $record = $record->load('user');
         
             return get_success_response($record);
         }
