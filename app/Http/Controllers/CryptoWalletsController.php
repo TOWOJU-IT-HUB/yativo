@@ -80,8 +80,8 @@ class CryptoWalletsController extends Controller
             $data = $response['data'];
             $walletData = [
                 "user_id" => $userId,
-                "is_customer" => request()->customer_id ? true : false,
-                "customer_id" => request()->customer_id,
+                "is_customer" => false, // request()->customer_id ? true : false,
+                "customer_id" => null, // request()->customer_id,
                 "wallet_address" => $data['address'],
                 "wallet_currency" => trim($data['ticker_name']),
                 "wallet_network" => $data['chain'],
