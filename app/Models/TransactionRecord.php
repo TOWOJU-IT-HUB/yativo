@@ -58,10 +58,11 @@ class TransactionRecord extends Model
     {
         return $this->belongsTo(payoutMethods::class, 'gateway_id');
     }
-
+    
     public function checkout_url()
     {
-        return $this->belongsTo(CheckoutModel::class, 'id', 'transaction_id')->only(['checkouturl', 'expiration_time', 'checkout_status']);
+        return $this->hasOne(CheckoutModel::class, 'transaction_id', 'id')
+                    ->select(['transaction_id', 'checkouturl', 'expiration_time']);
     }
 
     // Method to retrieve payment gateway dynamically
