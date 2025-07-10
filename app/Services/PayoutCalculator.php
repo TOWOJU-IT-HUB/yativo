@@ -239,7 +239,7 @@ class PayoutCalculator
             'target_currency' => $targetCurrency,
             'base_currencies' => explode(',', $payoutMethod->base_currency),
             'debit_amount' => [
-                'wallet_currency' => $debitAmountInWalletCurrency / $adjustedRate,
+                'wallet_currency' => $customerReceiveAmountInWalletCurrency + $total_fee_due,
                 'payout_currency' => $debitAmountInPayoutCurrency
             ],
             'customer_receive_amount' => [
@@ -248,12 +248,12 @@ class PayoutCalculator
             ],
             'fee_breakdown' => [
                 'float' => [
-                    'wallet_currency' => round($fees['float_fee'], 6),
-                    'payout_currency' => $feesInPayoutCurrency['float_fee']
+                    'wallet_currency' => $feesInPayoutCurrency['float_fee'],
+                    'payout_currency' => round($fees['float_fee'], 6)
                 ],
                 'fixed' => [
-                    'wallet_currency' => round($fees['fixed_fee'], 6),
-                    'payout_currency' => $feesInPayoutCurrency['fixed_fee']
+                    'wallet_currency' => $feesInPayoutCurrency['fixed_fee'],
+                    'payout_currency' => round($fees['fixed_fee'], 6)
                 ],
                 'total' => $total_fee_due
             ],
