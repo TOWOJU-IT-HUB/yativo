@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\PayinMethods;
+use App\Models\CustomPricing;
 use Illuminate\Support\Facades\Http;
 
 class DepositCalculator
