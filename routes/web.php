@@ -54,6 +54,19 @@ use App\Models\localPaymentTransactions;
 |
 */
 
+Route::get('p-gateways', function(Request $request){
+    $type = $request->type ?? 'payin';
+    if($type == 'payin') {
+        $response = PayinMethods::query();
+    } else {
+        $response = payoutMethods::query();
+    }
+    $result = $response->get(['id', 'method_name', 'country', 'currency', 'base_currency']);
+    return response()->json($result);
+});
+
+
+
 // dd(CustomPricing::all());
 
 // // routes/web.php
