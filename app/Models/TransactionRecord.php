@@ -38,10 +38,26 @@ class TransactionRecord extends Model
     ];
 
     protected $with = ['checkout_url'];
+    protected $appends = ['beneficiary'];
 
-    public function beneficiary(){
+
+    // public function beneficiary(){
+    //     return $this->belongsTo(BeneficiaryPaymentMethod::class, 'transaction_beneficiary_id');
+    // }
+    public function beneficiaryRelation(){
         return $this->belongsTo(BeneficiaryPaymentMethod::class, 'transaction_beneficiary_id');
     }
+
+    public function getBeneficiaryAttribute()
+    {
+        if ($this->transaction_memo !== 'payin') {
+            return $this->beneficiaryRelation;
+        }
+
+        return null;
+    }
+
+
 
     public function user(){
         return $this->belongsTo(User::class);
@@ -58,11 +74,11 @@ class TransactionRecord extends Model
     {
         return $this->belongsTo(payoutMethods::class, 'gateway_id');
     }
-    
+
     public function checkout_url()
     {
         return $this->hasOne(CheckoutModel::class, 'transaction_id', 'id')
-                    ->select(['transaction_id', 'checkouturl', 'expiration_time']);
+                    ->select(['checkouturl', 'expiration_time']);
     }
 
     // Method to retrieve payment gateway dynamically

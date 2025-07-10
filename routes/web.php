@@ -160,6 +160,7 @@ Route::group([], function () {
 
     //Bitnob webhook url 
     Route::any('callback/webhook/bitnob', [CustomerVirtualCardsController::class, 'webhook']);
+    Route::any('callback/webhook/bithonor', [BitHonorController::class, 'webhook']);
 })->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::any('cron', [CronController::class, 'index'])->name('cron.index');

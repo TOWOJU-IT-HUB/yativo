@@ -49,7 +49,7 @@ class BitHonorController extends Controller
             return ['error' => $response->body()];
         }
     }
-
+    
     public function fetchPaymentOrder($ticketId)
     {
         try {
@@ -57,32 +57,42 @@ class BitHonorController extends Controller
                 "secret_company_key" => "BCdgaWev",
                 "filters" => [
                     "filter_field" => "ticket_id",
-                    "search_field" => [
-                        $ticketId
-                    ]
+                    "search_field" => [$ticketId]
                 ]
             ];
+
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'x-api-key' => env("BITHONOR_API_KEY"),
             ])->post("{$this->baseUrl}/spa/api/v1.2/send-payment-order", $payload);
 
-
-            // Return API response to the frontend
             if ($response->successful()) {
-                $result = $response->json();
-                if(is_array($result) && isset($result['ticket_id'])) {
-                    //
-                }
-                return ["result" => $response->json()];
-            } else {
-                return [
-                    'error' => $response->body()
-                ];
+                return $response->json();
             }
+
+            $errorResponse = $response->json();
+            $errorMessage = $errorResponse['error'] ?? 'Unknown error occurred';
+
+            return ['error' => $errorMessage];
+
         } catch (\Throwable $th) {
-            Log::error("Error retrieving bithonor payment order", ['error' => $th->getMessage()]);
-            return ['error' => "Error retrieving payment order"];
+            Log::error("Error retrieving Bithonor payment order", [
+                'ticket_id' => $ticketId,
+                'error' => $th->getMessage()
+            ]);
+
+            return ['error' => 'Exception occurred while retrieving payment order'];
+        }
+    }
+
+    public function webhook(Request $request)
+    {
+        try {
+            // Log all incoming webhook requests
+            Log::info("Incoming webhook request from BitHonor: ", ['data' => $request->all()]);
+        } catch (\Throwable $th) {
+            Log::error("Bithonor webhook log: ", ['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
+            return response()->json(['error' => $th->getMessage()], $th->getCode());
         }
     }
 }

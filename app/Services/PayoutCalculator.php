@@ -44,6 +44,7 @@ class PayoutCalculator
 
         $customPricing = CustomPricing::where('user_id', $user->id)
             ->where('gateway_id', $payoutMethod->id)
+            ->where('gateway_type', 'payout')
             ->first();
 
         if ($customPricing) {
