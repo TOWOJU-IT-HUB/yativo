@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PayinMethods;
 use App\Models\CustomPricing;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
 class DepositCalculator
@@ -41,20 +42,20 @@ class DepositCalculator
     /**
      * Calculate deposit breakdown
      */
-    public function calculate(float $depositAmount): array
+    public function calculate(float $depositAmount): Collection
     {
         $request = request();
 
         $depositCurrency = $request->get('to_currency') ?? $request->get('currency');
 
-        $payoutMethod = $this->gateway;
-        $user = auth()->user();
+        // Convert gateway array to Laravel Collection
+        $payoutMethod = collect($this->gateway);
 
-        // Assuming user_plan is stored as a property or retrievable
-        $user_plan = $user->plan_id ?? 1; // Default to 1 if not available
+        $user = auth()->user();
+        $user_plan = $user->plan_id ?? 1;
 
         $customPricing = CustomPricing::where('user_id', $user->id)
-            ->where('gateway_id', $payoutMethod->id)
+            ->where('gateway_id', $payoutMethod->get('id'))
             ->where('gateway_type', "payin")
             ->first();
 
@@ -62,8 +63,8 @@ class DepositCalculator
             $fixedChargeUSD = $customPricing->fixed_charge;
             $floatChargeRate = $customPricing->float_charge;
         } else {
-            $fixedChargeUSD = $user_plan === 2 ? $payoutMethod->pro_fixed_charge : $payoutMethod->fixed_charge;
-            $floatChargeRate = $user_plan === 2 ? $payoutMethod->pro_float_charge : $payoutMethod->float_charge;
+            $fixedChargeUSD = $user_plan === 2 ? $payoutMethod->get('pro_fixed_charge') : $payoutMethod->get('fixed_charge');
+            $floatChargeRate = $user_plan === 2 ? $payoutMethod->get('pro_float_charge') : $payoutMethod->get('float_charge');
         }
 
         $adjustedRate = $this->getAdjustedExchangeRate();
@@ -74,8 +75,13 @@ class DepositCalculator
         $totalFees = $percentageFee + $fixedFeeInQuote;
 
         // Enforce min/max fee caps in quote currency
-        $minChargeInQuote = isset($payoutMethod->minimum_charge) ? $payoutMethod->minimum_charge * $adjustedRate : null;
-        $maxChargeInQuote = isset($payoutMethod->maximum_charge) ? $payoutMethod->maximum_charge * $adjustedRate : null;
+        $minChargeInQuote = $payoutMethod->has('minimum_charge')
+            ? $payoutMethod->get('minimum_charge') * $adjustedRate
+            : null;
+
+        $maxChargeInQuote = $payoutMethod->has('maximum_charge')
+            ? $payoutMethod->get('maximum_charge') * $adjustedRate
+            : null;
 
         $totalFee = $totalFees;
         if ($minChargeInQuote !== null && $totalFee < $minChargeInQuote) {
@@ -88,7 +94,7 @@ class DepositCalculator
         // Calculate credited amount
         $creditedAmount = $depositAmount - $totalFee;
 
-        if (strtolower($depositCurrency) !== strtolower($payoutMethod->currency)) {
+        if (strtolower($depositCurrency) !== strtolower($payoutMethod->get('currency'))) {
             $creditedAmount = $creditedAmount / $adjustedRate;
         }
 
@@ -105,7 +111,7 @@ class DepositCalculator
 
         session()->put("calculator_result", $result);
 
-        return $result;
+        return collect($result);
     }
 
 

@@ -256,7 +256,7 @@ class MiscController extends Controller
                 ? $th->getMessage() 
                 : 'Something went wrong, please contact support';
                 
-            return get_error_response(['error' => $message], 400);
+            return get_error_response(['error' => $th->getMessage()], 400);
         }
     }
 
