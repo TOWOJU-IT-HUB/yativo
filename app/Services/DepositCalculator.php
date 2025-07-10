@@ -48,7 +48,7 @@ class DepositCalculator
 
         $depositCurrency = $request->get('to_currency') ?? $request->get('currency');
 
-        // Convert gateway array to Laravel Collection
+        // Convert gateway to Collection
         $payoutMethod = collect($this->gateway);
 
         $user = auth()->user();
@@ -69,12 +69,10 @@ class DepositCalculator
 
         $adjustedRate = $this->getAdjustedExchangeRate();
 
-        // Fee calculations
         $percentageFee = $depositAmount * floatval($floatChargeRate / 100);
         $fixedFeeInQuote = $fixedChargeUSD * $adjustedRate;
         $totalFees = $percentageFee + $fixedFeeInQuote;
 
-        // Enforce min/max fee caps in quote currency
         $minChargeInQuote = $payoutMethod->has('minimum_charge')
             ? $payoutMethod->get('minimum_charge') * $adjustedRate
             : null;
@@ -91,14 +89,13 @@ class DepositCalculator
             $totalFee = $maxChargeInQuote;
         }
 
-        // Calculate credited amount
         $creditedAmount = $depositAmount - $totalFee;
 
         if (strtolower($depositCurrency) !== strtolower($payoutMethod->get('currency'))) {
             $creditedAmount = $creditedAmount / $adjustedRate;
         }
 
-        $result = [
+        $result = collect([
             'deposit_amount'     => round($depositAmount, 2),
             'fixed_fee'          => round($fixedFeeInQuote, 2),
             'float_fee'          => round($percentageFee, 2),
@@ -107,12 +104,13 @@ class DepositCalculator
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
             'total_fees'         => round($totalFee, 2),
             'credited_amount'    => round($creditedAmount, 2),
-        ];
+        ]);
 
-        session()->put("calculator_result", $result);
+        session()->put("calculator_result", $result->toArray());
 
-        return collect($result);
+        return $result;
     }
+
 
 
     // public function calculate(float $depositAmount): array
