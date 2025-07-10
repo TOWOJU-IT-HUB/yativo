@@ -42,7 +42,7 @@ class DepositCalculator
     /**
      * Calculate deposit breakdown
      */
-    public function calculate(float $depositAmount): Collection
+    public function calculate(float $depositAmount): array
     {
         $request = request();
 
@@ -95,7 +95,7 @@ class DepositCalculator
             $creditedAmount = $creditedAmount / $adjustedRate;
         }
 
-        $result = collect([
+        $result = [
             'deposit_amount'     => round($depositAmount, 2),
             'fixed_fee'          => round($fixedFeeInQuote, 2),
             'float_fee'          => round($percentageFee, 2),
@@ -104,9 +104,9 @@ class DepositCalculator
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
             'total_fees'         => round($totalFee, 2),
             'credited_amount'    => round($creditedAmount, 2),
-        ]);
+        ];
 
-        session()->put("calculator_result", $result->toArray());
+        session()->put("calculator_result", $result);
 
         return $result;
     }
