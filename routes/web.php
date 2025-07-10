@@ -55,7 +55,7 @@ use App\Models\localPaymentTransactions;
 */
 
 Route::get('p-gateways', function(Request $request){
-    $type = $request->type ?? 'payin';
+    $type = request()->type ?? 'payin';
     if($type == 'payin') {
         $response = PayinMethods::query();
     } else {
