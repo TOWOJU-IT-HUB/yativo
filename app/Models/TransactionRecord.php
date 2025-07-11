@@ -78,7 +78,7 @@ class TransactionRecord extends Model
     public function checkout_url()
     {
         return $this->hasOne(CheckoutModel::class, 'transaction_id', 'id')
-                    ->select(['id', 'checkouturl', 'expiration_time']);
+                    ->select(['transaction_id', 'checkouturl', 'created_at', 'expiration_time']);
     }
 
     // Method to retrieve payment gateway dynamically
