@@ -317,7 +317,7 @@ class PayoutService
             return ['error' => 'Gateway not found'];
         }
         $bithonor = new BitHonorController();
-        $init = $bithonor->sendPaymentOrder($formArray, $amount);
+        $init = $bithonor->sendPaymentOrder($formArray, $amount, $beneficiary->currency);
         return $init;
     }
 

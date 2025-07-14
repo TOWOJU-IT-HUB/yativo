@@ -13,7 +13,6 @@ class BitHonorController extends Controller
         $this->baseUrl = env("BITHONOR_BASE_URL", "https://api-test.spatransfer.com");
     }
 
-
     public function sendPaymentOrder($payoutObject, $amount, $currency = "VES")
     {
         $request = request();
@@ -26,6 +25,11 @@ class BitHonorController extends Controller
         }
 
         $receiver = $payoutObject;
+        $payKey = "phoneNumber";
+        if($receiver->payment_type == "TRF") {
+            $payKey = "accountNumber";
+        }
+        
         $response = Http::withHeaders([
             'Content-Type' => 'application/json',
             'x-api-key' => env("BITHONOR_API_KEY"),
@@ -38,7 +42,7 @@ class BitHonorController extends Controller
                     "bankCode" => $receiver->bankCode,
                     "currency" => $currency,
                     "amount" => $amount,
-                    "phoneNumber" => $receiver->phoneNumber,
+                    $payKey => $receiver->phoneNumber,
                     "client_txid" => generate_uuid(),
                 ]);
 
