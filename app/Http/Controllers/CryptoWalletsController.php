@@ -401,6 +401,10 @@ class CryptoWalletsController extends Controller
 
             // Credit user wallet
             $walletInstance = $user->getWallet('usd');
+            if("EURC_SOL" === strtoupper($currency)) {
+                $walletInstance = $user->getWallet('eur');
+            }
+            
             if ($walletInstance) {
                 $zeeFee = $fee * 0.30;
                 $totalFee = $fee + $zeeFee;

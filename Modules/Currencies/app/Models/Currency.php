@@ -23,7 +23,9 @@ class Currency extends Model
         "balance_type",
         "currency_full_name",
         "logo_url",
-        "is_true"
+        "is_true",
+        "is_active",
+        "can_hold_balance"
     ];
 
     protected $casts = [
