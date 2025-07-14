@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\DataTables\UsersDataTable;
 use Modules\Currencies\app\Models\Currency;
+use Illuminate\Support\Facades\Validator;
 
 class CurrenciesController extends Controller
 {
@@ -73,7 +74,7 @@ class CurrenciesController extends Controller
         }
 
         $currency = Currency::create([
-            'wallet' => uniqid(),
+            'wallet' => $request->input('wallet'),
             'main_balance' => 0.00,
             'ledger_balance' => 0.00,
             'currency_icon' => $request->input('currency_icon'),
@@ -130,6 +131,7 @@ class CurrenciesController extends Controller
     public function update(Request $request, Currency $currency)
     {
         $validator = Validator::make($request->all(), [
+            'wallet' => 'required',
             'currency_name' => 'required|string|max:255',
             'currency_full_name' => 'required|string|max:255',
             'currency_icon' => 'nullable|string',
@@ -144,6 +146,7 @@ class CurrenciesController extends Controller
         }
 
         $currency->update([
+            'wallet' => $request->input('wallet'),
             'currency_icon' => $request->input('currency_icon'),
             'currency_name' => $request->input('currency_name'),
             'currency_full_name' => $request->input('currency_full_name'),
