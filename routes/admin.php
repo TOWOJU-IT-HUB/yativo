@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BusinessController;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\CurrenciesController;
 use App\Http\Controllers\Admin\CustomPricingController;
 use App\Http\Controllers\Admin\DepositController;
 use App\Http\Controllers\Admin\ExchangeRateController;
@@ -75,6 +76,7 @@ Route::domain(env('ADMIN_URL'))->prefix('backoffice')->group(function () {
             Route::group([], function () {
                 Route::get('dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
             });
+            
             Route::group([], function () {
                 Route::prefix('business')->group(function () {
                     Route::get('/', [BusinessController::class, 'index'])->name('businesses.index');
@@ -83,6 +85,18 @@ Route::domain(env('ADMIN_URL'))->prefix('backoffice')->group(function () {
                     Route::post('update-wallet/debit/{userId}', [BusinessController::class, 'manageUserWallet'])->name('business.manage.user.wallet');
                 });
             });
+
+            Route::prefix('currencies')->name('currencies.')->group(function () {
+                Route::get('/', [CurrenciesController::class, 'index'])->name('index');
+                Route::get('/create', [CurrenciesController::class, 'create'])->name('create');
+                Route::post('/', [CurrenciesController::class, 'store'])->name('store');
+                Route::get('/{currency}', [CurrenciesController::class, 'show'])->name('show');
+                Route::get('/{currency}/edit', [CurrenciesController::class, 'edit'])->name('edit');
+                Route::put('/{currency}', [CurrenciesController::class, 'update'])->name('update');
+                Route::delete('/{currency}', [CurrenciesController::class, 'destroy'])->name('destroy');
+            });
+
+
             Route::get('/', [AdminController::class, 'index'])->name('index');
             Route::get('/create', [AdminController::class, 'create'])->name('create');
             Route::post('/store', [AdminController::class, 'store'])->name('store');
