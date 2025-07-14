@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <a href="{{ route('admin.currencies.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4 inline-block">Add New Currency</a>
+                    <a href="{{ route('admin.currencies.create') }}" class="bg-blue-500 hover:bg-primary text-white font-bold py-2 px-4 rounded mb-4 inline-block">Add New Currency</a>
                     @if(session('success'))
                         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 my-4" role="alert">
                             {{ session('success') }}

@@ -1,26 +1,31 @@
 <div class="grid gap-6 mb-6 md:grid-cols-2">
     <div>
-        <label for="currency_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Currency Name</label>
+        <label for="currency_name" class="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">Currency Name</label>
         <input type="text" name="currency_name" id="currency_name" value="{{ old('currency_name', $currency->currency_name ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required />
     </div>
 
     <div>
-        <label for="currency_full_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Full Name</label>
+        <label for="currency_full_name" class="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">Full Name</label>
         <input type="text" name="currency_full_name" id="currency_full_name" value="{{ old('currency_full_name', $currency->currency_full_name ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required />
     </div>
 
     <div>
-        <label for="currency_icon" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Icon</label>
+        <label for="wallet" class="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">Currency Name</label>
+        <input type="text" name="wallet" id="wallet" value="{{ old('wallet', $currency->wallet ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required />
+    </div>
+
+    <div>
+        <label for="currency_icon" class="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">Icon</label>
         <input type="text" name="currency_icon" id="currency_icon" value="{{ old('currency_icon', $currency->currency_icon ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
     </div>
 
     <div>
-        <label for="currency_country" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Country</label>
+        <label for="currency_country" class="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">Country</label>
         <input type="text" name="currency_country" id="currency_country" value="{{ old('currency_country', $currency->currency_country ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required />
     </div>
 
     <div>
-        <label for="decimal_places" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Decimal Places</label>
+        <label for="decimal_places" class="block mb-2 text-sm font-medium text-gray-800 dark:text-gray-200">Decimal Places</label>
         <input type="number" name="decimal_places" id="decimal_places" value="{{ old('decimal_places', $currency->decimal_places ?? 2) }}" min="0" max="8" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required />
     </div>
 
@@ -36,7 +41,7 @@
 </div>
 
 <div class="flex justify-end">
-    <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+    <button type="submit" class="text-white bg-primary hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-primary dark:focus:ring-blue-800">
         Submit
     </button>
 </div>
