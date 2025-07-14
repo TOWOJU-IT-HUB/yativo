@@ -16,7 +16,7 @@ class CurrenciesController extends Controller
     public function index()
     {
         try {
-            $currencies = Currency::where('is_active', true)->get()->map(function ($cur) {
+            $currencies = Currency::get()->map(function ($cur) {
                 return [
                     'id' => $cur->id,
                     'wallet' => $cur->wallet,
@@ -60,6 +60,7 @@ class CurrenciesController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'wallet' => 'required',
             'currency_name' => 'required|string|max:255',
             'currency_full_name' => 'required|string|max:255',
             'currency_icon' => 'nullable|string',
@@ -73,7 +74,7 @@ class CurrenciesController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $currency = Currency::create([
+        $currency = Currency::updateOrCreate([
             'wallet' => $request->input('wallet'),
             'main_balance' => 0.00,
             'ledger_balance' => 0.00,
