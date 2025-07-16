@@ -93,6 +93,7 @@ class BitHonorController extends Controller
     {
         try {
             // Log all incoming webhook requests
+            $data = file_get_contents("php://input");
             Log::info("Incoming webhook request from BitHonor: ", ['data' => $request->all()]);
         } catch (\Throwable $th) {
             Log::error("Bithonor webhook log: ", ['error' => $th->getMessage(), 'trace' => $th->getTrace()]);

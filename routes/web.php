@@ -43,6 +43,7 @@ use Modules\Customer\app\Http\Controllers\CustomerVirtualCardsController;
 use App\Models\Business\VirtualAccount;
 use Illuminate\Support\Facades\Schema;
 use App\Models\localPaymentTransactions;
+use App\Http\Controllers\BitHonorController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -54,16 +55,16 @@ use App\Models\localPaymentTransactions;
 |
 */
 
-Route::get('p-gateways', function(Request $request){
-    $type = request()->type ?? 'payin';
-    if($type == 'payin') {
-        $response = PayinMethods::query();
-    } else {
-        $response = payoutMethods::query();
-    }
-    $result = $response->get(['id', 'method_name', 'country', 'currency', 'base_currency']);
-    return response()->json($result);
-});
+// Route::get('p-gateways', function(Request $request){
+//     $type = request()->type ?? 'payin';
+//     if($type == 'payin') {
+//         $response = PayinMethods::query();
+//     } else {
+//         $response = payoutMethods::query();
+//     }
+//     $result = $response->get(['id', 'method_name', 'country', 'currency', 'base_currency']);
+//     return response()->json($result);
+// });
 
 
 
@@ -97,25 +98,25 @@ Route::get('/', function () {
     return redirect()->to('https://yativo.com');
 });
 
-Route::post('09039clone', function(){
-    $id = request('id');
-    $original = BeneficiaryForms::where('gateway_id', $id)->first();
-    if(!$original) {
-        return response()->json([
-            "error" => "Gateway_id $id not found"
-        ]);
-    }
-    $clone = $original->replicate();
-    $clone->gateway_id = request('gateway');
-    $clone->save();
+// Route::post('09039clone', function(){
+//     $id = request('id');
+//     $original = BeneficiaryForms::where('gateway_id', $id)->first();
+//     if(!$original) {
+//         return response()->json([
+//             "error" => "Gateway_id $id not found"
+//         ]);
+//     }
+//     $clone = $original->replicate();
+//     $clone->gateway_id = request('gateway');
+//     $clone->save();
 
-    return response()->json([
-        'message' => 'Form cloned successfully',
-        'original_id' => $original->id,
-        'clone_id' => $clone->id,
-        'clone' => $clone,
-    ]);
-})->withoutMiddleware(VerifyCsrfToken::class);
+//     return response()->json([
+//         'message' => 'Form cloned successfully',
+//         'original_id' => $original->id,
+//         'clone_id' => $clone->id,
+//         'clone' => $clone,
+//     ]);
+// })->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::get('v', [CronDepositController::class, "vitawallet"]);
 
