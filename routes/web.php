@@ -13,6 +13,7 @@ use App\Http\Controllers\KycServiceController;
 use App\Http\Controllers\LocalPaymentWebhookController;
 use App\Http\Controllers\PaxosController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReloadlyController;
 use App\Models\BeneficiaryFoems as BeneficiaryForms;
 use App\Models\CustomPricing;
 use App\Models\PayinMethods;
@@ -44,6 +45,7 @@ use App\Models\Business\VirtualAccount;
 use Illuminate\Support\Facades\Schema;
 use App\Models\localPaymentTransactions;
 use App\Http\Controllers\BitHonorController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -54,6 +56,46 @@ use App\Http\Controllers\BitHonorController;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+
+if (!Schema::hasTable('operators')) {
+    Schema::create('operators', function (Blueprint $table) {
+        $table->id();
+        $table->unsignedBigInteger('product_id')->unique();
+        $table->string('product_name');
+        $table->boolean('global')->default(false);
+        $table->string('status');
+        $table->boolean('supports_pre_order')->default(false);
+        $table->decimal('sender_fee', 10, 2)->nullable();
+        $table->decimal('sender_fee_percentage', 10, 2)->nullable();
+        $table->decimal('discount_percentage', 10, 2)->nullable();
+        $table->string('denomination_type');
+        $table->string('recipient_currency_code');
+        $table->decimal('min_recipient_denomination', 10, 2)->nullable();
+        $table->decimal('max_recipient_denomination', 10, 2)->nullable();
+        $table->string('sender_currency_code');
+        $table->decimal('min_sender_denomination', 10, 2)->nullable();
+        $table->decimal('max_sender_denomination', 10, 2)->nullable();
+        $table->json('fixed_recipient_denominations')->nullable();
+        $table->json('fixed_sender_denominations')->nullable();
+        $table->json('fixed_recipient_to_sender_map')->nullable();
+        $table->json('logo_urls')->nullable();
+        $table->unsignedBigInteger('brand_id');
+        $table->string('brand_name');
+        $table->unsignedBigInteger('category_id');
+        $table->string('category_name');
+        $table->string('country_iso');
+        $table->string('country_name');
+        $table->string('country_flag_url');
+        $table->text('redeem_instruction_concise')->nullable();
+        $table->text('redeem_instruction_verbose')->nullable();
+        $table->boolean('user_id_required')->default(false);
+        $table->timestamps();
+        $table->softDeletes();
+    });
+}
+
+
 
 // Route::get('p-gateways', function(Request $request){
 //     $type = request()->type ?? 'payin';
@@ -82,6 +124,7 @@ if(!Schema::hasColumn("customer_virtual_cards", "card_name")) {
     });
 }
 
+Route::get('reloadly', [ReloadlyController::class, 'fetchAndStoreGiftCards']);
 
 // routes/web.php or routes/api.php
 Route::get('bridge-vc-update-all', [BridgeController::class, 'updateAllVirtualAccounts']);

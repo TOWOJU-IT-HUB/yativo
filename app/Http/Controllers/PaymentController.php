@@ -217,6 +217,7 @@ class PaymentController extends Controller
                 "payload" => $requestData,
                 "response" => $response->json()['resultado']
             ]);
+            
             return get_success_response($response->json()['resultado'], $response->status());
         } catch (\Exception $e) {
             return get_error_response([

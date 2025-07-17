@@ -19,6 +19,7 @@ use App\Http\Controllers\MantecaController;
 use App\Http\Controllers\MiscController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\PinVerificationController;
+use App\Http\Controllers\ReloadlyController;
 use App\Http\Controllers\TrackController;
 use App\Http\Controllers\TransactionRecordController;
 use App\Http\Controllers\UserMetaController;
@@ -146,6 +147,13 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
         Route::get('storage/get/{doc}', [UserMetaController::class, 'retriveUpload'])->name('misc.get');
     })->middleware('kyc_check');
 
+
+    Route::group(['prefix' => 'giftcards'], function () {
+        Route::get('/', [ReloadlyController::class, 'fetchGiftCards']);
+        Route::post('/', [ReloadlyController::class, 'purchaseGiftCard']);
+        Route::get('redeem/{transactionId}', [ReloadlyController::class, 'redeem']);
+        Route::get('categories', [ReloadlyController::class, 'fetchGiftCardCategories']);
+    });
 
     Route::prefix('beneficiary/form')->group(function () {
         Route::post('create', [BeneficiaryFoemsController::class, 'store']);
