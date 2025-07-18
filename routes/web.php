@@ -76,35 +76,42 @@ use App\Http\Controllers\BitHonorController;
 // Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
 // Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
-if (Schema::hasTable('withdraws') && !Schema::hasColumn('withdraws', 'gateway_id')) {
-    Schema::table('withdraws', function (Blueprint $table) {
-        $table->string('gateway_id')->nullable();
-    });
+
+if (Schema::hasTable('withdraws')) {
+
+    // First drop the foreign key if the column exists
+    if (Schema::hasColumn('withdraws', 'payment_gateway_id')) {
+        try {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+            Schema::table('withdraws', function (Blueprint $table) {
+                $table->dropForeign(['payment_gateway_id']);
+            });
+
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        } catch (\Exception $e) {
+            logger()->error('Failed to drop foreign key on withdraws.payment_gateway_id: ' . $e->getMessage());
+        }
+    }
+
+    // Then ensure the column exists or is created
+    if (!Schema::hasColumn('withdraws', 'payment_gateway_id')) {
+        Schema::table('withdraws', function (Blueprint $table) {
+            $table->string('payment_gateway_id')->nullable();
+        });
+    }
 }
-DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-Schema::table('withdraws', function (Blueprint $table) {
-    $table->dropForeign('withdraws_gateway_id_foreign');
-});
 
-// Re-enable foreign key checks
-DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-if (Schema::hasTable('withdrawals') && !Schema::hasColumn('withdrawals', 'gateway_id')) {
-    Schema::table('withdrawals', function (Blueprint $table) {
-        $table->string('gateway_id')->nullable();
-    });
-}
-
-Route::get('reloadly', [ReloadlyController::class, 'fetchAndStoreGiftCards']);
+// Route::get('reloadly', [ReloadlyController::class, 'fetchAndStoreGiftCards']);
 
 // routes/web.php or routes/api.php
-Route::get('bridge-vc-update-all', [BridgeController::class, 'updateAllVirtualAccounts']);
+// Route::get('bridge-vc-update-all', [BridgeController::class, 'updateAllVirtualAccounts']);
 
 
 
-Route::any('register-payment', [PaymentController::class, "registerPayment"])->withoutMiddleware(VerifyCsrfToken::class);
-Route::any('stp-payout', [PaymentController::class, "payout"])->withoutMiddleware(VerifyCsrfToken::class);
+// Route::any('register-payment', [PaymentController::class, "registerPayment"])->withoutMiddleware(VerifyCsrfToken::class);
+// Route::any('stp-payout', [PaymentController::class, "payout"])->withoutMiddleware(VerifyCsrfToken::class);
 
 
 Route::view('onramp', 'welcome');

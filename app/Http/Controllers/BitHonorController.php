@@ -52,9 +52,9 @@ class BitHonorController extends Controller
         if ($response->successful()) {
             $result = $response->json(); // $response
             if(isset($result['ticket_id']) && !is_null($payout)) {
-                // update the payout with gateway_id
+                // update the payout with payment_gateway_id
                 $payout->update([
-                    "gateway_id" => $result['ticket_id']
+                    "payment_gateway_id" => $result['ticket_id']
                 ]);
             }
             return $result;
@@ -113,7 +113,7 @@ class BitHonorController extends Controller
             }
 
             // Find the related payout record
-            $payout = Withdraws::where('gateway_id', $data['ticket_id'])->first();
+            $payout = Withdraws::where('payment_gateway_id', $data['ticket_id'])->first();
 
             if (! $payout || $payout->status != 'pending') {
                 Log::warning("BitHonor webhook: Payout not found", ['ticket_id' => $data['ticket_id']]);
