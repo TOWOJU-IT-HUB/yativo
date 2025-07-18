@@ -93,12 +93,64 @@ class BitHonorController extends Controller
     public function webhook(Request $request)
     {
         try {
-            // Log all incoming webhook requests
-            $data = file_get_contents("php://input");
-            Log::info("Incoming webhook request from BitHonor: ", ['data' => $request->all()]);
+            // Log raw payload
+            $payload = file_get_contents("php://input");
+            Log::info("Incoming webhook request from BitHonor", ['payload' => $payload]);
+
+            // Decode JSON payload
+            $data = json_decode($payload, true);
+
+            if (!isset($data['ticket_id'], $data['status'])) {
+                return response()->json(['error' => 'Invalid payload'], 400);
+            }
+
+            // Find the related payout record
+            $payout = Withdraws::where('gateway_id', $data['ticket_id'])->first();
+
+            if (! $payout || $payout->status != 'pending') {
+                Log::warning("BitHonor webhook: Payout not found", ['ticket_id' => $data['ticket_id']]);
+                return response()->json(['error' => 'Payout completed or not found'], 404);
+            }
+
+            // Find related transaction
+            $transaction = TransactionRecord::where('transaction_id', $payout->id)
+                ->where('transaction_memo', 'payout')
+                ->first();
+
+            if (! $transaction) {
+                Log::warning("BitHonor webhook: Transaction not found", ['payout_id' => $payout->id]);
+                return response()->json(['error' => 'Transaction not found'], 404);
+            }
+
+            // Process based on status
+            if ($data['status'] === 'PAID') {
+                $transaction->transaction_status = 'complete';
+                $payout->status = 'complete';
+            } elseif ($data['status'] === 'CANCELLED' || $data['status'] === 'FAILED') {
+                $transaction->transaction_status = strtolower($data['status']);
+                $payout->status = strtolower($data['status']);
+
+                // Optional: Refund user wallet here if needed
+                $user = $payout->user;
+                $user->wallet->deposit($payout->amount * 100, ['description' => 'Payout refund']);
+            } else {
+                Log::warning("BitHonor webhook: Unknown status", ['status' => $data['status']]);
+                return response()->json(['error' => 'Unknown status'], 400);
+            }
+
+            $transaction->save();
+            $payout->save();
+
+            return response()->json(['success' => true]);
+
         } catch (\Throwable $th) {
-            Log::error("Bithonor webhook log: ", ['error' => $th->getMessage(), 'trace' => $th->getTrace()]);
-            return response()->json(['error' => $th->getMessage()], $th->getCode());
+            Log::error("BitHonor webhook error", [
+                'error' => $th->getMessage(),
+                'trace' => $th->getTraceAsString(),
+            ]);
+
+            return response()->json(['error' => 'Internal server error'], 500);
         }
     }
+
 }

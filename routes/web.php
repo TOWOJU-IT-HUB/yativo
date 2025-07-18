@@ -116,11 +116,9 @@ if (!Schema::hasTable('operators')) {
 // Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
 // Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
-if(!Schema::hasColumn("customer_virtual_cards", "card_name")) {
-    Schema::table("customer_virtual_cards", function(Blueprint $table) {
-        $table->string('card_name')->nullable();
-        $table->string('card_status')->default('pending');
-        $table->string('card_brand')->default('visa');
+if(!Schema::hasColumn("withdraws", "gateway_id")) {
+    Schema::table("withdraws", function(Blueprint $table) {
+        $table->string('gateway_id')->nullable();
     });
 }
 
