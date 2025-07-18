@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\BitHonorController;
 use App\Http\Controllers\BridgeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\TransFiController;
@@ -304,11 +305,12 @@ class PayoutService
     public function bithonor($quoteId, $currency, $payoutObject)
     {
         $amount = $payoutObject->customer_receive_amount;
-        $beneficiaryId = request()->payment_method_id;
+        $beneficiaryId = $payoutObject->beneficiary_id;
         $model = new BeneficiaryPaymentMethod();
         $beneficiary = $model->getBeneficiaryPaymentMethod($beneficiaryId);
         $formArray = (array) $beneficiary->payment_data;
 
+        // var_dump($formArray); exit;
         if (!$beneficiary) {
             return ['error' => 'Beneficiary not found'];
         }

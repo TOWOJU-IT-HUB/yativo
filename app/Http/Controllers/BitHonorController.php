@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Modules\Customer\app\Models\Customer;
 
 class BitHonorController extends Controller
 {
@@ -25,7 +26,7 @@ class BitHonorController extends Controller
             $userPhone = $user->phoneNumber;
         }
 
-        $receiver = $payoutObject;
+        $receiver = (object)$payoutObject;
         $payKey = "phoneNumber";
         if($receiver->payment_type == "TRF") {
             $payKey = "accountNumber";
@@ -35,17 +36,17 @@ class BitHonorController extends Controller
             'Content-Type' => 'application/json',
             'x-api-key' => env("BITHONOR_API_KEY"),
         ])->post("{$this->baseUrl}/spa/api/v1.2/send-payment-order", [
-                    "secret_company_key" => env("BITHONOR_SECRET_KEY"),
-                    "names" => $receiver->names,
-                    "docType" => $receiver->docType,
-                    "identNumber" => $receiver->docNumber,
-                    "payType" => $receiver->payment_type,
-                    "bankCode" => $receiver->bankCode,
-                    "currency" => $currency,
-                    "amount" => $amount,
-                    $payKey => $receiver->phoneNumber,
-                    "client_txid" => generate_uuid(),
-                ]);
+            "secret_company_key" => env("BITHONOR_SECRET_KEY"),
+            "names" => $receiver->names,
+            "docType" => $receiver->docType,
+            "identNumber" => $receiver->docNumber,
+            "payType" => $receiver->payment_type,
+            "bankCode" => $receiver->bankCode,
+            "currency" => $currency,
+            "amount" => number_format($amount, 2),
+            $payKey => $receiver->phoneNumber,
+            "client_txid" => generate_uuid(),
+        ]);
 
         // Return API response to the frontend
         if ($response->successful()) {

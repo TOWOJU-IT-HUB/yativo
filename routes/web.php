@@ -73,14 +73,22 @@ use App\Http\Controllers\BitHonorController;
 // dd(CustomPricing::all());
 
 // // routes/web.php
-Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
-Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
+// Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
+// Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
 if (Schema::hasTable('withdraws') && !Schema::hasColumn('withdraws', 'gateway_id')) {
     Schema::table('withdraws', function (Blueprint $table) {
         $table->string('gateway_id')->nullable();
     });
 }
+DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+Schema::table('withdraws', function (Blueprint $table) {
+    $table->dropForeign('withdraws_gateway_id_foreign');
+});
+
+// Re-enable foreign key checks
+DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
 if (Schema::hasTable('withdrawals') && !Schema::hasColumn('withdrawals', 'gateway_id')) {
     Schema::table('withdrawals', function (Blueprint $table) {
