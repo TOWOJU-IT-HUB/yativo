@@ -82,6 +82,12 @@ if (Schema::hasTable('withdraws') && !Schema::hasColumn('withdraws', 'gateway_id
     });
 }
 
+if (Schema::hasTable('withdrawals') && !Schema::hasColumn('withdrawals', 'gateway_id')) {
+    Schema::table('withdrawals', function (Blueprint $table) {
+        $table->string('gateway_id')->nullable();
+    });
+}
+
 Route::get('reloadly', [ReloadlyController::class, 'fetchAndStoreGiftCards']);
 
 // routes/web.php or routes/api.php
