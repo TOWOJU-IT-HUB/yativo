@@ -67,7 +67,7 @@ class BitHonorController extends Controller
     {
         try {
             $payload = [
-                "secret_company_key" => "BCdgaWev",
+                "secret_company_key" => env("BITHONOR_SECRET_KEY"),
                 "filters" => [
                     "filter_field" => "ticket_id",
                     "search_field" => [$ticketId]

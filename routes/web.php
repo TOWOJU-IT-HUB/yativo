@@ -77,32 +77,6 @@ use App\Http\Controllers\BitHonorController;
 // Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
 
-if (Schema::hasTable('withdraws')) {
-
-    // First drop the foreign key if the column exists
-    if (Schema::hasColumn('withdraws', 'payment_gateway_id')) {
-        try {
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-            Schema::table('withdraws', function (Blueprint $table) {
-                $table->dropForeign(['payment_gateway_id']);
-            });
-
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-        } catch (\Exception $e) {
-            logger()->error('Failed to drop foreign key on withdraws.payment_gateway_id: ' . $e->getMessage());
-        }
-    }
-
-    // Then ensure the column exists or is created
-    if (!Schema::hasColumn('withdraws', 'payment_gateway_id')) {
-        Schema::table('withdraws', function (Blueprint $table) {
-            $table->string('payment_gateway_id')->nullable();
-        });
-    }
-}
-
-
 // Route::get('reloadly', [ReloadlyController::class, 'fetchAndStoreGiftCards']);
 
 // routes/web.php or routes/api.php
@@ -117,7 +91,9 @@ if (Schema::hasTable('withdraws')) {
 Route::view('onramp', 'welcome');
 
 Route::get('/', function () {
-    return redirect()->to('https://yativo.com');
+    $check = new BitHonorController();
+    return response()->json($check->fetchPaymentOrder('25319'));
+    // return redirect()->to('https://yativo.com');
 });
 
 // Route::post('09039clone', function(){
