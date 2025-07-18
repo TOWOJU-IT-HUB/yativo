@@ -366,7 +366,7 @@ class CronController extends Controller
             $bridge = new BridgeController();
             $response = $bridge->sendRequest("/v0/virtual_accounts/history", "GET", $queryParams);
 
-            Log::info("Bridge request processed: ", ['result' => $response]);
+            // Log::info("Bridge request processed: ", ['result' => $response]);
 
             if (isset($response['count']) && !empty($response['data'])) {
                 foreach ($response['data'] as $eventData) {

@@ -168,7 +168,7 @@ class PayoutCalculator
                 try {
                     $response = json_decode($client->get($url, ['query' => $params])->getBody(), true);
                     if (isset($response['Response']) && $response['Response'] === 'Error') {
-                        Log::error("API Error: " . $response['Message']);
+                        // Log::error("API Error: " . $response['Message']);
                         continue;
                     }
                     $rate = str_contains($url, 'cryptocompare')

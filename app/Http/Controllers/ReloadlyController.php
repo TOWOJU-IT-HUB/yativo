@@ -89,7 +89,7 @@ class ReloadlyController extends Controller
         ]);
     
         if ($validator->fails()) {
-            return get_error_response("Validation Error", $validator->errors(), 422);
+            return get_error_response($validator->errors(), 422,"Validation Error");
         }
     
         $validated = $validator->validated();
@@ -104,28 +104,28 @@ class ReloadlyController extends Controller
         switch ($product->denomination_type) {
             case 'RANGE':
                 if ($validated['unitPrice'] < $product->min_recipient_denomination || $validated['unitPrice'] > $product->max_recipient_denomination) {
-                    return get_error_response("Invalid unit price", ["unitPrice" => "Price must be between {$product->min_recipient_denomination} and {$product->max_recipient_denomination}"], 422);
+                    return get_error_response(["error" => "Invalid unit price", ["unitPrice" => "Price must be between {$product->min_recipient_denomination} and {$product->max_recipient_denomination}"]], 422);
                 }
                 break;
     
             case 'FIXED':
                 $fixedPrices = json_decode($product->fixed_recipient_denominations, true); // Ensure it's array of numbers
                 if (!in_array($validated['unitPrice'], $fixedPrices)) {
-                    return get_error_response("Invalid unit price", [
+                    return get_error_response(["error" => "Invalid unit price", [
                         "unitPrice" => "Price must be one of " . implode(', ', $fixedPrices) . " but you provided " . $validated['unitPrice']
-                    ], 422);
+                    ]], 422);
                 }
                 break;
     
             case 'MAPPED':
                 $mappedPrices = json_decode($product->fixed_recipient_to_sender_map, true); // Ensure JSON decoded
                 if (!isset($mappedPrices[$validated['unitPrice']])) {
-                    return get_error_response("Invalid unit price", ["unitPrice" => "Price must have a valid sender mapping"], 422);
+                    return get_error_response(["error" => "Invalid unit price", ["unitPrice" => "Price must have a valid sender mapping"]], 422);
                 }
                 break;
     
             default:
-                return get_error_response("Invalid denomination type", ["denomination_type" => "Unsupported denomination type"], 422);
+                return get_error_response(["error" => "Invalid denomination type", ["denomination_type" => "Unsupported denomination type"]], 422);
         }
     
         $user = auth()->user();
@@ -140,14 +140,14 @@ class ReloadlyController extends Controller
     
         // Check if user has enough balance
         if ($wallet->balance < $amount) {
-            return get_error_response('Insufficient wallet balance', ['error' => 'Insufficient wallet balance'], 402);
+            return get_error_response(['error' => 'Insufficient wallet balance'], 402, 'Insufficient wallet balance');
         }
     
         // Deduct amount from wallet
         try {
             $wallet->withdraw($amount, ['description' => 'Gift card purchase', 'type' => 'giftcards']);
         } catch (\Exception $e) {
-            return get_error_response('Wallet deduction failed: ' . $e->getMessage(), [], 500);
+            return get_error_response(['error' => 'Wallet deduction failed: ' . $e->getMessage()], 500, $e->getMessage());
         }
     
         $validated['recipientPhone'] = $user->phone ?? null;
@@ -192,7 +192,7 @@ class ReloadlyController extends Controller
             return get_success_response("Giftcard purchased successfully", $response);
         }
     
-        return get_error_response($curl->json('message') ?? 'Giftcard Purchase Failed', $curl->json());
+        return get_error_response($curl->json(), 400, $curl->json('message') ?? 'Giftcard Purchase Failed');
     }
     
     public function redeem($transactionId)
@@ -206,7 +206,7 @@ class ReloadlyController extends Controller
                 return get_success_response("Giftcard instruction retrieved successfully", $redeem->json());
             }
     
-            return get_error_response("Failed to retrieve redeem instructions", $redeem->json());
+            return get_error_response(["error" => $redeem->json()], error, "Failed to retrieve redeem instructions");
     
         } catch (\Throwable $e) {
             // Optionally log the error
@@ -215,7 +215,7 @@ class ReloadlyController extends Controller
                 'error' => $e->getMessage()
             ]);
     
-            return get_error_response("An error occurred while retrieving redeem instructions.");
+            return get_error_response(['error' => "An error occurred while retrieving redeem instructions."]);
         }
     }
 
@@ -353,7 +353,7 @@ class ReloadlyController extends Controller
             // return $response->json();
         }
 
-        return get_error_response($response->json('message') ?? 'Request failed.', $response->json());
+        return get_error_response($response->json(), 400, $response->json('message') ?? 'Request failed.');
     }
 }
 
