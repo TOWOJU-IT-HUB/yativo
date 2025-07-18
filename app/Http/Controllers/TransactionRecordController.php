@@ -51,7 +51,7 @@ class TransactionRecordController extends Controller
     {
         try {
             $currency = $request->input('currency', 'usd');
-            $records = TransactionRecord::with(['beneficiary', 'user', 'customer'])->whereUserId(auth()->id())
+            $records = TransactionRecord::with(['user', 'customer'])->whereUserId(auth()->id())
                 ->where(function($query) use ($currency){
                     $query->where('base_currency', $currency);
                     $query->orWhere('secondary_currency', $currency); 
