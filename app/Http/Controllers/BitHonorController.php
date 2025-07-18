@@ -14,7 +14,7 @@ class BitHonorController extends Controller
         $this->baseUrl = env("BITHONOR_BASE_URL", "https://api-test.spatransfer.com");
     }
 
-    public function sendPaymentOrder($payoutObject, $amount, $currency = "VES")
+    public function sendPaymentOrder($payoutObject, $amount, $currency = "VES", $payout = null)
     {
         $request = request();
         $customer = Customer::where('customer_id', $request->customer_id)->first();
@@ -49,7 +49,14 @@ class BitHonorController extends Controller
 
         // Return API response to the frontend
         if ($response->successful()) {
-            return $response->json();
+            $result = $response->json(); // $response
+            if(isset($result['ticket_id']) && !is_null($payout)) {
+                // update the payout with gateway_id
+                $payout->update([
+                    "gateway_id" => $result['ticket_id']
+                ]);
+            }
+            return $result;
         } else {
             return ['error' => $response->body()];
         }

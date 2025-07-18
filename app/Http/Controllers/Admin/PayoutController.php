@@ -70,11 +70,6 @@ class PayoutController extends Controller
                 return redirect()->back()->with('error', $checkout['error']);
             }
 
-            // if($gateway->method == "bithonor") {
-            //     // update the gateway ID for automatic status update via webhook
-            // }
-
-
             // return $checkout;
 
             return back()->with('success', 'Payout approved successfully');
