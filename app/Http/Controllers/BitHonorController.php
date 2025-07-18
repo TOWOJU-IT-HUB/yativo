@@ -86,7 +86,7 @@ class BitHonorController extends Controller
             $errorResponse = $response->json();
             $errorMessage = $errorResponse['error'] ?? 'Unknown error occurred';
 
-            return ['error' => $errorMessage, 'response' => $errorResponse];
+            return ['error' => $errorMessage, 'response' => $errorResponse, 'payload' => $payload];
 
         } catch (\Throwable $th) {
             Log::error("Error retrieving Bithonor payment order", [
