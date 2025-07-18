@@ -98,7 +98,7 @@ class BitHonorController extends Controller
             Log::info("Incoming webhook request from BitHonor", ['payload' => $payload]);
 
             // Decode JSON payload
-            $data = json_decode($payload, true);
+            $data = $request->all() ?? json_decode($payload, true);
 
             if (!isset($data['ticket_id'], $data['status'])) {
                 return response()->json(['error' => 'Invalid payload'], 400);
