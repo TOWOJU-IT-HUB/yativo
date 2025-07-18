@@ -178,18 +178,10 @@ class ReloadlyController extends Controller
                 'redeem_instructions' => '',
                 'transaction_created_at' => now(),
             ]);
-    
-            // addTransactionRecord(
-            //     $giftcard->user_id,
-            //     'gift_card',
-            //     $amount,
-            //     "usd",
-            //     $request->phone ?? null,
-            //     $giftcard,
-            //     $httpCode
-            // );
-    
+
             return get_success_response("Giftcard purchased successfully", $response);
+        } else if(isset($response['errorCode'])) {
+            return get_error_response(['error' => 'This service is currently unavailable, please contact support']);
         }
     
         return get_error_response($curl->json(), 400, $curl->json('message') ?? 'Giftcard Purchase Failed');
