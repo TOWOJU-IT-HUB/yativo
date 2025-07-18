@@ -57,46 +57,6 @@ use App\Http\Controllers\BitHonorController;
 |
 */
 
-
-if (!Schema::hasTable('operators')) {
-    Schema::create('operators', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('product_id')->unique();
-        $table->string('product_name');
-        $table->boolean('global')->default(false);
-        $table->string('status');
-        $table->boolean('supports_pre_order')->default(false);
-        $table->decimal('sender_fee', 10, 2)->nullable();
-        $table->decimal('sender_fee_percentage', 10, 2)->nullable();
-        $table->decimal('discount_percentage', 10, 2)->nullable();
-        $table->string('denomination_type');
-        $table->string('recipient_currency_code');
-        $table->decimal('min_recipient_denomination', 10, 2)->nullable();
-        $table->decimal('max_recipient_denomination', 10, 2)->nullable();
-        $table->string('sender_currency_code');
-        $table->decimal('min_sender_denomination', 10, 2)->nullable();
-        $table->decimal('max_sender_denomination', 10, 2)->nullable();
-        $table->json('fixed_recipient_denominations')->nullable();
-        $table->json('fixed_sender_denominations')->nullable();
-        $table->json('fixed_recipient_to_sender_map')->nullable();
-        $table->json('logo_urls')->nullable();
-        $table->unsignedBigInteger('brand_id');
-        $table->string('brand_name');
-        $table->unsignedBigInteger('category_id');
-        $table->string('category_name');
-        $table->string('country_iso');
-        $table->string('country_name');
-        $table->string('country_flag_url');
-        $table->text('redeem_instruction_concise')->nullable();
-        $table->text('redeem_instruction_verbose')->nullable();
-        $table->boolean('user_id_required')->default(false);
-        $table->timestamps();
-        $table->softDeletes();
-    });
-}
-
-
-
 // Route::get('p-gateways', function(Request $request){
 //     $type = request()->type ?? 'payin';
 //     if($type == 'payin') {
@@ -113,11 +73,11 @@ if (!Schema::hasTable('operators')) {
 // dd(CustomPricing::all());
 
 // // routes/web.php
-// Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
-// Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
+Route::get('export-tables', [\App\Http\Controllers\TableExportController::class, 'index'])->name('tables.index');
+Route::post('export-tables', [\App\Http\Controllers\TableExportController::class, 'export'])->name('tables.export');
 
-if(!Schema::hasColumn("withdraws", "gateway_id")) {
-    Schema::table("withdraws", function(Blueprint $table) {
+if (Schema::hasTable('withdraws') && !Schema::hasColumn('withdraws', 'gateway_id')) {
+    Schema::table('withdraws', function (Blueprint $table) {
         $table->string('gateway_id')->nullable();
     });
 }
