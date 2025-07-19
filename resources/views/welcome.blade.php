@@ -21,8 +21,11 @@
     @php
         $onramp = $checkout->provider_checkout_response['onramp'];
         $deposit = \App\Models\Deposit::whereId($checkout->deposit_id)->with('depositGateway', 'transactions')->first();
-        echo "<pre>";
-        var_dump(['deposit' => $deposit, 'checkout' => $checkout]);
+        if($deposit->depositGateway->method_name == "UPI") {
+            $paymentMethod = 1;
+        } else {
+            $paymentMethod = 2;
+        }
     @endphp
 
     <div class="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
@@ -47,7 +50,7 @@
                         assetImage: '//yativo.com/wp-content/uploads/2024/04/Argentina-35.png',
                         flowType: 3,
                         merchantRecognitionId: "{{ $checkout->deposit_id }}",
-                        paymentMethod: {{ $onramp['paymentMethod'] }}, 
+                        paymentMethod: {{ $paymentMethod }}, 
                         redirectUrl: "{{ $onramp['redirectUrl'] }}",
                     });
 
