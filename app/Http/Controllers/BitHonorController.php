@@ -77,7 +77,7 @@ class BitHonorController extends Controller
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
                 'x-api-key' => env("BITHONOR_API_KEY"),
-            ])->post("{$this->baseUrl}/spa/api/v1.2/send-payment-order", $payload);
+            ])->post("{$this->baseUrl}/spa/api/v1.2/status-payment-order", $payload);
 
             if ($response->successful()) {
                 return $response->json();
