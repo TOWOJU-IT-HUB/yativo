@@ -40,8 +40,8 @@
                 document.addEventListener('DOMContentLoaded', () => {
                     const onrampInstance = new window.OnrampWebSDK({
                         appId: {{ $onramp['appId'] }},
-                        walletAddress: "0x2e992f2fb2dc307e051706aa6d1e78dc2569eeb4",
-                        coinCode: "USDT",
+                        walletAddress: "0x316363Fd9B3e7E9e1ea4cC8503681a15A0cc5ECb",
+                        coinCode: "usdc",
                         network: "matic20",
                         fiatAmount: {{ $onramp['fiatAmount'] }}, 
                         fiatType: {{ $onramp['fiatType'] }}, 
