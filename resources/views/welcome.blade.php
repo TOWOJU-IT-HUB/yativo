@@ -43,9 +43,9 @@
                         assetDescription: 'Zee Technology SPA',
                         assetImage: '//yativo.com/wp-content/uploads/2024/04/Argentina-35.png',
                         flowType: 3,
-                        merchantRecognitionId: {{ $checkout->deposit_id }},
-                        paymentMethod: {{ $onramp['paymentMethod'] }}, 
-                        redirectUrl: {{ $onramp['redirectUrl'] }},
+                        merchantRecognitionId: "{{ $checkout->deposit_id }}",
+                        paymentMethod: "{{ $onramp['paymentMethod'] }}", 
+                        redirectUrl: "{{ $onramp['redirectUrl'] }}",
                     });
 
                     // Show the widget
