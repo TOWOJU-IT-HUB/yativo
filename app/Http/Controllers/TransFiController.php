@@ -72,7 +72,7 @@ class TransFiController extends Controller
             // Wait for the response and decode the result
             $result = $response->json();
 
-            // var_dump($result); exit;
+            var_dump($result); exit;
 
             // Ensure the response contains an orderId
             if (!isset($result['orderId'])) {
@@ -356,8 +356,6 @@ class TransFiController extends Controller
             ],
             'orderDetails' => $order // Full order information
         ];
-
-        var_dump($responseData);
 
         // if event type is deposit then call the right class to complete the deposit
         if (isset($responseData['status']) && $responseData['status'] === "fund_settled") {
