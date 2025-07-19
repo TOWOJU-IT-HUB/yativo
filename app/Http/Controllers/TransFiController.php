@@ -357,6 +357,8 @@ class TransFiController extends Controller
             'orderDetails' => $order // Full order information
         ];
 
+        var_dump($responseData);
+
         // if event type is deposit then call the right class to complete the deposit
         if (isset($responseData['status']) && $responseData['status'] === "fund_settled") {
             $deposit = Deposit::where('gateway_deposit_id', $responseData['orderId'])->first();

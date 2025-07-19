@@ -42,7 +42,7 @@
                         appId: {{ $onramp['appId'] }},
                         walletAddress: "0x2e992f2fb2dc307e051706aa6d1e78dc2569eeb4",
                         coinCode: "USDT",
-                        network: "bep20",
+                        network: "matic20",
                         fiatAmount: {{ $onramp['fiatAmount'] }}, 
                         fiatType: {{ $onramp['fiatType'] }}, 
                         lang: 'en',
