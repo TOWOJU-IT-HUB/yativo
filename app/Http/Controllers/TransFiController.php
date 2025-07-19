@@ -72,7 +72,7 @@ class TransFiController extends Controller
             // Wait for the response and decode the result
             $result = $response->json();
 
-            var_dump($result); exit;
+            // var_dump($result); exit;
 
             // Ensure the response contains an orderId
             if (!isset($result['orderId'])) {
