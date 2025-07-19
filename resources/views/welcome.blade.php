@@ -20,8 +20,9 @@
 <body class="font-sans antialiased dark:bg-black dark:text-white/50">
     @php
         $onramp = $checkout->provider_checkout_response['onramp'];
+        $deposit = \App\Models\Deposit::whereId($checkout->deposit_id)->first();
         echo "<pre>";
-        var_dump($checkout);
+        var_dump(['deposit' => $deposit, 'checkout' => $checkout]);
     @endphp
 
     <div class="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
