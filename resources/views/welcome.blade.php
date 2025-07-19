@@ -20,7 +20,7 @@
 <body class="font-sans antialiased dark:bg-black dark:text-white/50">
     @php
         $onramp = $checkout->provider_checkout_response['onramp'];
-        $deposit = \App\Models\Deposit::whereId($checkout->deposit_id)->first();
+        $deposit = \App\Models\Deposit::whereId($checkout->deposit_id)->with('depositGateway', 'transactions')->first();
         echo "<pre>";
         var_dump(['deposit' => $deposit, 'checkout' => $checkout]);
     @endphp
