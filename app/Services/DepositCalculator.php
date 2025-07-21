@@ -96,7 +96,7 @@ class DepositCalculator
             $creditedAmount = $creditedAmount / $adjustedRate;
         }
 
-        $exRate = $this->getAdjustedExchangeRate($depositCurrency, $payoutMethod['currency']) ?? $adjustedRate;
+        $exRate = $this->getAdjustedExchangeRate($depositCurrency, $payoutMethod['currency']);
 
         
         $result = [
@@ -108,6 +108,7 @@ class DepositCalculator
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
             'total_fees'         => round($totalFee, 2),
             'credited_amount'    => round($creditedAmount, 2),
+            'exchange_rate_usd_to_wallet_currency'      => $adjustedRate,
         ];
 
         session()->put("calculator_result", $result);
