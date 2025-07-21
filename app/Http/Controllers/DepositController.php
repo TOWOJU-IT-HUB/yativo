@@ -226,7 +226,7 @@ class DepositController extends Controller
             $deposit->receive_amount = floor($calc['credited_amount']);
             $deposit->customer_id = $request->customer_id ?? null;
 
-            $totalAmount = $calc['amount'];
+            $totalAmount = $calc['credited_amount'] + $calc['total_fees'];
 
             if ($deposit->save()) {
                 $arr['payment_info'] = [
