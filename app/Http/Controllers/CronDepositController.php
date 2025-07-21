@@ -97,7 +97,7 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $response = $vitawallet->getTransaction($deposit->gateway_deposit_id);
-            Log::info("Response from getting vitawallet transaction: ", ['vita' => $response]);
+            // Log::info("Response from getting vitawallet transaction: ", ['vita' => $response]);
 
             // Ensure response is properly decoded as an array
             if (is_object($response)) {
@@ -105,7 +105,7 @@ class CronDepositController extends Controller
             }
 
             if (!is_array($response) || !isset($response['transactions'][0]['attributes'])) {
-                Log::warning("Invalid VitaWallet response", ['deposit_id' => $deposit->id, 'response' => $response]);
+                // Log::warning("Invalid VitaWallet response", ['deposit_id' => $deposit->id, 'response' => $response]);
                 continue;
             }
 
@@ -113,7 +113,7 @@ class CronDepositController extends Controller
 
             // Ensure 'order' exists in the payload
             if (!isset($payload['order'])) {
-                Log::warning("VitaWallet transaction missing 'order'", ['deposit_id' => $deposit->id, 'payload' => $payload]);
+                // Log::warning("VitaWallet transaction missing 'order'", ['deposit_id' => $deposit->id, 'payload' => $payload]);
                 continue;
             }
 

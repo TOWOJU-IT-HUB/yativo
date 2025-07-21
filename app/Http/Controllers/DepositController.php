@@ -236,7 +236,7 @@ class DepositController extends Controller
                     "transaction_fee" => round($calc['total_fees'], 4) . " " . strtoupper($gateway->currency),
                     "payment_method" => $gateway->method_name,
                     "estimate_delivery_time" => formatSettlementTime($gateway->settlement_time),
-                    "total_amount_due" => round($totalAmount, 4) . " " . strtoupper($gateway->currency),
+                    "total_amount_due" => round($request->amount, 4) . " " . strtoupper($gateway->currency),
                     'calc' => $calc
                 ];
                 

@@ -22,7 +22,7 @@ class LogFailedWebhook
      */
     public function handle(object $event): void
     {
-        Log::info("Webhook Event has the following data", (array)$event);
+        // Log::info("Webhook Event has the following data", (array)$event);
         WebhookLog::create([
             'user_id' => $event->meta['_uid'] ?? null,
             'url' => $event->webhookUrl,

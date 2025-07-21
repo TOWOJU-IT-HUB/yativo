@@ -248,7 +248,7 @@ class DepositService
      */
     private function complete_deposit(Deposit $deposit, User $user, TransactionRecord $order, PayinMethods $payin)
     {
-        Log::info("deposit crediting for {$user->id}, Params: ", $deposit->toArray());
+        // Log::info("deposit crediting for {$user->id}, Params: ", $deposit->toArray());
         $wallet = $user->getWallet($deposit->deposit_currency);
         $credit_amount = $deposit->receive_amount;
 
