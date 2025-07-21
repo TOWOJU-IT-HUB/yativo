@@ -176,6 +176,7 @@ Route::group([], function () {
 })->withoutMiddleware(VerifyCsrfToken::class);
 
 Route::any('cron', [CronController::class, 'index'])->name('cron.index');
+Route::any('cron/deposit', [CronDepositController::class, 'index'])->name('cron.deposit');
 
 
 Route::post('process-paxos', [PaxosController::class, 'processPexos'])->name('process.pexos');
