@@ -214,6 +214,7 @@ class MiscController extends Controller
                 if($request->amount < $method->minimum_deposit) {
                     return get_error_response(['error' => "A minimum amount of {$method->minimum_deposit}{$method->currency} is require"]);
                 }
+                
                 $calculator = new DepositCalculator($method->toArray());
                 $result = $calculator->calculate(
                     floatval($request->amount)
@@ -222,7 +223,7 @@ class MiscController extends Controller
                 return get_success_response(array_merge($result, [
                     'from_currency' => $request->from_currency, 
                     "to_currency" => $request->to_currency,
-                    // "gateway" => $method
+                    "gateway" => $method
                 ]));
             }
     

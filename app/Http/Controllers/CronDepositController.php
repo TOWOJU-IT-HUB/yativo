@@ -26,6 +26,7 @@ class CronDepositController extends Controller
         $this->onramp();
         $this->bitso();
         $this->getFloidStatus();
+        $this->markExpiredDeposits();
     }
 
 

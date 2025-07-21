@@ -64,7 +64,7 @@ class DepositService
             // session()->put('payin_object', $paymentMethods);
             if ($paymentMethods) {
                 $model = strtolower($paymentMethods->gateway);
-                $result = self::$model($send['id'], $amount, $currency, $txn_type, $paymentMethods);
+                $result = self::$model($send['id'], $send['amount'], $currency, $txn_type, $paymentMethods);
             }
 
             switch ($txn_type) {
@@ -250,10 +250,10 @@ class DepositService
     {
         Log::info("deposit crediting for {$user->id}, Params: ", $deposit->toArray());
         $wallet = $user->getWallet($deposit->deposit_currency);
-        $credit_amount = $deposit->amount;
+        $credit_amount = $deposit->receive_amount;
 
         $get_rate = exchange_rates(strtoupper($payin->currency), strtoupper($deposit->deposit_currency));
-        $credit_amount = ($get_rate * $deposit->amount) * 100;
+        $credit_amount = ($get_rate * $deposit->receive_amount) * 100;
 
         // top up the customer 
 
