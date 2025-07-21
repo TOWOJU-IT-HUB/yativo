@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Modules\Customer\app\Models\Customer;
+use Log;
 
 class TransFiController extends Controller
 {

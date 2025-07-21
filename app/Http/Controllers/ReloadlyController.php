@@ -89,7 +89,7 @@ class ReloadlyController extends Controller
         ]);
     
         if ($validator->fails()) {
-            return get_error_response($validator->errors(), 422,"Validation Error");
+            return get_error_response($validator->errors()->toArray(), 422,"Validation Error");
         }
     
         $validated = $validator->validated();
