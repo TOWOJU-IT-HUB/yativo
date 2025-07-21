@@ -19,14 +19,14 @@ class DepositCalculator
     /**
      * Get adjusted USD to quote currency rate with markup
      */
-    public function getAdjustedExchangeRate(): float
+    public function getAdjustedExchangeRate($from = null, $to = null): float
     {
         $currency = $this->gateway['currency'];
         $floatMarkup = $this->gateway['exchange_rate_float'] ?? 0;
 
         $response = Http::get('https://min-api.cryptocompare.com/data/price', [
-            'fsym' => 'USD',
-            'tsyms' => $currency
+            'fsym' => $from ?? 'USD',
+            'tsyms' => $to ?? $currency
         ]);
 
         if (!$response->ok() || !isset($response[$currency])) {
@@ -96,7 +96,7 @@ class DepositCalculator
             $creditedAmount = $creditedAmount / $adjustedRate;
         }
 
-        $exRate = session()->get('rawRate') ?? $adjustedRate;
+        $exRate = $this->getAdjustedExchangeRate($depositCurrency, $payoutMethod['currency']) ?? $adjustedRate;
 
         
         $result = [
