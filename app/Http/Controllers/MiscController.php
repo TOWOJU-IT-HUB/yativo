@@ -210,12 +210,68 @@ class MiscController extends Controller
                 floatval($method->exchange_rate_float ?? 0)
             );
 
+            $user = $request->user();
+
             if($request->method_type == 'payin') {
                 if($request->amount < $method->minimum_deposit) {
                     return get_error_response(['error' => "A minimum amount of {$method->minimum_deposit}{$method->currency} is require"]);
                 }
+
+
+                // Get user plan and charges
+                $user_plan = 1;
+                if (!$user->hasActiveSubscription()) {
+                    $plan = PlanModel::where('price', 0)->latest()->first();
+                    if ($plan) {
+                        $user->subscribeTo($plan, 30, true);
+                    }
+                }
+
+                $subscription = $user->activeSubscription();
+                if ($subscription) {
+                    $user_plan = (int) $subscription->plan_id;
+                }
+
+                $fixed_charge = $float_charge = 0;
+
+                if ($user_plan === 3) {
+                    $customPricing = CustomPricing::where('user_id', $user->id)
+                        ->where([
+                            'gateway_id' => $method->id,
+                            'gateway_type' => 'payin',
+                        ])->first();
+
+                    if ($customPricing) {
+                        $fixed_charge = $customPricing->fixed_charge;
+                        $float_charge = $customPricing->float_charge;
+                    } else {
+                        $user_plan = 2;
+                    }
+                }
+
+                if ($user_plan === 1) {
+                    $fixed_charge = $method->fixed_charge;
+                    $float_charge = $method->float_charge;
+                } elseif ($user_plan === 2) {
+                    $fixed_charge = $method->pro_fixed_charge;
+                    $float_charge = $method->pro_float_charge;
+                }
+
+                // Prepare gateway config for calculator
+                $gatewayConfig = [
+                    'method_name'         => $method->method_name,
+                    'gateway'             => $method->gateway,
+                    'country'             => $method->country,
+                    'currency'            => $method->currency,
+                    'charges_type'        => 'combined',
+                    'fixed_charge'        => $fixed_charge,
+                    'float_charge'        => $float_charge,
+                    'exchange_rate_float' => $method->exchange_rate_float ?? 0,
+                    'minimum_charge'      => $method->minimum_charge ?? 0,
+                    'maximum_charge'      => $method->maximum_charge ?? 0,
+                ];
                 
-                $calculator = new DepositCalculator($method->toArray());
+                $calculator = new DepositCalculator($gatewayConfig);
                 $result = $calculator->calculate(
                     floatval($request->amount)
                 );
@@ -223,7 +279,7 @@ class MiscController extends Controller
                 return get_success_response(array_merge($result, [
                     'from_currency' => $request->from_currency, 
                     "to_currency" => $request->to_currency,
-                    "gateway" => $method
+                    // "gateway" => $method
                 ]));
             }
     
