@@ -76,7 +76,8 @@ class TransFiController extends Controller
 
             // Ensure the response contains an orderId
             if (!isset($result['orderId'])) {
-                return ['error' => 'Failed to process the transaction. Missing order ID in response.'];
+                Log::info("Transfi response: ", ['error_response' => $result]);
+                return ['error' => 'Failed to process the transaction. please contact support.'];
             }
 
             // Update deposit gateway ID
