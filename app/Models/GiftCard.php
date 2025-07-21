@@ -29,6 +29,7 @@ class GiftCard extends Model
         'purchase_data' => 'array',
         'pre_ordered' => 'boolean',
         'transaction_created_at' => 'datetime',
+        "redeem_instructions" => "array"
     ];
 
     /**

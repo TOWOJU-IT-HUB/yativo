@@ -174,8 +174,8 @@ class ReloadlyController extends Controller
                 'recipient_email' => $request->recipientEmail,
                 'custom_identifier' => $validated['customIdentifier'],
                 'pre_ordered' => true,
-                'purchase_data' => json_encode($response),
-                'redeem_instructions' => '',
+                'purchase_data' => $response,
+                'redeem_instructions' => $product->redeem_instruction_verbose,
                 'transaction_created_at' => now(),
             ]);
 
@@ -292,7 +292,7 @@ class ReloadlyController extends Controller
      */
     public function webhook(Request $request)
     {
-        $allowedIPs = ['3.227.182.193'];
+        $allowedIPs = ['3.227.182.193','54.84.138.60'];
         $clientIP   = $request->ip();
 
         if (! in_array($clientIP, $allowedIPs)) {
