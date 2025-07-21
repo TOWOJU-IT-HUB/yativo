@@ -97,7 +97,7 @@ class BitHonorController extends Controller
             return ['error' => 'Exception occurred while retrieving payment order'];
         }
     }
-
+        
     public function webhook(Request $request)
     {
         try {
@@ -116,7 +116,10 @@ class BitHonorController extends Controller
             $payout = Withdraws::where('payment_gateway_id', $data['ticket_id'])->first();
 
             if (! $payout || $payout->status != 'pending') {
-                Log::warning("BitHonor webhook: Payout not found", ['ticket_id' => $data['ticket_id']]);
+                Log::warning("BitHonor webhook: Payout not found or already processed", [
+                    'ticket_id' => $data['ticket_id'],
+                    'status' => $payout?->status,
+                ]);
                 return response()->json(['error' => 'Payout completed or not found'], 404);
             }
 
@@ -130,20 +133,34 @@ class BitHonorController extends Controller
                 return response()->json(['error' => 'Transaction not found'], 404);
             }
 
-            // Process based on status
-            if ($data['status'] === 'PAID') {
-                $transaction->transaction_status = 'complete';
-                $payout->status = 'complete';
-            } elseif ($data['status'] === 'CANCELLED' || $data['status'] === 'FAILED') {
-                $transaction->transaction_status = strtolower($data['status']);
-                $payout->status = strtolower($data['status']);
+            // Process based on new status values
+            switch (strtoupper($data['status'])) {
+                case 'ENCOLADA':
+                    $transaction->transaction_status = 'processing';
+                    $payout->status = 'processing';
+                    break;
 
-                // Optional: Refund user wallet here if needed
-                $user = $payout->user;
-                $user->wallet->deposit($payout->amount * 100, ['description' => 'Payout refund']);
-            } else {
-                Log::warning("BitHonor webhook: Unknown status", ['status' => $data['status']]);
-                return response()->json(['error' => 'Unknown status'], 400);
+                case 'PAGADA':
+                    $transaction->transaction_status = 'complete';
+                    $payout->status = 'complete';
+                    break;
+
+                case 'CANCELADA':
+                    $transaction->transaction_status = 'cancelled';
+                    $payout->status = 'cancelled';
+
+                    // Optional: Refund wallet
+                    $user = $payout->user;
+                    if ($user && $user->wallet) {
+                        $user->wallet->deposit($payout->amount * 100, [
+                            'description' => 'Payout refund'
+                        ]);
+                    }
+                    break;
+
+                default:
+                    Log::warning("BitHonor webhook: Unknown status received", ['status' => $data['status']]);
+                    return response()->json(['error' => 'Unknown status'], 400);
             }
 
             $transaction->save();
@@ -160,5 +177,4 @@ class BitHonorController extends Controller
             return response()->json(['error' => 'Internal server error'], 500);
         }
     }
-
 }
