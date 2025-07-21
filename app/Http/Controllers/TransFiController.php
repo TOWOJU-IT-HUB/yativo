@@ -84,7 +84,7 @@ class TransFiController extends Controller
             // Update deposit gateway ID
             update_deposit_gateway_id($deposit_id, $result['orderId']);
 
-            return $result;
+            return ['url' => $result['paymentUrl']];
         } catch (\Exception $e) {
             return ['error' => 'Transaction processing failed: ' . $e->getMessage()];
         }
