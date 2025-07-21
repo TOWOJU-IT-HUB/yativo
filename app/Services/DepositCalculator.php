@@ -96,11 +96,14 @@ class DepositCalculator
             $creditedAmount = $creditedAmount / $adjustedRate;
         }
 
+        $exRate = session()->get('rawRate') ?? $adjustedRate;
+
+        
         $result = [
             'deposit_amount'     => round($depositAmount, 2),
             'fixed_fee'          => round($fixedFeeInQuote, 2),
             'float_fee'          => round($percentageFee, 2),
-            'exchange_rate'      => session()->get('rawRate') ?? $adjustedRate,
+            'exchange_rate'      => $exRate,
             'percentage_fee'     => round($percentageFee, 2),
             'fixed_fee_in_quote' => round($fixedFeeInQuote, 2),
             'total_fees'         => round($totalFee, 2),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Business;
 use App\Models\City;
 use App\Models\Country;
+use App\Models\CustomPricing;
 use App\Models\ExchangeRate;
 use App\Models\JurisdictionCodes;
 use App\Models\PayinMethods;
