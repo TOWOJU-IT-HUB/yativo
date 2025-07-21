@@ -46,7 +46,6 @@ class CronController extends Controller
 
         // handle USD virtual account deposits
         $this->checkForBridgeVirtualAccountDeposits();
-        $this->markExpiredDeposits();
         // fetch virtual cards and pull card details
 
         $vcards = new CustomerVirtualCardsController();
@@ -540,35 +539,4 @@ class CronController extends Controller
             ]);
         }
     }
-
-    protected function markExpiredDeposits()
-    {
-        $now = Carbon::now();
-        // Fetch all deposits that are still pending
-        $deposits = Deposit::where('status', 'pending')->get();
-        foreach ($deposits as $deposit) {
-            // Try to get the associated payment gateway
-            $gateway = PayinMethods::find($deposit->payment_gateway_id);
-
-            if (!$gateway) {
-                // If gateway is not found, mark deposit as void
-                $deposit->status = 'void';
-                $deposit->save();
-                continue;
-            }
-
-            // If expiration_time is null, skip this deposit
-            if (!$gateway->expiration_time) {
-                continue;
-            }
-
-            $expiresAt = $deposit->created_at->copy()->addMinutes($gateway->expiration_time);
-
-            if ($now->greaterThanOrEqualTo($expiresAt)) {
-                $deposit->status = 'expired';
-                $deposit->save();
-            }
-        }
-    }
-
 }

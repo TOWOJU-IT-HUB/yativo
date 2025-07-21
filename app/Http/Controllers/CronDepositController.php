@@ -18,6 +18,17 @@ use Illuminate\Support\Facades\Http;
 
 class CronDepositController extends Controller
 {
+    public function index()
+    {
+        $this->brla();
+        $this->vitawallet();
+        $this->transfi();
+        $this->onramp();
+        $this->bitso();
+        $this->getFloidStatus();
+    }
+
+
     public function brla()
     {
         $ids = $this->getGatewayPayinMethods('brla');
@@ -84,6 +95,7 @@ class CronDepositController extends Controller
 
         foreach ($deposits as $deposit) {
             $response = $vitawallet->getTransaction($deposit->gateway_deposit_id);
+            Log::info("Response from getting vitawallet transaction: ", ['vita' => $response]);
 
             // Ensure response is properly decoded as an array
             if (is_object($response)) {
@@ -91,7 +103,7 @@ class CronDepositController extends Controller
             }
 
             if (!is_array($response) || !isset($response['transactions'][0]['attributes'])) {
-                // \Log::warning("Invalid VitaWallet response", ['deposit_id' => $deposit->id, 'response' => $response]);
+                Log::warning("Invalid VitaWallet response", ['deposit_id' => $deposit->id, 'response' => $response]);
                 continue;
             }
 
@@ -99,7 +111,7 @@ class CronDepositController extends Controller
 
             // Ensure 'order' exists in the payload
             if (!isset($payload['order'])) {
-                // \Log::warning("VitaWallet transaction missing 'order'", ['deposit_id' => $deposit->id, 'payload' => $payload]);
+                Log::warning("VitaWallet transaction missing 'order'", ['deposit_id' => $deposit->id, 'payload' => $payload]);
                 continue;
             }
 
@@ -387,4 +399,40 @@ class CronDepositController extends Controller
     {
         //
     }
+
+    protected function markExpiredDeposits()
+    {
+        $now = Carbon::now();
+        
+        // Fetch all deposits that are still pending
+        $deposits = Deposit::where('status', 'pending')->get();
+
+
+        foreach ($deposits as $deposit) {
+            // Try to get the associated payment gateway
+            $gateway = PayinMethods::find($deposit->gateway);
+
+            // If gateway not found or expiration_time is not set, skip this deposit
+            if (!$gateway || !$gateway->expiration_time) {
+                continue;
+            }
+
+            $expiresAt = $deposit->created_at->copy()->addMinutes($gateway->expiration_time);
+
+            // If current time is past the expiration time, mark deposit as expired
+            if ($now->greaterThanOrEqualTo($expiresAt)) {
+                $deposit->status = 'expired';
+                $deposit->save();
+
+                // Find related transaction
+                $transaction = TransactionRecord::where('transaction_id', $deposit->id)
+                    ->where('transaction_memo', 'payin')
+                    ->first();
+
+                $transaction->transaction_status = 'expired';
+                $transaction->save();
+            }
+        }
+    }
+
 }

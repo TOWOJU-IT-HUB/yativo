@@ -205,7 +205,7 @@ class VitaWalletController extends Controller
                 "Authorization" => $headers['headers']["Authorization"],
             ])->get(Configuration::getTransactionsUrl($txn_id));
 
-            // Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
+            Log::info("response from vitawallet for {$txn_id} is ", ['response' => $response]);
             $result = $response->json();
             return $result;
         }
@@ -315,5 +315,28 @@ class VitaWalletController extends Controller
             "raw_data" => (array) $response,
             "tracking_updated_by" => "webhook"
         ]);
+    }
+
+    public function getPayin($depositId)
+    {
+        // getPaymentOrderUrl        
+        if($depositId && !empty($depositId)) {
+            $configuration = Configuration::getInstance();
+            // Prepare headers
+            $headers = $configuration->prepareHeaders();
+
+            // Prepare HTTP request
+            $response = Http::withHeaders([
+                "X-Date" => $headers['headers']["X-Date"],
+                "X-Login" => $headers['headers']["X-Login"],
+                "X-Trans-Key" => $headers['headers']["X-Trans-Key"],
+                "Content-Type" => $headers['headers']["Content-Type"],
+                "Authorization" => $headers['headers']["Authorization"],
+            ])->get(Configuration::getPaymentOrderUrl($depositId));
+
+            Log::info("response from vitawallet for {$depositId} is ", ['response' => $response]);
+            $result = $response->json();
+            return $result;
+        }
     }
 }
