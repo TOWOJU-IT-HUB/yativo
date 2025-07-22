@@ -255,7 +255,7 @@ class TransFiController extends Controller
                 'email'      => 'required|email',
                 'phone'      => 'nullable|string',
                 'gender'     => 'nullable|in:male,female,other',
-                'customer_id'=> 'required|exists:customer,customer_id',
+                'customer_id'=> 'required|exists:customers,customer_id',
                 'address.street_line_1' => 'required|string|max:255',
                 'address.city'          => 'required|string|max:255',
                 'address.subdivision'   => 'nullable|string|max:255',
@@ -315,10 +315,11 @@ class TransFiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'business_legal_name'           => 'required|string|max:255',
-                'email'                         => 'required|email',
-                'business_mobile'               => 'required|string|max:20',
-                'business_type'                 => 'required|string|max:255',
+                'business_legal_name'  => 'required|string|max:255',
+                'email'                => 'required|email',
+                'business_mobile'      => 'required|string|max:20',
+                'business_type'        => 'required|string|max:255',
+                'customer_id'          => 'required|exists:customers,customer_id',
                 'registered_address.street_line_1' => 'required|string|max:255',
                 'registered_address.city'          => 'required|string|max:255',
                 'registered_address.subdivision'   => 'nullable|string|max:255',
