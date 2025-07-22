@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Modules\Customer\app\Models\Customer;
 use Log;
+use Illuminate\Support\Facades\Validator;
 
 class TransFiController extends Controller
 {
