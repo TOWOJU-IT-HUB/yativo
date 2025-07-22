@@ -196,11 +196,10 @@ class TransFiController extends Controller
         }
     }
 
-    public function kycForm($incoming)
+    public function kycForm(Request $request)
     {
         try {
-            $request = (object)$incoming;
-            $user = auth()->user();
+            $user = $this->getCustomerInfo();
             $transfi_user_id = $user->transfi_user_id ?? $this->processUserType($request);
 
             if (isset($transfi_user_id['error'])) {
@@ -217,20 +216,20 @@ class TransFiController extends Controller
                     'idDocExpiryDate' => $request->identifying_information[0]['number'] ?? null,
                     'idDocUserName' => "{$request->first_name} {$request->last_name}",
                     'idDocType' => $request->identifying_information[0]['type'] ?? 'id_card',
-                    'idDocFrontSide' => MiscController::uploadBase64ImageToCloudflare($request->documents[0]['file'] ?? null),
-                    'idDocBackSide' => MiscController::uploadBase64ImageToCloudflare($request->documents[1]['file'] ?? null),
-                    'selfie' => MiscController::uploadBase64ImageToCloudflare($request->selfieimage),
+                    'idDocFrontSide' => $request->idDocFrontSide, 
+                    'idDocBackSide' => $request->idDocBackSide ?? $request->idDocFrontSide, 
+                    'selfie' => $request->selfie,
                     'gender' => $request->gender ?? null,
                     'phoneNo' => $request->phone ?? null,
-                    'idDocIssuerCountry' => $request->identifying_information[0]['issuing_country'] ?? null,
+                    'idDocIssuerCountry' => $request->idDocIssuerCountry,
                     'street' => $request->address['street_line_1'],
                     'city' => $request->address['city'],
                     'state' => $request->address['subdivision'] ?? null,
                     'country' => $request->address['country'],
                     'dob' => $request->birth_date,
                     'postalCode' => $request->address['postal_code'],
-                    'firstName' => $request->first_name,
-                    'lastName' => $request->last_name,
+                    'firstName' => $user->first_name,
+                    'lastName' => $user->last_name,
                     'userId' => $transfi_user_id,
                     'nationality' => $request->address['country'],
                 ]
@@ -245,22 +244,44 @@ class TransFiController extends Controller
         }
     }
 
-    private function addCustomer($request)
+    public function addCustomer(Request $request)
     {
         try {
+            $validator = Validator::make($request->all(), [
+                'first_name' => 'required|string|max:255',
+                'last_name'  => 'required|string|max:255',
+                'birth_date' => 'required|date',
+                'email'      => 'required|email',
+                'phone'      => 'nullable|string',
+                'gender'     => 'nullable|in:male,female,other',
+                'customer_id'=> 'required|exists:customer,customer_id',
+                'address.street_line_1' => 'required|string|max:255',
+                'address.city'          => 'required|string|max:255',
+                'address.subdivision'   => 'nullable|string|max:255',
+                'address.country'       => 'required|string|size:3', // ISO3
+                'address.postal_code'   => 'required|string|max:20',
+            ]);
+
+            if ($validator->fails()) {
+                return get_error_response([
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             $user = auth()->user();
+
             $userData = [
                 'firstName' => $request->first_name,
-                'lastName' => $request->last_name,
-                'date' => $request->birth_date,
-                'email' => $request->email,
-                'country' => $request->address['country'],
-                'gender' => $request->gender ?? null,
-                'phone' => $request->phone ?? null,
-                'address' => [
-                    'street' => $request->address['street_line_1'],
-                    'city' => $request->address['city'],
-                    'state' => $request->address['subdivision'] ?? null,
+                'lastName'  => $request->last_name,
+                'date'      => $request->birth_date,
+                'email'     => $request->email,
+                'country'   => $request->address['country'],
+                'gender'    => $request->gender,
+                'phone'     => $request->phone,
+                'address'   => [
+                    'street'     => $request->address['street_line_1'],
+                    'city'       => $request->address['city'],
+                    'state'      => $request->address['subdivision'] ?? null,
                     'postalCode' => $request->address['postal_code'],
                 ],
             ];
@@ -273,32 +294,55 @@ class TransFiController extends Controller
             if ($response->successful()) {
                 $result = $response->json();
                 $user->update(['transfi_user_id' => $result['userId']]);
-                return $result['userId'];
-            } else {
-                return [
-                    'error' => $response->status(),
-                    'message' => $response->body(),
-                ];
+                return get_success_response(['userId' => $result['userId']], 201, "Customer created successfully");
             }
+
+            return get_error_response([
+                'error' => $response->status(),
+                'message' => $response->body(),
+            ]);
+
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
+            return get_error_response([
+                'error' => $th->getMessage(),
+                'trace' => config('app.debug') ? $th->getTrace() : []
+            ]);
         }
     }
 
-    public function addBusiness($request)
+    public function addBusiness(Request $request)
     {
         try {
+            $validator = Validator::make($request->all(), [
+                'business_legal_name'           => 'required|string|max:255',
+                'email'                         => 'required|email',
+                'business_mobile'               => 'required|string|max:20',
+                'business_type'                 => 'required|string|max:255',
+                'registered_address.street_line_1' => 'required|string|max:255',
+                'registered_address.city'          => 'required|string|max:255',
+                'registered_address.subdivision'   => 'nullable|string|max:255',
+                'registered_address.country'       => 'required|string|size:3',
+                'registered_address.postal_code'   => 'required|string|max:20',
+            ]);
+
+            if ($validator->fails()) {
+                return get_error_response([
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             $user = auth()->user();
+
             $userData = [
                 'businessName' => $request->business_legal_name,
-                'email' => $request->email,
-                'country' => $request->registered_address['country'],
-                'phone' => $request->business_mobile,
-                'regNo' => $request->business_type,
-                'address' => [
-                    'street' => $request->registered_address['street_line_1'],
-                    'city' => $request->registered_address['city'],
-                    'state' => $request->registered_address['subdivision'] ?? null,
+                'email'        => $request->email,
+                'country'      => $request->registered_address['country'],
+                'phone'        => $request->business_mobile,
+                'regNo'        => $request->business_type,
+                'address'      => [
+                    'street'     => $request->registered_address['street_line_1'],
+                    'city'       => $request->registered_address['city'],
+                    'state'      => $request->registered_address['subdivision'] ?? null,
                     'postalCode' => $request->registered_address['postal_code'],
                 ],
             ];
@@ -311,15 +355,19 @@ class TransFiController extends Controller
             if ($response->successful()) {
                 $result = $response->json();
                 $user->update(['transfi_user_id' => $result['userId']]);
-                return $result;
-            } else {
-                return [
-                    'error' => $response->status(),
-                    'message' => $response->body(),
-                ];
+                return get_success_response($result, 201, "Business customer created successfully");
             }
+
+            return get_error_response([
+                'error' => $response->status(),
+                'message' => $response->body(),
+            ]);
+
         } catch (\Throwable $th) {
-            return ['error' => $th->getMessage(), 'message' => $th->getMessage()];
+            return get_error_response([
+                'error' => $th->getMessage(),
+                'trace' => config('app.debug') ? $th->getTrace() : []
+            ]);
         }
     }
 

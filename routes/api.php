@@ -102,6 +102,11 @@ Route::middleware(['auth:api', 'kyc_check', IdempotencyMiddleware::class])->pref
         Route::post('finalize-payout', [BitnobOffRampController::class, 'finalizePayout']);
     });
 
+    Route::prefix('transfi')->group(function () {
+        Route::post('customer', [TransFiController::class, 'addCustomer']);
+        Route::post('business', [TransFiController::class, 'addBusiness']);
+    });
+
     Route::prefix('crypto')->group(function () {
         Route::post('create-wallet', [CryptoWalletsController::class, 'createWallet']);
         Route::get('get-wallets', [CryptoWalletsController::class, 'getWallets']);
