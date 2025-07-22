@@ -22,6 +22,7 @@ use App\Http\Controllers\PinVerificationController;
 use App\Http\Controllers\ReloadlyController;
 use App\Http\Controllers\TrackController;
 use App\Http\Controllers\TransactionRecordController;
+use App\Http\Controllers\TransFiController;
 use App\Http\Controllers\UserMetaController;
 use App\Http\Controllers\WalletController;
 use App\Http\Controllers\WhitelistedIPController;
